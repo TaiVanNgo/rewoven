@@ -50,11 +50,11 @@ export default function Home() {
               companion={
                 <aside
                   aria-label="Meet Wren"
-                  className="mx-auto flex w-full max-w-[310px] flex-col items-center"
+                  className="mx-auto flex w-full max-w-77.5 flex-col items-center"
                 >
                   <div className="w-full rounded-panel border border-line bg-surface-soft p-3.5 shadow-panel">
                     <Image
-                      src="/images/wren.jpg"
+                      src="/images/wren.png"
                       width={512}
                       height={512}
                       preload
