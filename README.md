@@ -4,9 +4,11 @@ Rewoven helps delivery teams find relevant past projects, understand what change
 
 The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. It is a frontend preview: case ingestion, retrieval, AI analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
-The homepage includes the request composer, optional constraints, three fictional sample requests, Wren’s illustration, and a collapsible desktop sidebar. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** shows an inline message explaining that retrieval is not connected. Case library and Saved plans show availability messages rather than opening another page. Requests and constraints remain in the current page only and reset on reload; nothing is sent to a backend or saved to browser storage.
+The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library and Saved plans currently contain headings and preview empty states; browsing cases, uploads, and saving plans are not implemented.
 
-To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. On desktop, use the sidebar toggle to collapse or expand navigation. Stop the dev server with Ctrl+C.
+The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** shows an inline message explaining that retrieval is not connected. The request and all constraints stay in memory while navigating between the workspace pages, then reset on reload or closing the tab. Drafts are not sent to a backend or saved to browser storage.
+
+To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. Use the sidebar links to visit the other pages and return without losing your draft. On desktop, use the sidebar toggle to collapse or expand navigation; its state survives navigation too. Use **Change theme** in the workspace header to choose Light, Dark, or System. Stop the dev server with Ctrl+C.
 
 ## Quick start
 
@@ -49,7 +51,7 @@ bun run devx
 `devx` waits for Supabase startup and bucket provisioning to succeed before starting Next.js. Supabase runs in background containers; Next.js stays attached to your terminal. Use `bun run dev` when you only need the frontend.
 
 Open the URL printed by the dev server (usually `http://localhost:3000`). Edit
-`src/app/page.tsx` and save to see changes through Fast Refresh. Stop the server
+`src/app/(workspace)/page.tsx` and save to see changes through Fast Refresh. Stop the server
 with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx --port 3001` (or `bun run dev --port 3001` for the frontend alone).
 
 Open Supabase Studio at the URL printed by `db:status` (normally `http://127.0.0.1:54323`) to inspect local data and storage. Stop Supabase with `bun run db:stop`; this preserves local data. Each developer runs their own instance. The hosted demo's data and files are separate.
@@ -66,6 +68,7 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [ ] On each machine, create `.env.local` using the quick-start instructions.
 - [x] Replace the demo homepage and favicon with the product interface and branding.
 - [x] Remove `MotionDemo` when replacing the homepage.
+- [x] Establish shared workspace routes, shadcn primitives, and Light / Dark / System themes.
 - [ ] Implement case ingestion, retrieval, AI analysis, and plan persistence; choose and configure the AI provider before building that integration.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
@@ -94,7 +97,7 @@ The current foundation does not need database credentials or an AI API key to ru
 
 ## Formatting and Tailwind class sorting
 
-Prettier handles formatting through the official `prettier-plugin-tailwindcss` plugin. Biome's formatter is disabled; Biome still checks code quality and import organization. Run `bun run format` to format the project, or `bunx prettier --write src/app/page.tsx` to format one file.
+Prettier handles formatting through the official `prettier-plugin-tailwindcss` plugin. Biome's formatter is disabled; Biome still checks code quality and import organization. Run `bun run format` to format the project, or `bunx prettier --write 'src/app/(workspace)/page.tsx'` to format one file.
 
 In VS Code or Cursor, install the recommended **Prettier - Code formatter** and **Biome** extensions. The committed `.vscode/settings.json` enables Prettier on save and Biome import organization on explicit saves. The CLI commands work without editor extensions.
 
@@ -106,64 +109,84 @@ Markdown prose wrapping is set to `preserve`, so formatting retains your existin
 
 ```text
 src/app/
-  layout.tsx       Root HTML layout, fonts, and default metadata
-  page.tsx         Home route (/)
-  globals.css      Tailwind import, theme tokens, and global styles
-  icon.svg         Rewoven brand icon used by browser tabs
-  robots.ts        Crawler instructions and sitemap discovery
-  sitemap.ts       Public route list for search engines
-  opengraph-image.tsx  Generated social-sharing image
-src/lib/
-  site.ts          Shared site identity and indexing configuration
-  seo.ts           Per-page canonical and social metadata helper
-  motion.ts        Shared interaction and sidebar transition presets
-  request-samples.ts  Fictional request examples and category styles
+  layout.tsx                Root HTML, fonts, theme/Motion providers, metadata
+  (workspace)/
+    layout.tsx              Shared workspace and in-memory draft provider
+    page.tsx                New request (/)
+    case-library/page.tsx   Case library (/case-library)
+    saved-plans/page.tsx    Saved plans (/saved-plans)
+  globals.css               Tailwind, light/dark tokens, focus and motion policy
+  icon.png                  Portrait favicon
+  robots.ts                 Crawler instructions
+  sitemap.ts                Public route list, subject to indexing policy
+  opengraph-image.tsx        Generated social-sharing image
 src/components/
-  motion-provider.tsx  Shared animation defaults and reduced-motion policy
-  workspace-sidebar.tsx  Responsive navigation, collapse, and preview feedback
-  request-composer.tsx   Request fields, sample loading, and submission feedback
-  preview-action.tsx     Wren’s case-library preview action
-  icon.tsx              Local decorative SVG icons
-public/            Static assets, including rewoven.svg and images/wren.jpg
-next.config.ts     Next.js and Tailwind/Turbopack configuration
-biome.json         Linting and import organization configuration
-.prettierrc.json    Prettier and Tailwind class-sorting configuration
-.prettierignore     Files excluded from formatting
-.vscode/            Editor settings and extension recommendations
-tsconfig.json      TypeScript configuration; @/* resolves to src/*
-AGENTS.md          Workflow instructions for coding agents
-.agents/skills/    Optional guidance for compatible coding agents
-supabase/         Local service configuration, migrations, and seed data
+  ui/                       Shadcn primitives customized for Rewoven
+  workspace/                Sidebar, shell, page header, logo, theme dropdown
+  providers/                Theme and Motion providers
+src/features/requests/
+  request-composer.tsx       Form interactions and sample loading
+  request-draft.tsx          Draft type, provider, and access hook
+  request-samples.ts        Fictional request examples
+src/lib/
+  site.ts                   Site identity and indexing configuration
+  seo.ts                    Per-page canonical/social metadata helper
+  motion.ts                 Shared transition presets
+  utils.ts                  Shared cn() utility
+public/images/              rewoven-logo.png and wren.png
+components.json             Shadcn style, aliases, and registry configuration
+next.config.ts              Cache Components, prefetching, Tailwind integration
+biome.json                  Linting and import organization
+.prettierrc.json             Prettier and Tailwind class sorting
+.prettierignore              Formatting exclusions
+.vscode/                    Editor settings and recommendations
+tsconfig.json               TypeScript; @/* resolves to src/*
+AGENTS.md                   Agent development workflow
+.agents/skills/             Optional agent guidance
+supabase/                   Local service configuration and seed data
 ```
 
-Add a route with a file such as `src/app/about/page.tsx`. Use `src/components/`
-for shared UI or `src/lib/` for shared logic when needed. Keep pages and layouts as
-Server Components by default; use `"use client"` for components that need state,
-event handlers, or browser APIs.
+The `(workspace)` route group organizes related pages without adding a URL segment. Its layout keeps the sidebar and request-draft provider mounted during client navigation. Pages and the shared shell remain Server Components; Client Components own form state, sidebar collapse, and theme controls. Add another workspace route under this group when it needs the same frame.
 
-Tailwind v4 theme tokens live in `src/app/globals.css`. Rewoven uses a consistent light theme even when the system prefers dark mode: a pale green-gray canvas, white panels, charcoal text, and lime accents. Semantic utilities such as `bg-surface-soft`, `text-ink-muted`, `border-line`, and `rounded-panel` keep components aligned. Shared `.field` and `.action` classes standardize form controls; focus and selection styles apply globally.
+Request-specific UI and data live together in `src/features/requests/`. Generic controls live in `src/components/ui/`; shared workspace elements live in `src/components/workspace/`; cross-feature utilities live in `src/lib/`. Import modules directly instead of introducing barrel files or speculative folders.
 
 The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for headings and buttons, and JetBrains Mono for counters through `next/font/google`. Fonts are downloaded at build time and served locally to visitors. Font downloads require network access during a build; use local fonts if your build environment must work offline.
 
-The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens. The page and root layout remain Server Components; only stateful controls use Client Components, and the static Wren panel is passed into the composer as server-rendered content.
+The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens.
 
-`next.config.ts` enables Cache Components and Partial Prefetching and integrates
-Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before
-changing caching, runtime, or CSS configuration; older examples may use different
-APIs. Authentication, databases, shadcn components, test runners, and CI workflows
-are not configured in this baseline.
+`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. Local Supabase services and source storage are configured; application database access, authentication, test runners, and CI workflows are not implemented yet.
+
+## Shared UI with shadcn
+
+The project uses the official shadcn registry, the `base-nova` style, Base UI primitives, and Lucide icons. `components.json` records the configuration. The current CLI initializes this style with `--preset nova --base base`; the resulting configuration calls it `base-nova`.
+
+The UI primitives are source files owned by this repository, including Button, Input, Textarea, Field, Card, Empty, Badge, Separator, and DropdownMenu. Label is included as a dependency of Field. Base UI supplies interactive behavior, `class-variance-authority` supplies variants, and `cn()` merges conditional Tailwind classes. The `shadcn` and `tw-animate-css` stylesheet imports supply state variants and popup animations.
+
+Use existing primitives and variants before adding custom control markup. Rewoven’s navigation, sample-button, card, and category-badge variants are defined centrally in the UI files. Compose forms with FieldGroup, Field, and labeled controls. Use real Next.js Link elements with `buttonVariants()` for navigation; keep Button for actions. Use `cn()` for conditional classes and Lucide icons with accessible labels on icon-only controls.
+
+Before adding another component, check whether it already exists. Use the configured registry through Bun, for example `bunx --bun shadcn@latest add @shadcn/dialog`. Review generated files, preserve Rewoven’s styling, run `bun install`, and inspect both dependency and lockfile changes. Format the result and run the verification commands below. Do not reinitialize the project just to add a component.
+
+## Themes and design tokens
+
+Light / Dark / System is available through **Change theme** in every workspace page’s header. System is the default and follows live device preference changes. An explicit choice overrides the device and persists in local storage under `rewoven-theme`, including after a reload. Only the theme preference is persisted; request drafts stay in memory.
+
+`src/components/providers/theme-provider.tsx` uses `next-themes` to apply a `light` or `dark` class before the page paints. The root HTML permits that intentional class/style difference during hydration. Theme changes disable color transitions temporarily to avoid unrelated elements fading at different speeds.
+
+`src/app/globals.css` defines light values in `:root` and dark values in `.dark`, then exposes them as Tailwind semantic tokens. The light theme keeps the pale canvas, white panels, charcoal text, and lime accents. The dark theme uses deep green-gray surfaces and pale text, with dark text on lime primary actions. Inputs, muted text, badges, dropdowns, disabled states, and focus indicators use those same variables.
+
+Customize shared tokens or primitive variants for appearance; reserve page-level classes for layout. Keep the established fonts, named radii, and spacing scale. The supplied portrait is used unchanged for the sidebar logo and favicon; the existing full Wren illustration remains separate.
 
 ## Animations with Motion
 
-The project includes [`motion`](https://motion.dev/docs/react-installation), the current Motion for React package. `bun install --frozen-lockfile` installs the recorded version; no additional Next.js or Tailwind configuration is needed.
+The project includes [`motion`](https://motion.dev/docs/react-installation). `bun install --frozen-lockfile` installs the recorded versions of Motion and the UI dependencies; no additional Next.js configuration is needed.
 
-`src/components/motion-provider.tsx` wraps route content in `MotionConfig` through the root layout. Presets in `src/lib/motion.ts` use a 180ms interaction transition and a 240ms sidebar transition, with the same easing used by CSS hover states. Reuse these presets and the global theme tokens when adding controls.
+`src/components/providers/motion-provider.tsx` wraps route content in MotionConfig. Presets in `src/lib/motion.ts` use a 180ms interaction transition and a 240ms sidebar transition. CSS control transitions and dropdown animations use the same 180ms timing and interface easing.
 
-Motion is limited to responses to user actions: slight button press feedback and sidebar width changes. There is no automatic entrance sequence, and `initial={false}` keeps content visible before hydration. CSS handles color and border transitions. The sidebar expands when a collapsed navigation action needs to show preview feedback.
+Motion responds to user actions: subtle press feedback and sidebar width changes. There is no automatic entrance sequence. `initial={false}` keeps content visible before hydration, and the composer wraps shadcn Button with `motion.create()` for press feedback.
 
-`reducedMotion="user"` respects the visitor’s device preference. The composer uses `useReducedMotion` to remove press transforms and use immediate scrolling when loading samples. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations. Keep the same policy for future animated components.
+`reducedMotion="user"` respects the visitor’s device preference. The composer uses `useReducedMotion` to remove press transforms and use immediate sample scrolling. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations, including dropdown animations.
 
-Run `bun run dev` and open the printed URL. Try a sample, press the enabled search button, and toggle the desktop sidebar. Repeat with reduced motion enabled in your device or browser settings. Stop the server with Ctrl+C.
+Run `bun run dev` and open the printed URL. Try a sample, submit the request, navigate between pages, toggle the sidebar, and change themes. Repeat with reduced motion enabled in your device or browser settings. Stop the server with Ctrl+C.
 
 ## SEO setup
 
@@ -173,7 +196,7 @@ Copy `.env.example` to `.env.local` and set `SITE_URL` to your actual origin, in
 
 Without `SITE_URL`, canonical URLs and `og:url` are omitted, and social image URLs use `http://localhost:3000` for local development. To check images on another local port, set `SITE_URL` to that local origin and keep indexing off. `SITE_INDEXABLE=true` requires `SITE_URL`; development and Vercel preview builds still emit `noindex, nofollow`. Other hosting services should set `SITE_INDEXABLE=false` explicitly for their preview and staging builds. Indexing controls guide search engines; use authentication for private content.
 
-`robots.txt` allows crawling so search engines can read the page's `noindex` tag. It advertises the sitemap only when indexing is enabled. `/sitemap.xml` is empty while indexing is disabled; when enabled, it lists the homepage. Add each new public route to `src/app/sitemap.ts`; for dynamic content, use actual published URLs and modification dates rather than generating timestamps on every build. [Google's noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing) explains why blocking crawling would prevent search engines from seeing the tag.
+`robots.txt` allows crawling so search engines can read the page's `noindex` tag. It advertises the sitemap only when indexing is enabled. `/sitemap.xml` is empty while indexing is disabled; when enabled, it lists all three workspace routes. Add each new public route to `src/app/sitemap.ts`; for dynamic content, use actual published URLs and modification dates rather than generating timestamps on every build. [Google's noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing) explains why blocking crawling would prevent search engines from seeing the tag.
 
 For each new public page, export metadata with the helper and its own site-relative path. It keeps the page title, description, canonical URL, and social metadata aligned; the root layout intentionally has no homepage canonical for child routes to inherit.
 
@@ -187,7 +210,7 @@ export const metadata = createPageMetadata({
 });
 ```
 
-Add this to a real `src/app/about/page.tsx` when you create the route. With a configured origin, its title becomes `About | Your project` and its canonical points to `/about`. The helper includes complete Open Graph and Twitter fields because Next.js replaces nested metadata objects rather than deeply merging them. The generated image is inherited until you add a page-specific image file. For dynamic routes, call the same helper from `generateMetadata` using the resolved page data.
+Add this to a real `src/app/about/page.tsx` when you create the route. With a configured origin, its title becomes `About | Rewoven` and its canonical points to `/about`. The helper includes complete Open Graph and Twitter fields because Next.js replaces nested metadata objects rather than deeply merging them. The generated image is inherited until you add a page-specific image file. For dynamic routes, call the same helper from `generateMetadata` using the resolved page data.
 
 Before launch, inspect the deployed page source for title, description, canonical URL, Open Graph/Twitter tags, image URLs, and robots metadata. Check `/robots.txt`, `/sitemap.xml`, and the social image URL. Confirm that production URLs use the real domain and that indexing is enabled for public pages. After deployment, verify the domain in Google Search Console and submit its sitemap; local checks cannot establish whether Google has indexed the site.
 
@@ -202,7 +225,7 @@ bun run start
 ```
 
 Check the production page at the printed URL, including mobile layout, keyboard
-navigation, reduced motion, and the consistent light appearance under both system color preferences. Stop the development server before serving
+navigation, Light / Dark / System themes, preference persistence, retained drafts, and reduced motion. Stop the development server before serving
 production on the same port, or use `bun run start --port 3001`. Use `dev` while
 editing and `build` followed by `start` to verify production behavior.
 
