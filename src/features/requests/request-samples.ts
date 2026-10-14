@@ -5,7 +5,7 @@ export const requestSamples = [
     description:
       "Build a dashboard where purchase requests go through a manager and then finance, with a history of decisions.",
     category: "Approval flow",
-    badgeClass: "bg-approval text-approval-ink",
+    badgeVariant: "approval",
   },
   {
     title: "Client onboarding checklist",
@@ -13,7 +13,7 @@ export const requestSamples = [
     description:
       "Structured step-by-step verification flow for new customer accounts with role assignment and status logging.",
     category: "Onboarding",
-    badgeClass: "bg-lime-soft text-knowledge-ink",
+    badgeVariant: "onboarding",
   },
   {
     title: "Searchable support knowledge base",
@@ -21,6 +21,6 @@ export const requestSamples = [
     description:
       "Indexed internal documentation search with tag filters and versioned solution cards.",
     category: "Knowledge repo",
-    badgeClass: "bg-knowledge text-knowledge-ink",
+    badgeVariant: "knowledge",
   },
 ] as const;

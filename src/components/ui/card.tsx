@@ -8,15 +8,17 @@ function Card({
   ...props
 }: React.ComponentProps<"div"> & {
   size?: "default" | "sm";
-  variant?: "default" | "soft";
+  variant?: "default" | "soft" | "inverse";
 }) {
   return (
     <div
       data-slot="card"
       data-size={size}
+      data-variant={variant}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-panel border border-border bg-card py-(--card-spacing) text-sm text-card-foreground shadow-panel [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 md:[--card-spacing:--spacing(7)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         variant === "soft" && "bg-muted",
+        variant === "inverse" && "border-transparent bg-charcoal text-white",
         className,
       )}
       {...props}
@@ -54,7 +56,10 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn(
+        "text-sm text-muted-foreground group-data-[variant=inverse]/card:text-white/70",
+        className,
+      )}
       {...props}
     />
   );
@@ -88,7 +93,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl border-t border-border p-(--card-spacing)",
+        "flex items-center rounded-b-xl border-t border-border p-(--card-spacing) group-data-[variant=inverse]/card:border-white/10",
         className,
       )}
       {...props}

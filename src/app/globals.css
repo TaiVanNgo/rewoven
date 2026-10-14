@@ -110,53 +110,6 @@
   }
 }
 
-@layer components {
-  .field {
-    width: 100%;
-    min-width: 0;
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-control);
-    background: var(--color-surface);
-    padding: 0.625rem 0.875rem;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    transition: border-color 180ms var(--ease-interface);
-  }
-
-  .field::placeholder {
-    color: #727a82;
-  }
-
-  .field:focus {
-    border-color: var(--foreground);
-  }
-
-  .action {
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-radius: var(--radius-control);
-    background: var(--color-lime);
-    padding: 0.75rem 1.25rem;
-    color: var(--foreground);
-    font-family: var(--font-jakarta), Arial, Helvetica, sans-serif;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    transition: background-color 180ms var(--ease-interface);
-  }
-
-  .action:hover:not(:disabled) {
-    background: var(--color-lime-hover);
-  }
-
-  .action:disabled {
-    background: var(--color-disabled);
-    color: #596353;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

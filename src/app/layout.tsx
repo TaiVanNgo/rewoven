@@ -4,7 +4,7 @@ import {
   Plus_Jakarta_Sans,
   Source_Sans_3,
 } from "next/font/google";
-import { MotionProvider } from "@/components/motion-provider";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import { site } from "@/lib/site";
 import "./globals.css";
 
