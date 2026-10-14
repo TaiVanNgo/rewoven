@@ -8,19 +8,51 @@ The project currently contains the Next.js foundation with TypeScript, Tailwind 
 
 Install Node.js 20.19 or newer (required by the Tailwind Prettier plugin) and the Bun version specified in `package.json` (`packageManager`). Bun manages dependencies and scripts; Next.js runs on Node.js.
 
+For the local database and file storage, also install the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) (verified with version 2.120.0) and a Docker-compatible runtime. On macOS, OrbStack works; Docker Desktop is another option. Start your container runtime before running the database commands. The Supabase CLI must be available as `supabase` on your PATH.
+
+On macOS, install the CLI with `brew install supabase/tap/supabase`, or update an existing installation with `brew upgrade supabase`.
+
 From the project root:
 
 ```bash
 bun install --frozen-lockfile
 cp .env.example .env.local # First setup only; preserve an existing .env.local.
-bun run dev
+bun run db:start
+bun run db:status
 ```
 
 For local development, set `SITE_URL=http://localhost:3000` and keep `SITE_INDEXABLE=false` in `.env.local`. If you change the server port, update the local origin to match. Next.js loads this file automatically; it is ignored by Git.
 
+`--frozen-lockfile` uses the dependency versions recorded in `bun.lock` without changing it and fails if `package.json` and the lockfile disagree. Use it after cloning or in CI to reproduce the shared dependency set. When intentionally changing dependencies, use `bun add <package>` or normal `bun install`, then review and commit both `package.json` and `bun.lock`. See [Bun's installation documentation](https://bun.sh/docs/pm/cli/install).
+
+Copy the local Project URL and Secret key printed by `db:status` into your existing `.env.local`:
+
+```dotenv
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SECRET_KEY=replace-with-your-local-secret-key
+```
+
+Older CLI versions may label the server key `service_role`. Port 54321 serves the HTTP API; the PostgreSQL connection URL on port 54322 is for direct database clients, not `SUPABASE_URL`. Keep local credentials in `.env.local`; configure hosted credentials separately in your deployment service.
+
+`db:start` starts Supabase and creates or updates the private `case-sources` bucket with a 5 MB upload limit from `supabase/config.toml`. You do not need to create the bucket in Studio manually. This command explicitly targets local storage, and can be rerun after a normal stop. The first startup downloads the container images and can take several minutes. Local migrations and `supabase/seed.sql` run during initial database creation; an ordinary restart preserves the existing database.
+
+After the first-time setup, start local Supabase and the web app with one command:
+
+```bash
+bun run devx
+```
+
+`devx` waits for Supabase startup and bucket provisioning to succeed before starting Next.js. Supabase runs in background containers; Next.js stays attached to your terminal. Use `bun run dev` when you only need the frontend.
+
 Open the URL printed by the dev server (usually `http://localhost:3000`). Edit
 `src/app/page.tsx` and save to see changes through Fast Refresh. Stop the server
-with Ctrl+C. To choose another port, use `bun run dev --port 3001`.
+with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx --port 3001` (or `bun run dev --port 3001` for the frontend alone).
+
+Open Supabase Studio at the URL printed by `db:status` (normally `http://127.0.0.1:54323`) to inspect local data and storage. Stop Supabase with `bun run db:stop`; this preserves local data. Each developer runs their own instance. The hosted demo's data and files are separate.
+
+The current homepage runs without an AI key. Real AI calls will require each developer's own API credentials when the integration is implemented. Live AI requests are billed even when the database is local.
+
+For a hosted deployment, provision the same bucket using the declared configuration as part of a deliberate deployment step, such as `supabase seed buckets --linked` after linking the intended hosted project. The local startup command does not provision hosted storage.
 
 ## Project setup status
 
@@ -43,6 +75,10 @@ The current foundation does not need database credentials or an AI API key to ru
 | Command                | Purpose                                                                          |
 | ---------------------- | -------------------------------------------------------------------------------- |
 | `bun run dev`          | Start development with Fast Refresh.                                             |
+| `bun run devx`         | Start local Supabase, provision storage, then start Next.js with Fast Refresh.   |
+| `bun run db:start`     | Start local Supabase and provision the declared storage bucket.                  |
+| `bun run db:status`    | Show local service URLs and credentials.                                         |
+| `bun run db:stop`      | Stop local Supabase while preserving local data.                                 |
 | `bun run lint`         | Check Biome lint and import organization without writing fixes.                  |
 | `bun run format`       | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.  |
 | `bun run format:check` | Check formatting and Tailwind class order without writing changes.               |
@@ -88,6 +124,7 @@ biome.json         Linting and import organization configuration
 tsconfig.json      TypeScript configuration; @/* resolves to src/*
 AGENTS.md          Workflow instructions for coding agents
 .agents/skills/    Optional guidance for compatible coding agents
+supabase/         Local service configuration, migrations, and seed data
 ```
 
 Add a route with a file such as `src/app/about/page.tsx`. Use `src/components/`

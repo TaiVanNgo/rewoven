@@ -7,6 +7,10 @@
   },
   "scripts": {
     "dev": "next dev",
+    "devx": "bun run db:start && bun run dev",
+    "db:start": "supabase start && supabase seed buckets --local",
+    "db:status": "supabase status",
+    "db:stop": "supabase stop",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
