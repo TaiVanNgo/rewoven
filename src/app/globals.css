@@ -1,9 +1,31 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   color-scheme: light;
   --background: #eaece6;
   --foreground: #181b1e;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: #cef138;
+  --primary-foreground: #181b1e;
+  --primary-hover: #c0e42a;
+  --secondary: #f2f9cd;
+  --secondary-foreground: #324522;
+  --muted: #f8f9f5;
+  --muted-foreground: #606972;
+  --accent: #f2f4ee;
+  --accent-foreground: var(--foreground);
+  --destructive: #b42318;
+  --border: #e2e6dd;
+  --input: var(--border);
+  --ring: var(--foreground);
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -12,6 +34,27 @@
   --font-sans: var(--font-source-sans);
   --font-heading: var(--font-jakarta);
   --font-mono: var(--font-jetbrains);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
 }
 
 @theme {
@@ -25,6 +68,7 @@
   --color-lime-soft: #f2f9cd;
   --color-charcoal: #1c2025;
   --color-disabled: #d6dcd0;
+  --color-disabled-foreground: #596353;
   --color-approval: #eae8f4;
   --color-approval-ink: #4f4687;
   --color-knowledge: #e0ebd4;
