@@ -2,7 +2,11 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project currently contains the Next.js foundation with TypeScript, Tailwind CSS, Motion, Prettier, Biome, and Bun. The homepage is still the starter demo; case ingestion, retrieval, AI analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. It is a frontend preview: case ingestion, retrieval, AI analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+
+The homepage includes the request composer, optional constraints, three fictional sample requests, Wren’s illustration, and a collapsible desktop sidebar. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** shows an inline message explaining that retrieval is not connected. Case library and Saved plans show availability messages rather than opening another page. Requests and constraints remain in the current page only and reset on reload; nothing is sent to a backend or saved to browser storage.
+
+To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. On desktop, use the sidebar toggle to collapse or expand navigation. Stop the dev server with Ctrl+C.
 
 ## Quick start
 
@@ -60,9 +64,9 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Set the site name and description from the local product brief; use English.
 - [x] Confirm the Git remote points to `https://github.com/TaiVanNgo/rewoven.git`.
 - [ ] On each machine, create `.env.local` using the quick-start instructions.
-- [ ] Replace the demo homepage and favicon with the product interface and branding.
-- [ ] Remove `MotionDemo` and unused demo assets when replacing the homepage.
-- [ ] Choose and configure the database and AI provider before building those integrations.
+- [x] Replace the demo homepage and favicon with the product interface and branding.
+- [x] Remove `MotionDemo` when replacing the homepage.
+- [ ] Implement case ingestion, retrieval, AI analysis, and plan persistence; choose and configure the AI provider before building that integration.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
@@ -105,17 +109,22 @@ src/app/
   layout.tsx       Root HTML layout, fonts, and default metadata
   page.tsx         Home route (/)
   globals.css      Tailwind import, theme tokens, and global styles
-  favicon.ico      Default icon to replace for each project
+  icon.svg         Rewoven brand icon used by browser tabs
   robots.ts        Crawler instructions and sitemap discovery
   sitemap.ts       Public route list for search engines
   opengraph-image.tsx  Generated social-sharing image
 src/lib/
   site.ts          Shared site identity and indexing configuration
   seo.ts           Per-page canonical and social metadata helper
+  motion.ts        Shared interaction and sidebar transition presets
+  request-samples.ts  Fictional request examples and category styles
 src/components/
   motion-provider.tsx  Shared animation defaults and reduced-motion policy
-  motion-demo.tsx      Removable interactive animation example
-public/            Static assets served from the site root
+  workspace-sidebar.tsx  Responsive navigation, collapse, and preview feedback
+  request-composer.tsx   Request fields, sample loading, and submission feedback
+  preview-action.tsx     Wren’s case-library preview action
+  icon.tsx              Local decorative SVG icons
+public/            Static assets, including rewoven.svg and images/wren.jpg
 next.config.ts     Next.js and Tailwind/Turbopack configuration
 biome.json         Linting and import organization configuration
 .prettierrc.json    Prettier and Tailwind class-sorting configuration
@@ -132,10 +141,11 @@ for shared UI or `src/lib/` for shared logic when needed. Keep pages and layouts
 Server Components by default; use `"use client"` for components that need state,
 event handlers, or browser APIs.
 
-Tailwind theme tokens live in `src/app/globals.css`. The starter follows the
-system's light/dark preference and uses Geist fonts through `next/font/google`.
-Font downloads require network access during a build; use local fonts if your
-build environment must work offline.
+Tailwind v4 theme tokens live in `src/app/globals.css`. Rewoven uses a consistent light theme even when the system prefers dark mode: a pale green-gray canvas, white panels, charcoal text, and lime accents. Semantic utilities such as `bg-surface-soft`, `text-ink-muted`, `border-line`, and `rounded-panel` keep components aligned. Shared `.field` and `.action` classes standardize form controls; focus and selection styles apply globally.
+
+The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for headings and buttons, and JetBrains Mono for counters through `next/font/google`. Fonts are downloaded at build time and served locally to visitors. Font downloads require network access during a build; use local fonts if your build environment must work offline.
+
+The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens. The page and root layout remain Server Components; only stateful controls use Client Components, and the static Wren panel is passed into the composer as server-rendered content.
 
 `next.config.ts` enables Cache Components and Partial Prefetching and integrates
 Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before
@@ -145,32 +155,15 @@ are not configured in this baseline.
 
 ## Animations with Motion
 
-The starter includes [`motion`](https://motion.dev/docs/react-installation), the current package for Motion for React (formerly Framer Motion). It was installed with `bun add motion`; running `bun install --frozen-lockfile` installs it alongside the other dependencies in a copied project. No additional Next.js or Tailwind configuration is needed.
+The project includes [`motion`](https://motion.dev/docs/react-installation), the current Motion for React package. `bun install --frozen-lockfile` installs the recorded version; no additional Next.js or Tailwind configuration is needed.
 
-`src/components/motion-provider.tsx` wraps the route content in `MotionConfig` through the root layout. It sets a default transition of 0.6 seconds with `easeInOut` easing and `reducedMotion="user"` to respect the visitor's device setting. Components can override the transition for quicker interactions, as the demo button does. Reduced motion disables transform and layout animations; opacity and color animations can still run. Use `useReducedMotion` when a component needs to disable those effects too.
+`src/components/motion-provider.tsx` wraps route content in `MotionConfig` through the root layout. Presets in `src/lib/motion.ts` use a 180ms interaction transition and a 240ms sidebar transition, with the same easing used by CSS hover states. Reuse these presets and the global theme tokens when adding controls.
 
-Keep interactive animations in small Client Components. Import components and hooks from `motion/react` inside a file with `"use client"`, then render that component from a Server Component page. Passing route content through the provider's `children` keeps pages and layouts as Server Components.
+Motion is limited to responses to user actions: slight button press feedback and sidebar width changes. There is no automatic entrance sequence, and `initial={false}` keeps content visible before hydration. CSS handles color and border transitions. The sidebar expands when a collapsed navigation action needs to show preview feedback.
 
-For example, create `src/components/animated-card.tsx`:
+`reducedMotion="user"` respects the visitor’s device preference. The composer uses `useReducedMotion` to remove press transforms and use immediate scrolling when loading samples. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations. Keep the same policy for future animated components.
 
-```tsx
-"use client";
-
-import { motion } from "motion/react";
-import type { ReactNode } from "react";
-
-export function AnimatedCard({ children }: { children: ReactNode }) {
-  return (
-    <motion.div initial={false} whileHover={{ y: -4 }}>
-      {children}
-    </motion.div>
-  );
-}
-```
-
-Import `AnimatedCard` into a page and wrap its content with `<AnimatedCard>...</AnimatedCard>`. `initial={false}` skips an entrance animation and keeps the content visible in the initial HTML. Keep essential content readable before hydration and with JavaScript disabled; avoid defaulting it to `opacity: 0` just to animate it into view.
-
-Run `bun run dev`, open the printed URL, and select **Replay animation** to try the homepage demo. The square rotates and the button responds to hover and press. With the device's reduced-motion setting enabled, those transforms are disabled. Stop the server with Ctrl+C. Remove `MotionDemo` when replacing the placeholder homepage; retain the provider for your own animations. See the [Motion component documentation](https://motion.dev/docs/react-motion-component) for animation props and [MotionConfig](https://motion.dev/docs/react-motion-config) for shared defaults.
+Run `bun run dev` and open the printed URL. Try a sample, press the enabled search button, and toggle the desktop sidebar. Repeat with reduced motion enabled in your device or browser settings. Stop the server with Ctrl+C.
 
 ## SEO setup
 
@@ -209,7 +202,7 @@ bun run start
 ```
 
 Check the production page at the printed URL, including mobile layout, keyboard
-navigation, and light/dark appearance. Stop the development server before serving
+navigation, reduced motion, and the consistent light appearance under both system color preferences. Stop the development server before serving
 production on the same port, or use `bun run start --port 3001`. Use `dev` while
 editing and `build` followed by `start` to verify production behavior.
 
