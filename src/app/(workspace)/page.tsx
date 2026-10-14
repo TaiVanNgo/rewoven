@@ -1,6 +1,8 @@
+import { ArrowRightIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/workspace/page-header";
-import { PreviewAction } from "@/components/workspace/preview-action";
 import { RequestComposer } from "@/features/requests/request-composer";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -38,7 +40,13 @@ export default function Home() {
               <p className="mt-1 text-[13px] text-ink-muted">
                 Find past work. Follow the evidence.
               </p>
-              <PreviewAction />
+              <Link
+                href="/case-library"
+                className={buttonVariants({ variant: "ghost" })}
+              >
+                Browse the case library
+                <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
+              </Link>
             </div>
           </aside>
         }

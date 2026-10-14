@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { type CSSProperties, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,18 +29,13 @@ import { cn } from "@/lib/utils";
 
 export function WorkspaceSidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [message, setMessage] = useState("");
+  const pathname = usePathname();
   const reducedMotion = useReducedMotion();
   const labelClass = collapsed ? "lg:sr-only" : undefined;
   const navigationLayout = cn(
     "w-full",
     collapsed && "lg:justify-center lg:gap-0 lg:px-0",
   );
-
-  function showPreviewMessage(text: string) {
-    setMessage(text);
-    setCollapsed(false);
-  }
 
   return (
     <motion.aside
@@ -103,61 +99,30 @@ export function WorkspaceSidebar() {
           aria-label="Main navigation"
           className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1"
         >
-          <Link
-            href="/"
-            aria-current="page"
-            title="New request"
-            className={cn(
-              buttonVariants({
-                variant: "navigation-active",
-                size: "navigation",
-              }),
-              navigationLayout,
-            )}
-          >
-            <FilePlus2Icon aria-hidden="true" />
-            <span className={labelClass}>New request</span>
-          </Link>
-          <Button
-            type="button"
-            variant="navigation"
-            size="navigation"
-            onClick={() =>
-              showPreviewMessage(
-                "Case library is not available in this UI preview.",
-              )
-            }
-            className={navigationLayout}
-            title="Case library"
-          >
-            <ArchiveIcon aria-hidden="true" />
-            <span className={labelClass}>Case library</span>
-          </Button>
-          <Button
-            type="button"
-            variant="navigation"
-            size="navigation"
-            onClick={() =>
-              showPreviewMessage(
-                "Saved plans are not available in this UI preview.",
-              )
-            }
-            className={navigationLayout}
-            title="Saved plans"
-          >
-            <BookmarkIcon aria-hidden="true" />
-            <span className={labelClass}>Saved plans</span>
-          </Button>
+          {[
+            { href: "/", label: "New request", icon: FilePlus2Icon },
+            { href: "/case-library", label: "Case library", icon: ArchiveIcon },
+            { href: "/saved-plans", label: "Saved plans", icon: BookmarkIcon },
+          ].map(({ href, label, icon: NavigationIcon }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? "page" : undefined}
+              title={label}
+              className={cn(
+                buttonVariants({
+                  variant:
+                    pathname === href ? "navigation-active" : "navigation",
+                  size: "navigation",
+                }),
+                navigationLayout,
+              )}
+            >
+              <NavigationIcon aria-hidden="true" />
+              <span className={labelClass}>{label}</span>
+            </Link>
+          ))}
         </nav>
-        <output
-          className={
-            message
-              ? "text-xs leading-relaxed text-muted-foreground"
-              : "sr-only"
-          }
-        >
-          {message}
-        </output>
       </div>
       <div
         className={cn("mt-6 hidden flex-col gap-3", !collapsed && "lg:flex")}
