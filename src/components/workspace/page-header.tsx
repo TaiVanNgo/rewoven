@@ -1,5 +1,6 @@
 import { CpuIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/workspace/theme-toggle";
 
 export function PageHeader({
   section,
@@ -25,6 +26,7 @@ export function PageHeader({
             <CpuIcon data-icon="inline-start" aria-hidden="true" />
             Archivist v2.4
           </Badge>
+          <ThemeToggle />
         </div>
       </div>
       <div className="flex flex-col gap-3">

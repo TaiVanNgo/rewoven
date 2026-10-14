@@ -5,6 +5,7 @@ import {
   Source_Sans_3,
 } from "next/font/google";
 import { MotionProvider } from "@/components/providers/motion-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -52,10 +53,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={site.language}
+      suppressHydrationWarning
       className={`${bodyFont.variable} ${headingFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <MotionProvider>{children}</MotionProvider>
+        <ThemeProvider>
+          <MotionProvider>{children}</MotionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

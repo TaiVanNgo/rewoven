@@ -26,6 +26,32 @@
   --input: var(--border);
   --ring: var(--foreground);
   --radius: 0.75rem;
+  --disabled: #d6dcd0;
+  --disabled-foreground: #596353;
+  --approval: #eae8f4;
+  --approval-ink: #4f4687;
+  --knowledge: #e0ebd4;
+  --knowledge-ink: #324522;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #151916;
+  --foreground: #eef2e9;
+  --card: #1e2420;
+  --muted: #252c26;
+  --muted-foreground: #abb5a8;
+  --accent: #2d362f;
+  --secondary: #303d14;
+  --secondary-foreground: #dbeaa4;
+  --border: #394239;
+  --destructive: #ffb4a9;
+  --disabled: #354033;
+  --disabled-foreground: #adb7a8;
+  --approval: #393449;
+  --approval-ink: #d7cbfc;
+  --knowledge: #2e3f29;
+  --knowledge-ink: #d5e8c1;
 }
 
 @theme inline {
@@ -34,6 +60,20 @@
   --font-sans: var(--font-source-sans);
   --font-heading: var(--font-jakarta);
   --font-mono: var(--font-jetbrains);
+  --color-surface: var(--card);
+  --color-surface-soft: var(--muted);
+  --color-surface-hover: var(--accent);
+  --color-ink-muted: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-lime: var(--primary);
+  --color-lime-hover: var(--primary-hover);
+  --color-lime-soft: var(--secondary);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-approval: var(--approval);
+  --color-approval-ink: var(--approval-ink);
+  --color-knowledge: var(--knowledge);
+  --color-knowledge-ink: var(--knowledge-ink);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -58,21 +98,7 @@
 }
 
 @theme {
-  --color-surface: #ffffff;
-  --color-surface-soft: #f8f9f5;
-  --color-surface-hover: #f2f4ee;
-  --color-ink-muted: #606972;
-  --color-line: #e2e6dd;
-  --color-lime: #cef138;
-  --color-lime-hover: #c0e42a;
-  --color-lime-soft: #f2f9cd;
   --color-charcoal: #1c2025;
-  --color-disabled: #d6dcd0;
-  --color-disabled-foreground: #596353;
-  --color-approval: #eae8f4;
-  --color-approval-ink: #4f4687;
-  --color-knowledge: #e0ebd4;
-  --color-knowledge-ink: #324522;
   --radius-control: 0.75rem;
   --radius-card: 1rem;
   --radius-panel: 1.5rem;
@@ -92,7 +118,7 @@
 
   ::selection {
     background: var(--color-lime);
-    color: var(--foreground);
+    color: var(--primary-foreground);
   }
 
   :focus-visible {
