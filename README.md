@@ -1,6 +1,8 @@
-# Next.js Starter
+# Rewoven
 
-A small starting point for new Next.js projects, with TypeScript, Tailwind CSS, Motion, Prettier, Biome, and Bun. Keep reusable defaults here; add product-specific features in each project created from this template.
+Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
+
+The project currently contains the Next.js foundation with TypeScript, Tailwind CSS, Motion, Prettier, Biome, and Bun. The homepage is still the starter demo; case ingestion, retrieval, AI analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
 ## Quick start
 
@@ -10,63 +12,31 @@ From the project root:
 
 ```bash
 bun install --frozen-lockfile
+cp .env.example .env.local # First setup only; preserve an existing .env.local.
 bun run dev
 ```
+
+For local development, set `SITE_URL=http://localhost:3000` and keep `SITE_INDEXABLE=false` in `.env.local`. If you change the server port, update the local origin to match. Next.js loads this file automatically; it is ignored by Git.
 
 Open the URL printed by the dev server (usually `http://localhost:3000`). Edit
 `src/app/page.tsx` and save to see changes through Fast Refresh. Stop the server
 with Ctrl+C. To choose another port, use `bun run dev --port 3001`.
 
-## Start a new project from this template
+## Project setup status
 
-On GitHub, enable **Settings → General → Template repository** once on the starter
-repository. For each new project, use **Use this template → Create a new
-repository**, then clone the new repository:
+- [x] Set the package and lockfile workspace name to `rewoven`.
+- [x] Set the site name and description from the local product brief; use English.
+- [x] Confirm the Git remote points to `https://github.com/TaiVanNgo/rewoven.git`.
+- [ ] On each machine, create `.env.local` using the quick-start instructions.
+- [ ] Replace the demo homepage and favicon with the product interface and branding.
+- [ ] Remove `MotionDemo` and unused demo assets when replacing the homepage.
+- [ ] Choose and configure the database and AI provider before building those integrations.
+- [ ] Set the production origin and deployment configuration before launch.
+- [ ] Choose a project license before publishing; no root license is provided yet.
 
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_PROJECT.git
-cd YOUR_PROJECT
-bun install --frozen-lockfile
-```
+The current foundation does not need database credentials or an AI API key to run. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
 
-Replace the example username and project name. A repository created from a
-template has its own history. See [GitHub's template guide](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
-
-When copying a local folder instead, copy source, configuration, documentation,
-and `bun.lock`. Exclude `.git`, `node_modules`, `.next`, `out`, `dist`, `coverage`,
-`.vercel`, `*.tsbuildinfo`, `next-env.d.ts`, `.DS_Store`, and local `.env*` files
-(except a placeholder-only `.env.example`, if present). Initialize a new Git
-repository in the copy and connect it to the new project's remote. This keeps the
-starter's history, credentials, and deployment links out of the new project.
-
-### First-use checklist
-
-- [ ] Rename `name` in `package.json` and the root workspace `name` in `bun.lock`,
-      if present. Bun 1.2.15 may retain the old lockfile name after installation.
-- [ ] Replace the starter overview in this README with the new project's purpose;
-      keep setup and command documentation accurate.
-- [ ] Set the name, description, language, and social locale in `src/lib/site.ts`.
-- [ ] Copy `.env.example` to `.env.local`, set `SITE_URL` to the project's real origin, and enable `SITE_INDEXABLE=true` only for a public production site. Configure the same variables in your deployment service before building.
-- [ ] Replace the placeholder in `src/app/page.tsx` and the default
-      `src/app/favicon.ico`; remove unused demo assets from `public/`.
-- [ ] Remove the `MotionDemo` import and usage from `src/app/page.tsx`, then delete
-      `src/components/motion-demo.tsx` when adding real project content.
-- [ ] Review `AGENTS.md` and retain useful workflow instructions. Add the new
-      project's conventions as they become concrete.
-- [ ] Review optional skills in `.agents/skills/` and their licenses before
-      redistributing them. `skills-lock.json` records their installation; a skill
-      being present does not mean its recommended library is installed.
-- [ ] If the project needs configuration, add placeholder values to `.env.example`
-      and real local values to `.env.local`. Configure deployment values separately.
-      Keep secrets out of Git; `NEXT_PUBLIC_` values are exposed to the browser.
-- [ ] Check `git remote -v` points to the new project and connect any deployment
-      service to that repository.
-- [ ] Run the verification commands below and check the page in the browser.
-
-New projects do not automatically receive later template changes. Adopt updates
-deliberately, review dependency upgrades, and rerun verification. Choose an
-appropriate project license before publishing this starter or a derived project;
-this starter does not currently provide a root license.
+`AGENTS.md` contains the development workflow. Optional skills in `.agents/skills/` provide agent guidance; their presence does not install their recommended libraries. Review their licenses before redistributing them.
 
 ## Commands
 
@@ -212,12 +182,11 @@ editing and `build` followed by `start` to verify production behavior.
 before making changes. Include the feature you want, who will use it, and any
 constraints. For example:
 
-> Use this starter to build [project purpose] for [audience]. Read AGENTS.md and
-> README.md first. Complete the first-use checklist where my brief supplies the
+> Build [feature] for Rewoven's audience. Read AGENTS.md and
+> README.md first. Complete the project setup checklist where my brief supplies the
 > information, identify any missing decisions, and implement [first feature].
 > Explain the relevant files and commands as you work, then verify the result and
 > tell me how to run it locally.
 
-The agent should distinguish changes to the reusable starter from changes to a
-project created from it. Keep this README aligned with actual commands and
+Use the product brief for project-specific decisions. Keep this README aligned with actual commands and
 configuration as the project grows.

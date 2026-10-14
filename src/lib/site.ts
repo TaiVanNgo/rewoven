@@ -28,10 +28,10 @@ if (indexingEnabled && !url) {
   throw new Error("Set SITE_URL before enabling SITE_INDEXABLE.");
 }
 
-// Replace the identity fields when creating a project from this starter.
 export const site = {
-  name: "Your project",
-  description: "Replace this with a short description of your project.",
+  name: "Rewoven",
+  description:
+    "Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.",
   language: "en",
   locale: "en_US",
   url,
