@@ -3,7 +3,7 @@ import Image from "next/image";
 export function BrandLogo() {
   return (
     <Image
-      src="/rewoven.svg"
+      src="/images/rewoven-logo.png"
       width={36}
       height={36}
       alt=""
