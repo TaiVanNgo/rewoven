@@ -1,12 +1,37 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
+import { type ReactNode, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
 import { requestSamples } from "@/lib/request-samples";
 
 export function RequestComposer({ companion }: { companion: ReactNode }) {
+  const [request, setRequest] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const reducedMotion = useReducedMotion();
+  const canSubmit = request.trim().length > 0;
+
+  function loadSample(sample: (typeof requestSamples)[number]) {
+    setRequest(`[${sample.title}]\n${sample.description}`);
+    setSubmitted(false);
+    textareaRef.current?.focus({ preventScroll: true });
+    textareaRef.current?.scrollIntoView({
+      block: "center",
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }
+
   return (
     <div className="space-y-9">
       <div className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[minmax(0,1fr)_310px]">
-        <form className="min-w-0 rounded-panel border border-line bg-surface-soft p-5 shadow-panel md:p-7">
+        <form
+          className="min-w-0 rounded-panel border border-line bg-surface-soft p-5 shadow-panel md:p-7"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSubmit) setSubmitted(true);
+          }}
+        >
           <div className="mb-3 flex items-center justify-between gap-3">
             <label htmlFor="request" className="font-heading text-sm font-bold">
               Describe the request
@@ -20,7 +45,12 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
             name="request"
             rows={5}
             maxLength={10000}
-            disabled
+            ref={textareaRef}
+            value={request}
+            onChange={(event) => {
+              setRequest(event.target.value.slice(0, 10000));
+              setSubmitted(false);
+            }}
             className="field min-h-[150px] resize-y rounded-card p-4"
             placeholder="What needs to be built, who is it for, and what should it do?"
             aria-describedby="request-hint request-counter"
@@ -38,7 +68,7 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
               id="request-counter"
               className="shrink-0 font-mono text-[11px]"
             >
-              0 / 10,000
+              {request.length.toLocaleString("en-US")} / 10,000
             </span>
           </div>
           <fieldset className="mt-5 border-t border-line pt-4">
@@ -57,7 +87,6 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                   id="deadline"
                   name="deadline"
                   type="text"
-                  disabled
                   className="field"
                   placeholder="e.g. 6 weeks"
                 />
@@ -73,7 +102,6 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                   id="technology"
                   name="technology"
                   type="text"
-                  disabled
                   className="field"
                   placeholder="e.g. React, Node.js"
                 />
@@ -89,7 +117,6 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                   id="capabilities"
                   name="capabilities"
                   type="text"
-                  disabled
                   className="field"
                   placeholder="e.g. Two approval stages"
                 />
@@ -97,13 +124,23 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
             </div>
           </fieldset>
           <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-line pt-4">
-            <button type="submit" disabled className="action">
+            <motion.button
+              type="submit"
+              disabled={!canSubmit}
+              className="action"
+              initial={false}
+              whileTap={
+                reducedMotion || !canSubmit ? undefined : { scale: 0.98 }
+              }
+            >
               <Icon name="search" className="size-4" />
               Find past cases
-            </button>
-            <p className="text-xs text-ink-muted">
-              Interactions are being prepared.
-            </p>
+            </motion.button>
+            <output className="max-w-[300px] text-xs leading-relaxed text-ink-muted">
+              {submitted
+                ? "This is a UI preview. Case retrieval is not connected yet."
+                : "Enter a request or choose a sample below."}
+            </output>
           </div>
         </form>
         {companion}
@@ -113,15 +150,20 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
           <h2 id="samples-title" className="font-heading text-sm font-bold">
             Try a sample request
           </h2>
-          <span className="text-xs text-ink-muted">Preview samples</span>
+          <span className="text-xs text-ink-muted">Click any to load</span>
         </div>
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
           {requestSamples.map((sample) => (
-            <button
+            <motion.button
               key={sample.title}
               type="button"
-              disabled
-              className="flex min-h-[138px] flex-col justify-between gap-4 rounded-card border border-line bg-surface-soft p-4 text-left"
+              onClick={() => loadSample(sample)}
+              aria-pressed={
+                request === `[${sample.title}]\n${sample.description}`
+              }
+              initial={false}
+              whileTap={reducedMotion ? undefined : { scale: 0.99 }}
+              className="group flex min-h-[138px] flex-col justify-between gap-4 rounded-card border border-line bg-surface-soft p-4 text-left transition-colors duration-180 ease-interface hover:border-foreground hover:bg-surface"
             >
               <span>
                 <span className="block font-heading text-[13px] leading-snug font-bold">
@@ -137,11 +179,11 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                 >
                   {sample.category}
                 </span>
-                <span className="flex size-6 items-center justify-center rounded-full bg-surface">
+                <span className="flex size-6 items-center justify-center rounded-full bg-surface transition-colors duration-180 ease-interface group-hover:bg-lime">
                   <Icon name="outward" className="size-3.5" />
                 </span>
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </section>
