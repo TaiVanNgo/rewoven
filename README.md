@@ -16,6 +16,8 @@ Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
+For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions tests the app against disposable local Supabase, then releases `main` by building, applying hosted migrations and storage configuration, checking a staged Vercel deployment, and promoting it to `rewoven.dev`. Configure the GitHub `production` environment before merging this setup; direct Vercel Git deployments from `main` are disabled in `vercel.json` to keep deployment behind migrations. Branch previews remain enabled.
+
 ## Quick start
 
 Install Node.js 20.19 or newer (required by the Tailwind Prettier plugin) and the Bun version specified in `package.json` (`packageManager`). Bun manages dependencies and scripts; Next.js runs on Node.js.
@@ -182,7 +184,7 @@ The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for heading
 
 The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens.
 
-`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and local API integration tests. `test:ai:live` is a separate, explicit billable OpenAI test. Account authentication and CI workflows are not implemented yet.
+`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and local API integration tests. `test:ai:live` is a separate, explicit billable OpenAI test. Account authentication is not implemented yet. CI and production release workflows are in `.github/workflows/`; their hosted setup and first successful production run still need verification.
 
 ## Shared UI with shadcn
 
