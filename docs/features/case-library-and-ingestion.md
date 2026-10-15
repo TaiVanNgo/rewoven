@@ -49,6 +49,8 @@ An uploaded PDF is kept unchanged in the private `case-sources` bucket. Its extr
 
 A **chunk** is a piece of text of up to 2,000 characters. PDF chunks stay within their original page and keep that page number. This increment uses PostgreSQL keyword search; it does not create embeddings or ask an AI model to choose relevant cases.
 
+Chunking prefers paragraph breaks and otherwise ends at whitespace so ordinary words stay whole. For example, `narwhal` remains searchable when it crosses character 2,000. Each chunk retains its exact start and end offsets in the unchanged page text. An unbroken token longer than 2,000 characters is still split to respect the chunk limit. The new boundaries apply when a source is processed; existing Ready cases retain their stored chunks until reprocessed.
+
 ### What happens after you select Add case
 
 1. Validate the title, optional fields, source format, and input limits.
@@ -193,7 +195,7 @@ The integration suite creates its own sessions and removes their records and upl
 
 Verified locally on 15 October 2026:
 
-- Eight unit tests cover validation, UTF-8 handling, PDF page extraction, empty pages, encrypted/corrupt/over-limit PDFs, chunk locations, and session tokens/expiry.
+- Unit tests cover validation, UTF-8 handling, PDF page extraction, empty pages, encrypted/corrupt/over-limit PDFs, chunk locations, paragraph boundaries, keywords spanning the old chunk boundary, and session tokens/expiry.
 - The live API suite covers persistence, duplicate submissions, keyword search, failed/active/interrupted processing, expired sessions, sample protection, cross-session access, and anonymous database/storage denial. It passed against development and production servers.
 - Browser checks cover paste, native file selection, drag-and-drop, PDF pages, failed extraction/retry, source switching, refresh persistence, source search, dialog focus/Escape, and form preservation after a simulated server failure.
 - Light/dark themes, reduced motion, and widths of 390px and 320px were checked. Formatting, lint, type checking, and production compilation passed.

@@ -91,16 +91,34 @@ export function chunkPages(pages: SourcePage[], format: SourceFormat) {
     text: string;
   }[] = [];
   for (const page of pages) {
-    for (let start = 0; start < page.text.length; start += 2000) {
-      const text = page.text.slice(start, start + 2000);
+    for (let start = 0; start < page.text.length;) {
+      let end = Math.min(start + 2000, page.text.length);
+      if (end < page.text.length) {
+        const candidate = page.text.slice(start, end);
+        const paragraph = Array.from(
+          candidate.matchAll(/\r?\n[\t ]*\r?\n/gu),
+        ).at(-1);
+        if (paragraph && paragraph.index > 0) {
+          end = start + paragraph.index + paragraph[0].length;
+        } else if (
+          !/\s/u.test(page.text[end - 1]) &&
+          !/\s/u.test(page.text[end])
+        ) {
+          const boundary = candidate.search(/\s+\S*$/u);
+          if (boundary > 0) end = start + boundary + 1;
+        }
+      }
+      // An unbroken token longer than the limit still needs a bounded chunk.
+      const text = page.text.slice(start, end);
       if (text.trim())
         chunks.push({
           ordinal: chunks.length,
           page_number: format === "pdf" ? page.number : null,
           char_start: start,
-          char_end: start + text.length,
+          char_end: end,
           text,
         });
+      start = end;
     }
   }
   return chunks;

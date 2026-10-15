@@ -103,13 +103,14 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.equal(original.status, 200);
     assert.match(await original.text(), /%PDF/);
     const key = randomUUID();
-    const text = "# Original\n\nA unique narwhal approval procedure.\n";
+    // The keyword straddles the old fixed 2,000-character chunk boundary.
+    const text = `${"a ".repeat(998)}narwhal approval procedure.\n`;
     const [first, duplicate] = await Promise.all([
       create(a, { key, text }),
       create(a, { key, text }),
     ]);
     assert.equal(first.status, 201, await first.clone().text());
-    assert.equal(duplicate.status, 201);
+    assert.equal(duplicate.status, 201, await duplicate.clone().text());
     const created = (await first.json()).case;
     assert.equal(created.id, key);
     const detail = (await (await api(a, `/api/cases/${key}`)).json()).case;

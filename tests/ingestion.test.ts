@@ -76,6 +76,29 @@ test("chunks retain offsets and do not cross page boundaries", () => {
   assert.ok(chunks.every((c) => c.page_number === 3));
 });
 
+test("chunks preserve a search word across the size boundary and exact offsets", () => {
+  const text = `${"a ".repeat(998)}narwhal recovery procedure`;
+  const chunks = chunkPages([{ number: 3, text }], "pdf");
+  assert.ok(chunks.some((chunk) => chunk.text.includes("narwhal")));
+  assert.equal(chunks.map((chunk) => chunk.text).join(""), text);
+  for (const chunk of chunks) {
+    assert.equal(chunk.text, text.slice(chunk.char_start, chunk.char_end));
+    assert.ok(chunk.text.length <= 2000);
+    assert.equal(chunk.page_number, 3);
+  }
+});
+
+test("chunks prefer paragraph boundaries including Windows line endings", () => {
+  for (const separator of ["\n\n", "\r\n \r\n"]) {
+    const paragraph = `${"intro ".repeat(200)}${separator}`;
+    const text = `${paragraph}${"details ".repeat(300)}`;
+    const chunks = chunkPages([{ number: 1, text }], "md");
+    assert.equal(chunks[0].text, paragraph);
+    assert.equal(chunks[1].char_start, paragraph.length);
+    assert.equal(chunks.map((chunk) => chunk.text).join(""), text);
+  }
+});
+
 test("rejects password-protected PDFs with a recovery action", async () => {
   await assert.rejects(
     extractSource(
