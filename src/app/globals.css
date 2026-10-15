@@ -28,6 +28,9 @@
   --radius: 0.75rem;
   --disabled: #d6dcd0;
   --disabled-foreground: #596353;
+  --caution: #fef8e7;
+  --caution-foreground: #875800;
+  --caution-border: #f5dca3;
   --approval: #eae8f4;
   --approval-ink: #4f4687;
   --knowledge: #e0ebd4;
@@ -48,6 +51,9 @@
   --destructive: #ffb4a9;
   --disabled: #354033;
   --disabled-foreground: #adb7a8;
+  --caution: #3a301b;
+  --caution-foreground: #f7d991;
+  --caution-border: #6c5731;
   --approval: #393449;
   --approval-ink: #d7cbfc;
   --knowledge: #2e3f29;
@@ -74,6 +80,9 @@
   --color-approval-ink: var(--approval-ink);
   --color-knowledge: var(--knowledge);
   --color-knowledge-ink: var(--knowledge-ink);
+  --color-caution: var(--caution);
+  --color-caution-foreground: var(--caution-foreground);
+  --color-caution-border: var(--caution-border);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
