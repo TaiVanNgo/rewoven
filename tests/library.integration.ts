@@ -13,6 +13,59 @@ const db = createClient(
   { auth: { persistSession: false } },
 );
 
+test("concurrent duplicate reservations preserve one case and one source", async () => {
+  const session = await db
+    .from("demo_sessions")
+    .insert({ token_hash: hashSessionToken(randomUUID()) })
+    .select("id")
+    .single();
+  assert.equal(session.error, null);
+  assert.ok(session.data);
+  const sessionId = session.data.id;
+  try {
+    const pairs = await Promise.all(
+      Array.from({ length: 40 }, async () => {
+        const id = randomUUID();
+        const args = {
+          p_id: id,
+          p_session: sessionId,
+          p_input: {
+            title: "Concurrent reservation",
+            context: "",
+            outcome: "",
+            lessons: "",
+          },
+          p_source: {
+            title: "Original text",
+            format: "text",
+            original_text: "Fictional reservation fixture.",
+          },
+        };
+        return Promise.all([
+          db.rpc("reserve_case", args),
+          db.rpc("reserve_case", args),
+        ]);
+      }),
+    );
+    for (const pair of pairs) {
+      for (const result of pair)
+        assert.equal(result.error, null, result.error?.message);
+      assert.deepEqual(pair.map((result) => result.data).sort(), [false, true]);
+    }
+    const cases = await db
+      .from("cases")
+      .select("id, source_documents(id)")
+      .eq("session_id", sessionId);
+    assert.equal(cases.error, null);
+    assert.equal(cases.data?.length, 40);
+    for (const record of cases.data ?? [])
+      assert.equal(record.source_documents.length, 1);
+  } finally {
+    const removed = await db.from("demo_sessions").delete().eq("id", sessionId);
+    assert.equal(removed.error, null);
+  }
+}, 60_000);
+
 test("case library persists, isolates sessions, preserves evidence, and recovers ingestion", async () => {
   const sessions: string[] = [];
   async function session() {
