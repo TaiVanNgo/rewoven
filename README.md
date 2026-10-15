@@ -2,7 +2,7 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library now supports Supabase persistence, original-source inspection, keyword search, and text/Markdown/PDF ingestion. AI retrieval, analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library now supports Supabase persistence, original-source inspection, keyword search, and text/Markdown/PDF ingestion. AI-assisted case reading can suggest editable fields with source quotes. Request-to-case retrieval, comparison, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
 The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing ten read-only fictional samples and session-owned additions. Saved plans remains a preview empty state.
 
@@ -11,6 +11,8 @@ The homepage includes the request composer, optional constraints, three fictiona
 To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. Use the sidebar links to visit the other pages and return without losing your draft. On desktop, use the sidebar toggle to collapse or expand navigation; its state survives navigation too. Use **Change theme** in the workspace header to choose Light, Dark, or System. Stop the dev server with Ctrl+C.
 
 Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases persist in a cookie-backed demo session for 24 hours; request drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
+
+Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.md) to configure OpenAI, review suggested fields with evidence, and understand billing limits. AI reading is optional; manual case entry still works without an AI key.
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
@@ -69,7 +71,7 @@ with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx
 
 Open Supabase Studio at the URL printed by `db:status` (normally `http://127.0.0.1:54323`) to inspect local data and storage. Stop Supabase with `bun run db:stop`; this preserves local data. Each developer runs their own instance. The hosted demo's data and files are separate.
 
-The current homepage runs without an AI key. Real AI calls will require each developer's own API credentials when the integration is implemented. Live AI requests are billed even when the database is local.
+The homepage and manual case entry run without an AI key. **Read with AI** requires `OPENAI_API_KEY` in `.env.local`; optional `OPENAI_CASE_MODEL`, `AI_CASE_SESSION_LIMIT`, and `AI_CASE_DAILY_LIMIT` settings are documented in the [AI reading guide](docs/features/ai-assisted-case-reading.md). The model defaults to the pinned GPT-4.1 mini model in `.env.example`. Production defaults to 50 attempts per session and 100 attempts per UTC day across the database. `bun run dev` and `bun run devx` disable both attempt limits, even if the limit variables are present. A local production server (`bun run build` followed by `bun run start`) still enforces the production limits. Restart Next.js after changing environment settings. Live AI requests are billed even when the database is local.
 
 For a hosted deployment, provision the same bucket using the declared configuration as part of a deliberate deployment step, such as `supabase seed buckets --linked` after linking the intended hosted project. The local startup command does not provision hosted storage.
 
@@ -83,33 +85,35 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Remove `MotionDemo` when replacing the homepage.
 - [x] Establish shared workspace routes, shadcn primitives, and Light / Dark / System themes.
 - [x] Implement session-isolated case browsing, keyword search, source inspection, and text/Markdown/PDF ingestion.
-- [ ] Implement AI retrieval, analysis, and plan persistence; choose and configure the AI provider before building that integration.
+- [x] Implement optional OpenAI-assisted case reading, editable suggestions, source evidence, and saved review records.
+- [ ] Implement request-to-case retrieval, comparison, and plan persistence.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
-The New request preview runs without database credentials. The case library requires configured Supabase services; it does not need an AI API key. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
+The New request preview runs without database credentials. The case library requires configured Supabase services. Manual entry does not need an AI API key; optional AI reading does. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
 
 `AGENTS.md` contains the development workflow. Optional skills in `.agents/skills/` provide agent guidance; their presence does not install their recommended libraries. Review their licenses before redistributing them.
 
 ## Commands
 
-| Command                    | Purpose                                                                          |
-| -------------------------- | -------------------------------------------------------------------------------- |
-| `bun run dev`              | Start development with Fast Refresh.                                             |
-| `bun run devx`             | Start local Supabase, provision storage, then start Next.js with Fast Refresh.   |
-| `bun run db:start`         | Start local Supabase and provision the declared storage bucket.                  |
-| `bun run db:migrate`       | Apply pending local migrations without resetting data.                           |
-| `bun run db:seed`          | Import ten fictional cases and original files locally; preserve Ready seeds.     |
-| `bun run test`             | Run focused validation, extraction, and session unit tests.                      |
-| `bun run test:integration` | Test the running local API, persistence, isolation, and processing recovery.     |
-| `bun run db:status`        | Show local service URLs and credentials.                                         |
-| `bun run db:stop`          | Stop local Supabase while preserving local data.                                 |
-| `bun run lint`             | Check Biome lint and import organization without writing fixes.                  |
-| `bun run format`           | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.  |
-| `bun run format:check`     | Check formatting and Tailwind class order without writing changes.               |
-| `bun run typecheck`        | Generate Next.js route types, then check TypeScript without emitting JavaScript. |
-| `bun run build`            | Build the application for production.                                            |
-| `bun run start`            | Serve the production build; run `build` first.                                   |
+| Command                    | Purpose                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `bun run dev`              | Start development with Fast Refresh.                                                              |
+| `bun run devx`             | Start local Supabase, provision storage, then start Next.js with Fast Refresh.                    |
+| `bun run db:start`         | Start local Supabase and provision the declared storage bucket.                                   |
+| `bun run db:migrate`       | Apply pending local migrations without resetting data.                                            |
+| `bun run db:seed`          | Import ten fictional cases and original files locally; preserve Ready seeds.                      |
+| `bun run test`             | Run focused validation, extraction, and session unit tests.                                       |
+| `bun run test:ai:live`     | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.               |
+| `bun run test:integration` | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls. |
+| `bun run db:status`        | Show local service URLs and credentials.                                                          |
+| `bun run db:stop`          | Stop local Supabase while preserving local data.                                                  |
+| `bun run lint`             | Check Biome lint and import organization without writing fixes.                                   |
+| `bun run format`           | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.                   |
+| `bun run format:check`     | Check formatting and Tailwind class order without writing changes.                                |
+| `bun run typecheck`        | Generate Next.js route types, then check TypeScript without emitting JavaScript.                  |
+| `bun run build`            | Build the application for production.                                                             |
+| `bun run start`            | Serve the production build; run `build` first.                                                    |
 
 `format` formats code and sorts Tailwind classes; address remaining lint or import organization findings separately. Next.js builds do not run Biome or Prettier, so lint and formatting are separate checks.
 
@@ -178,7 +182,7 @@ The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for heading
 
 The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens.
 
-`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and live API tests. Account authentication and CI workflows are not implemented yet.
+`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and local API integration tests. `test:ai:live` is a separate, explicit billable OpenAI test. Account authentication and CI workflows are not implemented yet.
 
 ## Shared UI with shadcn
 

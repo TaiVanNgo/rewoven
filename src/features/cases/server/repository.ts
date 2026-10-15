@@ -1,4 +1,5 @@
 import "server-only";
+import type { CaseAIReview } from "../case-suggestions";
 import type {
   CaseDetail,
   CaseRecord,
@@ -66,7 +67,30 @@ export async function caseDetail(
     .eq("case_id", record.id)
     .order("created_at");
   checkDatabase(error);
-  return { ...publicCase(record), sources: (data ?? []) as SourceDocument[] };
+  const review = await database()
+    .from("case_ai_reviews")
+    .select("source_id,created_at,case_ai_readings(id,result)")
+    .eq("case_id", record.id)
+    .maybeSingle();
+  checkDatabase(review.error);
+  const reading = review.data?.case_ai_readings as unknown as {
+    id: string;
+    result: Omit<CaseAIReview, "id" | "sourceId" | "createdAt">;
+  } | null;
+  const aiReview: CaseAIReview | null =
+    reading && review.data
+      ? {
+          ...reading.result,
+          id: reading.id,
+          sourceId: review.data.source_id,
+          createdAt: review.data.created_at,
+        }
+      : null;
+  return {
+    ...publicCase(record),
+    sources: (data ?? []) as SourceDocument[],
+    aiReview,
+  };
 }
 
 function publicCase(record: CaseRecord): CaseRecord {

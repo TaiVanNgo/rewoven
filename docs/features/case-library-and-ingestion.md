@@ -1,6 +1,6 @@
 # Understanding the case library and source ingestion
 
-Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. AI analysis and reuse-plan generation are still future work.
+Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. Optional [AI-assisted case reading](ai-assisted-case-reading.md) now suggests editable metadata with source evidence. Request-to-case analysis and reuse-plan generation are still future work.
 
 ## Start with a concrete example
 
@@ -202,4 +202,4 @@ Verified locally on 15 October 2026:
 
 The deliberately simulated 503 appeared in the browser console as expected. Chromium also logged a transient `aria-hidden` focus warning during rapid dialog reopening; explicit initial-focus and focus-restoration checks passed. A screen-reader audit has not been performed.
 
-This is a locally verified feature, not a verified hosted deployment. Hosted migrations, seed provisioning, upload limits, and runtime behavior still need deployment-specific verification. There is no OCR, AI analysis, semantic retrieval, saved-plan persistence, automatic expiry cleanup, or source editing in this increment.
+This is a locally verified feature, not a verified hosted deployment. Hosted migrations, seed provisioning, upload limits, and runtime behavior still need deployment-specific verification. There is no OCR, request-to-case AI analysis, semantic retrieval, saved-plan persistence, automatic expiry cleanup, or source editing. Optional [AI-assisted case reading](ai-assisted-case-reading.md) is implemented as a separate follow-up increment.

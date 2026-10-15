@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AIReadingRecord } from "./ai-reading-record";
 import { CaseStatusBadge } from "./case-status";
 import { SourceViewer } from "./source-viewer";
 import type { CaseDetail as CaseDetailRecord } from "./types";
@@ -86,6 +87,7 @@ export function CaseDetail({
           {actions}
         </CardContent>
       </Card>
+      {record.aiReview && <AIReadingRecord review={record.aiReview} />}
       <SourceViewer key={record.id} sources={record.sources} />
     </section>
   );

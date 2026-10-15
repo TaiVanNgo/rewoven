@@ -1,16 +1,12 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { chunkPages, extractSource } from "../extraction";
-import { MAX_FILE_BYTES, type SourceFormat } from "../types";
-import {
-  InputError,
-  metadataField,
-  validateFile,
-  validateText,
-} from "../validation";
+import { MAX_FILE_BYTES } from "../types";
+import { InputError, metadataField } from "../validation";
 import { checkDatabase, database } from "./db";
 import { ApiError, validId } from "./http";
 import { accessibleCase, caseDetail } from "./repository";
+import { sourceInput } from "./source-input";
 
 export async function boundedFormData(request: Request) {
   const limit = MAX_FILE_BYTES + 100_000;
@@ -60,29 +56,32 @@ export async function createCase(form: FormData, sessionId: string) {
     outcome: metadataField(form.get("outcome"), "Outcome", 5000),
     lessons: metadataField(form.get("lessons"), "Lessons", 5000),
   };
-  const mode = form.get("mode");
-  if (mode !== "text" && mode !== "file")
-    throw new InputError("Choose pasted text or a source file.");
-  let format: SourceFormat = "text";
-  let title = "Pasted source.txt";
-  let originalText: string | null = null;
-  let bytes: Uint8Array | undefined;
-  if (mode === "text") {
-    const value = form.get("text");
-    if (typeof value !== "string")
-      throw new InputError("Paste the original source text.");
-    validateText(value);
-    originalText = value;
-  } else {
-    const file = form.get("file");
-    if (!(file instanceof File)) throw new InputError("Choose a source file.");
-    format = validateFile(file.name, file.size);
-    title = file.name.slice(0, 200);
-    bytes = new Uint8Array(await file.arrayBuffer());
-  }
+  const source = await sourceInput(form);
+  const { format, title, originalText, bytes } = source;
   const storagePath =
-    mode === "file" ? `${sessionId}/${id}/source-v1.${format}` : null;
+    originalText === null ? `${sessionId}/${id}/source-v1.${format}` : null;
   const db = database();
+  const analysisId = metadataField(
+    form.get("analysisId"),
+    "AI reading identifier",
+    36,
+  );
+  if (analysisId) {
+    const reading = await db
+      .from("case_ai_readings")
+      .select("id")
+      .eq("id", validId(analysisId))
+      .eq("session_id", sessionId)
+      .eq("source_hash", source.hash)
+      .eq("status", "ready")
+      .maybeSingle();
+    checkDatabase(reading.error);
+    if (!reading.data)
+      throw new ApiError(
+        400,
+        "The AI reading does not match this session and source. Read the current source again, or add the case manually.",
+      );
+  }
   const reserved = await db.rpc("reserve_case", {
     p_id: id,
     p_session: sessionId,
@@ -92,6 +91,8 @@ export async function createCase(form: FormData, sessionId: string) {
       format,
       original_text: originalText,
       storage_path: storagePath,
+      ai_reading_id: analysisId || null,
+      source_hash: source.hash,
     },
   });
   checkDatabase(reserved.error);
