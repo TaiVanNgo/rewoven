@@ -1,26 +1,147 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #eaece6;
+  --foreground: #181b1e;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: #cef138;
+  --primary-foreground: #181b1e;
+  --primary-hover: #c0e42a;
+  --secondary: #f2f9cd;
+  --secondary-foreground: #324522;
+  --muted: #f8f9f5;
+  --muted-foreground: #606972;
+  --accent: #f2f4ee;
+  --accent-foreground: var(--foreground);
+  --destructive: #b42318;
+  --border: #e2e6dd;
+  --input: var(--border);
+  --ring: var(--foreground);
+  --radius: 0.75rem;
+  --disabled: #d6dcd0;
+  --disabled-foreground: #596353;
+  --approval: #eae8f4;
+  --approval-ink: #4f4687;
+  --knowledge: #e0ebd4;
+  --knowledge-ink: #324522;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #151916;
+  --foreground: #eef2e9;
+  --card: #1e2420;
+  --muted: #252c26;
+  --muted-foreground: #abb5a8;
+  --accent: #2d362f;
+  --secondary: #303d14;
+  --secondary-foreground: #dbeaa4;
+  --border: #394239;
+  --destructive: #ffb4a9;
+  --disabled: #354033;
+  --disabled-foreground: #adb7a8;
+  --approval: #393449;
+  --approval-ink: #d7cbfc;
+  --knowledge: #2e3f29;
+  --knowledge-ink: #d5e8c1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-source-sans);
+  --font-heading: var(--font-jakarta);
+  --font-mono: var(--font-jetbrains);
+  --color-surface: var(--card);
+  --color-surface-soft: var(--muted);
+  --color-surface-hover: var(--accent);
+  --color-ink-muted: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-lime: var(--primary);
+  --color-lime-hover: var(--primary-hover);
+  --color-lime-soft: var(--secondary);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-approval: var(--approval);
+  --color-approval-ink: var(--approval-ink);
+  --color-knowledge: var(--knowledge);
+  --color-knowledge-ink: var(--knowledge-ink);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --color-charcoal: #1c2025;
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+  --radius-workspace: 1.75rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-shell: 1.75rem;
+  --shadow-panel: 0 1px 2px rgb(24 27 30 / 0.03);
+  --ease-interface: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-source-sans), Arial, Helvetica, sans-serif;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--primary-foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 4px;
+  }
+
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+    transition-duration: 0s;
+    animation-duration: 0s;
+  }
 }
