@@ -35,15 +35,7 @@ export const SUGGESTED_FIELD_LIMITS = {
   lessons: 2000,
 } as const;
 
-export function createSuggestionsSchema(pages: SourcePage[], isPdf: boolean) {
-  // PDF extraction retains every page, including empty ones, in physical order.
-  const pageSchema = isPdf
-    ? {
-        type: "integer",
-        minimum: pages[0].number,
-        maximum: pages[pages.length - 1].number,
-      }
-    : { type: "null" };
+export function createSuggestionsSchema(excerptCount: number) {
   return {
     type: "object",
     additionalProperties: false,
@@ -61,18 +53,9 @@ export function createSuggestionsSchema(pages: SourcePage[], isPdf: boolean) {
               type: "array",
               maxItems: MAX_EVIDENCE_QUOTES,
               items: {
-                type: "object",
-                additionalProperties: false,
-                required: ["page", "quote"],
-                properties: {
-                  page: pageSchema,
-                  quote: {
-                    type: "string",
-                    minLength: 1,
-                    maxLength: MAX_QUOTE_CHARS,
-                    pattern: "\\S",
-                  },
-                },
+                type: "integer",
+                minimum: 1,
+                maximum: excerptCount,
               },
             },
           },

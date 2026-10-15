@@ -34,9 +34,9 @@ Browser: selected PDF or pasted notes
     ↓ POST /api/cases/analyze
 Next.js server: check demo session, validate source, extract text by page
     ↓ Reserve an AI attempt, or reuse a completed reading
-OpenAI: suggest structured fields and supporting quotes
+OpenAI: suggest structured fields and select supporting excerpt IDs
     ↓
-Next.js server: check field sizes, quotes, and page references
+Next.js server: resolve selected excerpt IDs to exact quotes/pages, then validate
     ↓
 Browser: show editable suggestions for review
     ↓ Confirm & add case → POST /api/cases
@@ -47,13 +47,13 @@ The **browser** is the page running on your computer. It handles typing, file se
 
 A **Route Handler** is the server code behind an address such as `/api/cases/analyze`. The browser asks that address to read a source; it does not call OpenAI or Supabase directly.
 
-The server uses the existing PDF reader to extract embedded text. OpenAI receives that text with page boundaries, not the PDF binary or a file-storage URL. Images and diagrams are not interpreted.
+The server uses the existing PDF reader to extract embedded text. OpenAI receives all readable text as numbered excerpts in source order, each at most 600 characters and bound to a physical page. It does not receive the PDF binary or a file-storage URL. Empty pages retain their physical numbering but produce no excerpts. Images and diagrams are not interpreted.
 
-**Structured output** means the model must return a specific JSON shape. Each of the four fields has a `value` and an `evidence` list. An unsupported field has an empty value and no evidence. See [OpenAI's structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
+**Structured output** means the model must return a specific JSON shape. Each of the four fields has a `value` and an `evidence` list of excerpt IDs. An unsupported field has an empty value and no evidence. The server converts those IDs into the quote/page objects displayed in the form and stored in the reading record. See [OpenAI's structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 For every nonempty suggestion, the server checks that its quotes occur on the cited pages, allowing extraction whitespace differences. Non-PDF text uses `page: null`. A field may have up to three quotes, each at most 600 characters. Suggested titles are limited to 200 characters; other suggested fields to 2,000. Final user-entered fields keep the existing limits: 200 for the title and 5,000 for each other field.
 
-The reader now builds its requested output schema from the source: PDFs require integer page numbers within the physical page range, while text sources require `null`. The schema also bounds quote lengths, quote counts, and field lengths before generation. The server validates the result again afterward. This closes a version-1 gap where the requested format allowed values that the server would reject.
+Reader version 3 builds its output schema from the excerpt count: evidence IDs must be integers between 1 and that count. The schema also bounds evidence counts and field lengths. The model never generates quotes or page numbers. The server resolves the selected IDs, rejects unknown IDs, and then runs the existing quote/page checks on the resolved suggestions. PDFs retain their physical page numbers; text sources use `null`.
 
 **A matching quote does not prove that the AI interpreted it correctly.** Review the claim against its evidence. The prompt asks the model to ignore document instructions, preserve conflicts, and avoid turning planned benefits into recorded results; these instructions reduce mistakes but do not guarantee correctness.
 
@@ -89,18 +89,19 @@ Session expiry ends access. Automatic deletion of expired records, cached quotes
 
 ## Important files
 
-| File                                                                             | Purpose                                                                         |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Add a case dialog](../../src/features/cases/add-case-dialog.tsx)                | Source selection, explicit AI action, review, and confirmation                  |
-| [Draft rules](../../src/features/cases/case-draft.ts)                            | Preserve user edits and clear outdated AI values when sources change            |
-| [Analysis endpoint](../../src/app/api/cases/analyze/route.ts)                    | Check origin/session and accept a bounded upload                                |
-| [Reading coordinator](../../src/features/cases/server/analyze-source.ts)         | Extract text, reserve attempts, reuse cached readings, and save results         |
-| [OpenAI request](../../src/features/cases/server/openai.ts)                      | Server-only configuration, prompt, schema request, timeout, and provider errors |
-| [Suggestion validation](../../src/features/cases/case-suggestions.ts)            | Shared types and checks for output sizes and real source quotes                 |
-| [Source input](../../src/features/cases/server/source-input.ts)                  | Shared input validation and exact-original fingerprinting                       |
-| [Case ingestion](../../src/features/cases/server/ingestion.ts)                   | Check the selected analysis and save the original with final fields             |
-| [AI reading viewer](../../src/features/cases/ai-reading-record.tsx)              | Display the original suggestions separately from the final case                 |
-| [Database migration](../../supabase/migrations/202610150003_case_ai_reading.sql) | Private reading records, atomic budget reservation, and review attachment       |
+| File                                                                             | Purpose                                                                                     |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [Add a case dialog](../../src/features/cases/add-case-dialog.tsx)                | Source selection, explicit AI action, review, and confirmation                              |
+| [Draft rules](../../src/features/cases/case-draft.ts)                            | Preserve user edits and clear outdated AI values when sources change                        |
+| [Analysis endpoint](../../src/app/api/cases/analyze/route.ts)                    | Check origin/session and accept a bounded upload                                            |
+| [Reading coordinator](../../src/features/cases/server/analyze-source.ts)         | Extract text, reserve attempts, reuse cached readings, and save results                     |
+| [Source excerpts](../../src/features/cases/server/source-evidence.ts)            | Split readable text into bounded excerpts and resolve selected IDs to original quotes/pages |
+| [OpenAI request](../../src/features/cases/server/openai.ts)                      | Server-only configuration, prompt, schema request, timeout, and provider errors             |
+| [Suggestion validation](../../src/features/cases/case-suggestions.ts)            | Shared types and checks for output sizes and real source quotes                             |
+| [Source input](../../src/features/cases/server/source-input.ts)                  | Shared input validation and exact-original fingerprinting                                   |
+| [Case ingestion](../../src/features/cases/server/ingestion.ts)                   | Check the selected analysis and save the original with final fields                         |
+| [AI reading viewer](../../src/features/cases/ai-reading-record.tsx)              | Display the original suggestions separately from the final case                             |
+| [Database migration](../../supabase/migrations/202610150003_case_ai_reading.sql) | Private reading records, atomic budget reservation, and review attachment                   |
 
 ## Setup and run
 
@@ -150,18 +151,18 @@ Requests use `store: false`, which disables storing the response for later API r
 
 ## Common errors
 
-| Message or situation                                                             | What to do                                                                                                              |
-| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| AI reading is not configured                                                     | Set the server's `OPENAI_API_KEY`, restart Next.js, or enter fields manually                                            |
-| Key cannot access AI reading                                                     | Check the key and selected model's availability for your API account                                                    |
-| OpenAI usage limit reached                                                       | Check provider billing/quota or wait; manual entry still works                                                          |
-| Session or daily reading limit reached                                           | Use manual entry; daily allowance returns at midnight UTC                                                               |
-| A source is already being read                                                   | Wait for completion; interrupted work can retry after two minutes                                                       |
-| Reference needs a PDF page number, has an empty quote, or exceeds 600 characters | Retry with the current reader. The error identifies the field and reference; do not remove the source-validation checks |
-| Quote could not be verified                                                      | Inspect the source, retry, or enter the details manually; the rejected output is not shown as a valid suggestion        |
-| Analysis does not match the source                                               | Read the current source again, or replace the source to clear its analysis and submit manually                          |
-| PDF has no readable text, is encrypted, corrupt, or over the limits              | Supply a supported text-based file or paste its text; no OCR or silent truncation is performed                          |
-| Source storage is unavailable                                                    | Check Supabase and apply pending migrations; preserve the draft while fixing the connection                             |
+| Message or situation                                                | What to do                                                                                                       |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| AI reading is not configured                                        | Set the server's `OPENAI_API_KEY`, restart Next.js, or enter fields manually                                     |
+| Key cannot access AI reading                                        | Check the key and selected model's availability for your API account                                             |
+| OpenAI usage limit reached                                          | Check provider billing/quota or wait; manual entry still works                                                   |
+| Session or daily reading limit reached                              | Use manual entry; daily allowance returns at midnight UTC                                                        |
+| A source is already being read                                      | Wait for completion; interrupted work can retry after two minutes                                                |
+| Reference does not identify a supplied source excerpt               | Retry or use manual entry. Invalid IDs are rejected; quote/page checks remain enabled                            |
+| Quote could not be verified                                         | Inspect the source, retry, or enter the details manually; the rejected output is not shown as a valid suggestion |
+| Analysis does not match the source                                  | Read the current source again, or replace the source to clear its analysis and submit manually                   |
+| PDF has no readable text, is encrypted, corrupt, or over the limits | Supply a supported text-based file or paste its text; no OCR or silent truncation is performed                   |
+| Source storage is unavailable                                       | Check Supabase and apply pending migrations; preserve the draft while fixing the connection                      |
 
 ## Verification
 
@@ -212,3 +213,17 @@ Reader version 2 constrains source references in the OpenAI request itself. This
 A local regression check confirmed that the old schema allowed a `null` PDF page and did not bound quote length. Version 2 requires integer PDF pages, limits quotes to 1–600 characters with non-whitespace content, and names the affected field and reference if validation fails. The reader version changed so old cached readings are not reused for new requests; saved version-1 review records remain available.
 
 Verification for this fix: 24 unit tests, both integration suites, and a new live reading of a fictional 11-page PDF passed. The live response contained six verified references and its repeated request reused the cache. The supplied personal journal was inspected locally only: it had 11 readable pages and 12,798 extracted characters. Its original rejected AI response was not retained, so the precise trigger of that earlier attempt remains unknown. The journal was not sent to OpenAI during this fix.
+
+## Quote-copying failure fix
+
+The error “AI context reference 3 quote could not be verified on its source page” means the third context citation failed the server's source check. Version 2 still asked the model to copy exact text and supply its page. A paraphrase or wrong page could therefore reject the whole reading even when the rest of its output was usable. Whitespace normalization alone did not prevent this.
+
+Version 3 removes that copying step. For example, the server might send `{ "id": 7, "page": 3, "quote": "Managers approve expenses." }`. The model returns `evidence: [7]`; the server supplies the exact quote and page 3. No fuzzy matching or acceptance of unverified quotes is involved. Excerpts cover all readable text without crossing PDF page boundaries. Long passages are split; empty pages do not shift later page numbers. The existing review UI and stored evidence shape remain the same.
+
+The prompt version changed from 2 to 3, so new requests use the new reader/cache identity. Existing saved reading records remain available. Restart the app if it is running a production build: stop the server, run `bun run build`, then `bun run start`. During `bun run dev`, edits reload automatically. Keep the open dialog's draft and select **Read with AI** again; refreshing would lose an unfinished draft.
+
+Verification for version 3: the regression reproduces the exact third-reference error with a controlled paraphrased quote, then confirms three PDF references resolve correctly through the new provider boundary. Tests also cover unknown IDs, uncited fields, physical page numbers across empty pages, Unicode characters, quote length limits, and original text preservation. The supplied engineering journal extracted locally into 11 pages, 12,798 characters, and 27 excerpts; every excerpt passed the original quote/page validator using controlled model responses. The original failed response was not retained, so its precise mismatch remains unknown. The journal was not sent to OpenAI during this investigation. No live model accuracy or paid-call result is claimed for this change.
+
+The 29 unit tests, both API integration suites, lint, formatting, type checking, and the production build passed. Browser checks with controlled output verified three context quotes with PDF pages, a blank unsupported outcome, and source/title preservation after a simulated provider failure. The first broader library integration run returned a storage error during duplicate case creation; its rerun passed. This change does not establish that the storage issue is resolved.
+
+Selecting a real excerpt guarantees that the displayed quote exists. It still does not guarantee that the AI's suggested claim follows from that excerpt; review remains necessary.

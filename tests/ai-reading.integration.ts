@@ -4,7 +4,6 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
-import { validateSuggestions } from "../src/features/cases/case-suggestions";
 import {
   hashSessionToken,
   newSessionToken,
@@ -14,7 +13,7 @@ mock.module("server-only", () => ({}));
 const { analyzeSource } =
   await import("../src/features/cases/server/analyze-source");
 const { createCase } = await import("../src/features/cases/server/ingestion");
-const { caseAIConfig, CASE_PROMPT_VERSION } =
+const { caseAIConfig, CASE_PROMPT_VERSION, suggestCase } =
   await import("../src/features/cases/server/openai");
 const { sourceInput } =
   await import("../src/features/cases/server/source-input");
@@ -33,23 +32,33 @@ test("AI reading validates sources, persists review evidence, isolates sessions,
     isPdf,
   ) => {
     providerCalls++;
-    return validateSuggestions(
-      {
-        title: {
-          value: "AI fixture title",
-          evidence: [
-            {
-              page: isPdf ? pages[0].number : null,
-              quote: pages[0].text.trim().slice(0, 40),
-            },
-          ],
-        },
-        context: { value: "", evidence: [] },
-        outcome: { value: "", evidence: [] },
-        lessons: { value: "", evidence: [] },
-      },
+    return suggestCase(
       pages,
       isPdf,
+      { key: "test-key", model: "test-model" },
+      async (_url, init) => {
+        const excerpts = JSON.parse(
+          JSON.parse(String(init.body)).input[0].content,
+        ).source_excerpts;
+        const output = {
+          title: {
+            value: "AI fixture title",
+            evidence: [excerpts[0].id],
+          },
+          context: { value: "", evidence: [] },
+          outcome: { value: "", evidence: [] },
+          lessons: { value: "", evidence: [] },
+        };
+        return Response.json({
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [{ type: "output_text", text: JSON.stringify(output) }],
+            },
+          ],
+        });
+      },
     );
   };
   async function session() {

@@ -110,3 +110,18 @@ test("reports the field and exact malformed reference without disclosing source 
     /AI title reference 1 quote is empty/,
   );
 });
+
+test("a paraphrased third context quote reproduces the reported failure; exact source text passes", () => {
+  const input = suggestion();
+  input.context.evidence = [
+    { page: 3, quote: "Expense approval portal." },
+    { page: 3, quote: "Managers approve expenses." },
+    { page: 3, quote: "No results recorded." },
+  ];
+  assert.throws(
+    () => validateSuggestions(input, pages, true),
+    /AI context reference 3 quote could not be verified on its source page/,
+  );
+  input.context.evidence[2].quote = "No rollout results recorded.";
+  validateSuggestions(input, pages, true);
+});

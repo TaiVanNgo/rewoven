@@ -16,16 +16,58 @@ const pages = [
 const fields = {
   title: {
     value: "Project Beacon",
-    evidence: [{ page: null, quote: "Project Beacon" }],
+    evidence: [1],
   },
   context: {
     value: "Tracks support requests.",
-    evidence: [{ page: null, quote: "tracks support requests" }],
+    evidence: [1],
   },
   outcome: { value: "", evidence: [] },
   lessons: { value: "", evidence: [] },
 };
 const config = { key: "test-key", model: "test-model" };
+test("resolves three PDF context citations from server excerpts without model-copied quotes", async () => {
+  const pdfPages = [
+    { number: 1, text: "Project Beacon tracks support requests." },
+    { number: 2, text: "Managers approve expenses." },
+    { number: 3, text: "No outcome recorded." },
+  ];
+  const result = await suggestCase(
+    pdfPages,
+    true,
+    config,
+    async (_url, init) => {
+      const body = JSON.parse(String(init.body));
+      const excerpts = JSON.parse(body.input[0].content).source_excerpts;
+      assert.ok(
+        Array.isArray(excerpts),
+        "The model must select supplied excerpts, rather than copy quotes.",
+      );
+      const output = {
+        title: { value: "Project Beacon", evidence: [excerpts[0].id] },
+        context: {
+          value: "An approval project with no recorded outcome.",
+          evidence: excerpts.map((entry: { id: number }) => entry.id),
+        },
+        outcome: { value: "", evidence: [] },
+        lessons: { value: "", evidence: [] },
+      };
+      return Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: JSON.stringify(output) }],
+          },
+        ],
+      });
+    },
+  );
+  assert.deepEqual(
+    result.context.evidence,
+    pdfPages.map((page) => ({ page: page.number, quote: page.text })),
+  );
+});
 function transport(body: unknown, status = 200): OpenAITransport {
   return (async () => Response.json(body, { status })) as OpenAITransport;
 }
@@ -38,7 +80,9 @@ test("sends untrusted document input with strict schema, no response storage, an
     assert.equal(body.model, "test-model");
     assert.match(body.instructions, /untrusted evidence/);
     assert.match(body.instructions, /never goals, planned benefits/);
-    assert.deepEqual(JSON.parse(body.input[0].content).document_pages, pages);
+    assert.deepEqual(JSON.parse(body.input[0].content).source_excerpts, [
+      { id: 1, page: null, quote: pages[0].text },
+    ]);
     assert.ok(init?.signal);
     assert.equal(
       new Headers(init?.headers).get("Authorization"),
@@ -56,32 +100,34 @@ test("sends untrusted document input with strict schema, no response storage, an
   }) as OpenAITransport);
   assert.equal(result.outcome.value, "");
 });
-test("PDF requests constrain references to actual pages and bound every quote and suggested field", async () => {
+test("constrains evidence IDs to the supplied excerpts and bounds suggested fields", async () => {
   const pdfPages = Array.from({ length: 11 }, (_, index) => ({
     number: index + 1,
     text: `Fictional engineering journal page ${index + 1}. Managers approve expenses.`,
   }));
   const output = {
     ...fields,
-    title: {
-      value: "Approval portal",
-      evidence: [{ page: 11, quote: "Managers approve expenses." }],
-    },
+    title: { value: "Approval portal", evidence: [11] },
     context: { value: "", evidence: [] },
   };
   let requestBody = "";
-  await suggestCase(pdfPages, true, config, async (_url, init) => {
-    requestBody = String(init.body);
-    return Response.json({
-      status: "completed",
-      output: [
-        {
-          type: "message",
-          content: [{ type: "output_text", text: JSON.stringify(output) }],
-        },
-      ],
-    });
-  });
+  const result = await suggestCase(
+    pdfPages,
+    true,
+    config,
+    async (_url, init) => {
+      requestBody = String(init.body);
+      return Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: JSON.stringify(output) }],
+          },
+        ],
+      });
+    },
+  );
   const schema = JSON.parse(requestBody).text.format.schema;
   for (const name of ["title", "context", "outcome", "lessons"]) {
     const field = schema.properties[name];
@@ -90,35 +136,63 @@ test("PDF requests constrain references to actual pages and bound every quote an
       name === "title" ? 200 : 2000,
     );
     assert.equal(field.properties.evidence.maxItems, 3);
-    const reference = field.properties.evidence.items.properties;
-    assert.equal(reference.page.type, "integer");
-    assert.equal(reference.page.minimum, 1);
-    assert.equal(reference.page.maximum, 11);
-    assert.equal(reference.quote.minLength, 1);
-    assert.equal(reference.quote.maxLength, 600);
-    assert.ok(new RegExp(reference.quote.pattern).test("Actual source quote"));
-    assert.ok(!new RegExp(reference.quote.pattern).test(" \n "));
+    assert.deepEqual(field.properties.evidence.items, {
+      type: "integer",
+      minimum: 1,
+      maximum: 11,
+    });
+  }
+  assert.deepEqual(result.title.evidence, [
+    { page: 11, quote: pdfPages[10].text },
+  ]);
+});
+test("rejects invalid excerpt IDs without trusting model-supplied quotes or pages", async () => {
+  for (const id of [
+    0,
+    -1,
+    2,
+    1.5,
+    "1",
+    null,
+    { page: null, quote: pages[0].text },
+  ]) {
+    await assert.rejects(
+      suggestCase(
+        pages,
+        false,
+        config,
+        transport({
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [
+                {
+                  type: "output_text",
+                  text: JSON.stringify({
+                    ...fields,
+                    context: { value: "Context", evidence: [1, 1, id] },
+                  }),
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+      /AI context reference 3 does not identify a supplied source excerpt/,
+    );
   }
 });
-test("plain-text requests require null source pages instead of leaving page format to the prompt", async () => {
-  let requestBody = "";
-  await suggestCase(pages, false, config, async (_url, init) => {
-    requestBody = String(init.body);
-    return Response.json({
-      status: "completed",
-      output: [
-        {
-          type: "message",
-          content: [{ type: "output_text", text: JSON.stringify(fields) }],
-        },
-      ],
-    });
-  });
-  const schema = JSON.parse(requestBody).text.format.schema;
-  assert.deepEqual(
-    schema.properties.title.properties.evidence.items.properties.page,
-    { type: "null" },
+test("rejects empty sources before contacting OpenAI", async () => {
+  let calls = 0;
+  await assert.rejects(
+    suggestCase([{ number: 1, text: " " }], true, config, async () => {
+      calls++;
+      return Response.json({});
+    }),
+    /no readable text/,
   );
+  assert.equal(calls, 0);
 });
 
 test("handles refusal, incomplete output, malformed JSON, and fabricated references", async () => {
@@ -167,12 +241,20 @@ test("handles refusal, incomplete output, malformed JSON, and fabricated referen
         output: [
           {
             type: "message",
-            content: [{ type: "output_text", text: JSON.stringify(fields) }],
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  ...fields,
+                  title: { value: "Fabricated", evidence: [2] },
+                }),
+              },
+            ],
           },
         ],
       }),
     ),
-    /could not be verified/,
+    /does not identify a supplied source excerpt/,
   );
 });
 test("provider failures and aborts never leak payloads or credentials", async () => {
