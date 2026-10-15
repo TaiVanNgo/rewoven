@@ -13,10 +13,14 @@ import {
 } from "@/components/ui/empty";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AddCaseDialog } from "./add-case-dialog";
 import { caseApi } from "./api-client";
 import { CaseDetail } from "./case-detail";
+import {
+  CaseDetailSkeleton,
+  CaseLibrarySkeleton,
+  CaseListSkeleton,
+} from "./case-skeleton";
 import { CaseStatusBadge } from "./case-status";
 import { RetryCase } from "./retry-case";
 import type { CaseDetail as CaseDetailRecord, CaseSummary } from "./types";
@@ -28,9 +32,16 @@ export function CaseLibrary() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseDetailRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [resolvedQuery, setResolvedQuery] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const [bootAttempt, setBootAttempt] = useState(0);
+  const searching = resolvedQuery !== null && query !== resolvedQuery && !error;
   // biome-ignore lint/correctness/useExhaustiveDependencies: bootAttempt explicitly retries session initialization.
   useEffect(() => {
     let active = true;
@@ -63,7 +74,9 @@ export function CaseLibrary() {
         { signal: controller.signal },
       )
         .then((data) => {
+          if (controller.signal.aborted) return;
           setCases(data.cases);
+          setResolvedQuery(query);
           setSelectedId((current) =>
             data.cases.some((c) => c.id === current)
               ? current
@@ -90,20 +103,37 @@ export function CaseLibrary() {
   useEffect(() => {
     if (!selectedId) return;
     const controller = new AbortController();
+    setDetailError(null);
+    setDetailLoading(true);
     caseApi<{ case: CaseDetailRecord }>(`/api/cases/${selectedId}`, {
       signal: controller.signal,
     })
-      .then((data) => setDetail(data.case))
+      .then((data) => {
+        if (!controller.signal.aborted) setDetail(data.case);
+      })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(error.message);
+        if (!controller.signal.aborted)
+          setDetailError({ id: selectedId, message: error.message });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDetailLoading(false);
       });
     return () => controller.abort();
   }, [selectedId, revision]);
   useEffect(() => {
-    if (!cases.some((c) => c.status === "processing")) return;
-    const timer = setInterval(() => setRevision((r) => r + 1), 2000);
-    return () => clearInterval(timer);
-  }, [cases]);
+    if (
+      loading ||
+      detailLoading ||
+      searching ||
+      error ||
+      detailError ||
+      !cases.some((c) => c.status === "processing")
+    )
+      return;
+    // Wait for current requests to settle so polling never cancels a slow load.
+    const timer = setTimeout(() => setRevision((r) => r + 1), 2000);
+    return () => clearTimeout(timer);
+  }, [cases, loading, detailLoading, searching, error, detailError]);
   function onCreated(record: CaseDetailRecord) {
     setQuery("");
     setSelectedId(record.id);
@@ -115,7 +145,7 @@ export function CaseLibrary() {
     setRevision((r) => r + 1);
   }
   return (
-    <div className="flex flex-col gap-5" aria-busy={loading}>
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <Field className="max-w-sm">
           <FieldLabel htmlFor="case-search">
@@ -127,7 +157,10 @@ export function CaseLibrary() {
             placeholder="Search the archive"
             maxLength={200}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              if (sessionReady) setError("");
+            }}
           />
         </Field>
         <AddCaseDialog disabled={!sessionReady} onCreated={onCreated} />
@@ -145,9 +178,9 @@ export function CaseLibrary() {
           </Button>
         </Alert>
       )}
-      {loading && !cases.length && !error ? (
-        <LibraryLoading />
-      ) : !cases.length && !error ? (
+      {resolvedQuery === null && !error ? (
+        <CaseLibrarySkeleton />
+      ) : !cases.length && !error && !searching ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -164,62 +197,69 @@ export function CaseLibrary() {
           </EmptyHeader>
         </Empty>
       ) : (
-        cases.length > 0 && (
+        (cases.length > 0 || searching) && (
           <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.8fr)]">
-            <aside
-              aria-label="Case list"
-              className="flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4"
-            >
-              <div className="flex items-center justify-between px-1">
-                <h2 className="font-heading text-sm font-bold">Cases</h2>
-                <Badge variant="outline" aria-live="polite">
-                  {cases.length}
-                  {query ? " found" : " total"}
-                </Badge>
-              </div>
-              <div className="flex max-h-[680px] flex-col gap-3 overflow-y-auto p-1">
-                {cases.map((record) => (
-                  <Button
-                    key={record.id}
-                    variant={selectedId === record.id ? "case-active" : "case"}
-                    aria-pressed={selectedId === record.id}
-                    aria-controls="case-detail"
-                    onClick={() => setSelectedId(record.id)}
-                  >
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="font-heading font-bold wrap-anywhere">
-                        {record.title}
+            {searching ? (
+              <CaseListSkeleton />
+            ) : (
+              <aside
+                aria-label="Case list"
+                aria-busy={loading}
+                className="flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4"
+              >
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="font-heading text-sm font-bold">Cases</h2>
+                  <Badge variant="outline" aria-live="polite">
+                    {cases.length}
+                    {query ? " found" : " total"}
+                  </Badge>
+                </div>
+                <div className="flex max-h-[680px] flex-col gap-3 overflow-y-auto p-1">
+                  {cases.map((record) => (
+                    <Button
+                      key={record.id}
+                      variant={
+                        selectedId === record.id ? "case-active" : "case"
+                      }
+                      aria-pressed={selectedId === record.id}
+                      aria-controls="case-detail"
+                      onClick={() => setSelectedId(record.id)}
+                    >
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="font-heading font-bold wrap-anywhere">
+                          {record.title}
+                        </span>
+                        <CaseStatusBadge status={record.status} />
                       </span>
-                      <CaseStatusBadge status={record.status} />
-                    </span>
-                    <span className="flex flex-wrap gap-1.5">
-                      <Badge variant="outline">
-                        {record.is_seed ? "Fictional sample" : "Your case"}
-                      </Badge>
-                      {record.is_seed && (
-                        <Badge variant="outline">Read-only</Badge>
-                      )}
-                    </span>
-                    <span className="line-clamp-2 text-sm leading-relaxed font-normal text-muted-foreground">
-                      {record.context ||
-                        "Original source available for inspection."}
-                    </span>
-                    <span className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs font-normal text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <FileTextIcon aria-hidden="true" />
-                        {record.sources.length}{" "}
-                        {record.sources.length === 1 ? "source" : "sources"}
+                      <span className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline">
+                          {record.is_seed ? "Fictional sample" : "Your case"}
+                        </Badge>
+                        {record.is_seed && (
+                          <Badge variant="outline">Read-only</Badge>
+                        )}
                       </span>
-                      <span>
-                        {record.outcome
-                          ? "Outcome recorded"
-                          : "Outcome not recorded"}
+                      <span className="line-clamp-2 text-sm leading-relaxed font-normal text-muted-foreground">
+                        {record.context ||
+                          "Original source available for inspection."}
                       </span>
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </aside>
+                      <span className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs font-normal text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <FileTextIcon aria-hidden="true" />
+                          {record.sources.length}{" "}
+                          {record.sources.length === 1 ? "source" : "sources"}
+                        </span>
+                        <span>
+                          {record.outcome
+                            ? "Outcome recorded"
+                            : "Outcome not recorded"}
+                        </span>
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </aside>
+            )}
             {detail?.id === selectedId ? (
               <CaseDetail
                 key={detail.id}
@@ -228,21 +268,23 @@ export function CaseLibrary() {
                   <RetryCase record={detail} onProcessed={onProcessed} />
                 }
               />
+            ) : detailError?.id === selectedId ? (
+              <Alert id="case-detail" variant="destructive">
+                <AlertTitle>Could not load this case</AlertTitle>
+                <AlertDescription>{detailError.message}</AlertDescription>
+                <Button
+                  variant="outline"
+                  onClick={() => setRevision((r) => r + 1)}
+                >
+                  Try again
+                </Button>
+              </Alert>
             ) : (
-              <LibraryLoading />
+              <CaseDetailSkeleton />
             )}
           </div>
         )
       )}
-    </div>
-  );
-}
-function LibraryLoading() {
-  return (
-    <div aria-live="polite" className="flex flex-col gap-4">
-      <Skeleton className="h-28 w-full" />
-      <Skeleton className="h-64 w-full" />
-      <span className="sr-only">Loading case library…</span>
     </div>
   );
 }
