@@ -1,13 +1,13 @@
 import "server-only";
 import {
+  createSuggestionsSchema,
   SuggestionError,
-  suggestionsSchema,
   validateSuggestions,
 } from "../case-suggestions";
 import type { SourcePage } from "../types";
 import { ApiError } from "./http";
 
-export const CASE_PROMPT_VERSION = 1;
+export const CASE_PROMPT_VERSION = 2;
 export type OpenAITransport = (
   url: string,
   init: RequestInit,
@@ -69,7 +69,7 @@ export async function suggestCase(
             type: "json_schema",
             name: "case_metadata",
             strict: true,
-            schema: suggestionsSchema,
+            schema: createSuggestionsSchema(pages, isPdf),
           },
         },
       }),

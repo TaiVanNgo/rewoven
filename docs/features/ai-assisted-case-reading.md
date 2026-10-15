@@ -53,6 +53,8 @@ The server uses the existing PDF reader to extract embedded text. OpenAI receive
 
 For every nonempty suggestion, the server checks that its quotes occur on the cited pages, allowing extraction whitespace differences. Non-PDF text uses `page: null`. A field may have up to three quotes, each at most 600 characters. Suggested titles are limited to 200 characters; other suggested fields to 2,000. Final user-entered fields keep the existing limits: 200 for the title and 5,000 for each other field.
 
+The reader now builds its requested output schema from the source: PDFs require integer page numbers within the physical page range, while text sources require `null`. The schema also bounds quote lengths, quote counts, and field lengths before generation. The server validates the result again afterward. This closes a version-1 gap where the requested format allowed values that the server would reject.
+
 **A matching quote does not prove that the AI interpreted it correctly.** Review the claim against its evidence. The prompt asks the model to ignore document instructions, preserve conflicts, and avoid turning planned benefits into recorded results; these instructions reduce mistakes but do not guarantee correctness.
 
 ## Your edits take priority
@@ -148,17 +150,18 @@ Requests use `store: false`, which disables storing the response for later API r
 
 ## Common errors
 
-| Message or situation                                                | What to do                                                                                                       |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| AI reading is not configured                                        | Set the server's `OPENAI_API_KEY`, restart Next.js, or enter fields manually                                     |
-| Key cannot access AI reading                                        | Check the key and selected model's availability for your API account                                             |
-| OpenAI usage limit reached                                          | Check provider billing/quota or wait; manual entry still works                                                   |
-| Session or daily reading limit reached                              | Use manual entry; daily allowance returns at midnight UTC                                                        |
-| A source is already being read                                      | Wait for completion; interrupted work can retry after two minutes                                                |
-| Quote could not be verified                                         | Inspect the source, retry, or enter the details manually; the rejected output is not shown as a valid suggestion |
-| Analysis does not match the source                                  | Read the current source again, or replace the source to clear its analysis and submit manually                   |
-| PDF has no readable text, is encrypted, corrupt, or over the limits | Supply a supported text-based file or paste its text; no OCR or silent truncation is performed                   |
-| Source storage is unavailable                                       | Check Supabase and apply pending migrations; preserve the draft while fixing the connection                      |
+| Message or situation                                                             | What to do                                                                                                              |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| AI reading is not configured                                                     | Set the server's `OPENAI_API_KEY`, restart Next.js, or enter fields manually                                            |
+| Key cannot access AI reading                                                     | Check the key and selected model's availability for your API account                                                    |
+| OpenAI usage limit reached                                                       | Check provider billing/quota or wait; manual entry still works                                                          |
+| Session or daily reading limit reached                                           | Use manual entry; daily allowance returns at midnight UTC                                                               |
+| A source is already being read                                                   | Wait for completion; interrupted work can retry after two minutes                                                       |
+| Reference needs a PDF page number, has an empty quote, or exceeds 600 characters | Retry with the current reader. The error identifies the field and reference; do not remove the source-validation checks |
+| Quote could not be verified                                                      | Inspect the source, retry, or enter the details manually; the rejected output is not shown as a valid suggestion        |
+| Analysis does not match the source                                               | Read the current source again, or replace the source to clear its analysis and submit manually                          |
+| PDF has no readable text, is encrypted, corrupt, or over the limits              | Supply a supported text-based file or paste its text; no OCR or silent truncation is performed                          |
+| Source storage is unavailable                                                    | Check Supabase and apply pending migrations; preserve the draft while fixing the connection                             |
 
 ## Verification
 
@@ -201,3 +204,11 @@ Verified locally on 15 October 2026: 21 unit tests, both integration suites, for
 ## What remains
 
 There are no embeddings, semantic retrieval, RAG answers, reusable-artifact tags, diagram interpretation, OCR, saved plans, or resumable unfinished drafts. This increment has not been deployed. Prompt quality has been checked with a small fictional fixture set, not a broad accuracy evaluation; human review is required.
+
+## Source-reference validation fix
+
+Reader version 2 constrains source references in the OpenAI request itself. This is separate from checking that a quote really occurs in the document, which still happens on the server. It does not shorten or silently accept an invalid citation.
+
+A local regression check confirmed that the old schema allowed a `null` PDF page and did not bound quote length. Version 2 requires integer PDF pages, limits quotes to 1–600 characters with non-whitespace content, and names the affected field and reference if validation fails. The reader version changed so old cached readings are not reused for new requests; saved version-1 review records remain available.
+
+Verification for this fix: 24 unit tests, both integration suites, and a new live reading of a fictional 11-page PDF passed. The live response contained six verified references and its repeated request reused the cache. The supplied personal journal was inspected locally only: it had 11 readable pages and 12,798 extracted characters. Its original rejected AI response was not retained, so the precise trigger of that earlier attempt remains unknown. The journal was not sent to OpenAI during this fix.

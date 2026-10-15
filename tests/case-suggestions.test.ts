@@ -60,7 +60,7 @@ test("matches extraction whitespace and requires null page references for plain 
   input.context.evidence[0].quote = "  ";
   assert.throws(
     () => validateSuggestions(input, pages, true),
-    /invalid source references/,
+    /quote is empty/,
   );
   const plain = {
     ...suggestion(),
@@ -73,6 +73,40 @@ test("matches extraction whitespace and requires null page references for plain 
   validateSuggestions(plain, pages, false);
   assert.throws(
     () => validateSuggestions(suggestion(), pages, false),
-    /invalid source references/,
+    /PDF page number for a text source/,
+  );
+});
+
+test("reports the field and exact malformed reference without disclosing source text", () => {
+  const source = [{ number: 1, text: "a".repeat(601) }];
+  const input = {
+    title: {
+      value: "Example",
+      evidence: [{ page: 1, quote: "a".repeat(600) }],
+    },
+    context: { value: "", evidence: [] },
+    outcome: { value: "", evidence: [] },
+    lessons: { value: "", evidence: [] },
+  };
+  validateSuggestions(input, source, true);
+  input.title.evidence[0].quote += "a";
+  assert.throws(
+    () => validateSuggestions(input, source, true),
+    /AI title reference 1 quote is 601 characters; the maximum is 600/,
+  );
+  for (const page of [null, "1"]) {
+    const malformed = {
+      ...input,
+      title: { value: "Example", evidence: [{ page, quote: "actual quote" }] },
+    };
+    assert.throws(
+      () => validateSuggestions(malformed, source, true),
+      /AI title reference 1 needs a PDF page number/,
+    );
+  }
+  input.title.evidence[0].quote = " ";
+  assert.throws(
+    () => validateSuggestions(input, source, true),
+    /AI title reference 1 quote is empty/,
   );
 });
