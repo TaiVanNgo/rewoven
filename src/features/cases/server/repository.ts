@@ -33,6 +33,14 @@ export async function listCases(
   });
   checkDatabase(error);
   const cases: CaseRecord[] = data ?? [];
+  // Keep recent additions first and shared examples in their original seed order.
+  cases.sort(
+    (a, b) =>
+      Number(a.is_seed) - Number(b.is_seed) ||
+      (a.is_seed
+        ? a.created_at.localeCompare(b.created_at)
+        : b.created_at.localeCompare(a.created_at)),
+  );
   if (!cases.length) return [];
   const sources = await db
     .from("source_documents")

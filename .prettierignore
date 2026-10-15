@@ -11,3 +11,6 @@ next-env.d.ts
 bun.lock
 skills-lock.json
 .agents/skills/
+
+.playwright-cli/
+output/playwright/

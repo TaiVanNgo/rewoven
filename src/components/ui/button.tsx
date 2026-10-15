@@ -24,6 +24,9 @@ const buttonVariants = cva(
           "justify-start rounded-card text-muted-foreground font-medium hover:bg-accent hover:text-foreground",
         "navigation-active":
           "justify-start rounded-card bg-primary text-primary-foreground hover:bg-primary-hover",
+        case: "h-auto min-w-0 flex-col items-stretch justify-start gap-3 rounded-card border border-border bg-card p-4 text-left whitespace-normal hover:border-ring",
+        "case-active":
+          "h-auto min-w-0 flex-col items-stretch justify-start gap-3 rounded-card border-2 border-foreground bg-card p-[15px] text-left whitespace-normal",
         sample:
           "group min-h-[138px] flex-col items-stretch justify-between gap-4 rounded-card border border-border bg-muted text-left whitespace-normal hover:border-ring hover:bg-card",
       },
