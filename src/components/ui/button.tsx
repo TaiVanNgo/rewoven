@@ -3,20 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-heading text-[13px] font-semibold whitespace-nowrap transition-colors duration-180 ease-interface select-none disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 font-heading text-[13px] font-semibold whitespace-nowrap transition-colors duration-180 ease-interface select-none disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        default:
+          "rounded-control bg-primary text-primary-foreground hover:bg-primary-hover",
         outline:
-          "border border-border bg-card hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
+          "rounded-control border border-border bg-card hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "rounded-control bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
-          "text-muted-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
+          "rounded-control text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        companion:
+          "rounded-control text-xs text-foreground hover:bg-accent hover:text-accent-foreground",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-foreground underline-offset-4 hover:underline",
+          "rounded-control bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+        link: "rounded-control text-foreground underline-offset-4 hover:underline",
         navigation:
           "justify-start rounded-card text-muted-foreground font-medium hover:bg-accent hover:text-foreground",
         "navigation-active":

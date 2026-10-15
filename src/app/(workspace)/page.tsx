@@ -42,7 +42,7 @@ export default function Home() {
               </p>
               <Link
                 href="/case-library"
-                className={buttonVariants({ variant: "ghost" })}
+                className={buttonVariants({ variant: "companion" })}
               >
                 Browse the case library
                 <ArrowRightIcon data-icon="inline-end" aria-hidden="true" />
