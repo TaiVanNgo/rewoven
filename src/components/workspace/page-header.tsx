@@ -22,7 +22,7 @@ export function PageHeader({
           {section}
         </p>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">
+          <Badge variant="metadata">
             <CpuIcon data-icon="inline-start" aria-hidden="true" />
             Archivist v2.4
           </Badge>

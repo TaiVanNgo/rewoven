@@ -28,7 +28,7 @@ export function ThemeToggle() {
         render={
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             aria-label="Change theme"
             title="Change theme"
           />

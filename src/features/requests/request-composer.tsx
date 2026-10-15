@@ -64,21 +64,21 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
       <div className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[minmax(0,1fr)_310px]">
         <Card variant="soft" className="min-w-0">
           <form
-            className="flex flex-col gap-5"
+            className="flex flex-col"
             onSubmit={(event) => {
               event.preventDefault();
               if (canSubmit) setSubmitted(true);
             }}
           >
-            <CardHeader>
+            <CardHeader className="mb-3">
               <CardTitle>Describe the request</CardTitle>
               <CardAction>
                 <Badge variant="label">Primary</Badge>
               </CardAction>
             </CardHeader>
             <CardContent>
-              <FieldGroup>
-                <Field>
+              <FieldGroup className="gap-0">
+                <Field className="gap-3">
                   <FieldLabel htmlFor="request" className="sr-only">
                     Describe the request
                   </FieldLabel>
@@ -118,12 +118,12 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                     </span>
                   </div>
                 </Field>
-                <Separator />
+                <Separator className="mt-5 mb-4" />
                 <FieldSet>
                   <FieldLegend>Optional constraints</FieldLegend>
                   <FieldGroup className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     {constraints.map(({ name, label, placeholder }) => (
-                      <Field key={name}>
+                      <Field key={name} className="gap-1.5">
                         <FieldLabel htmlFor={name}>{label}</FieldLabel>
                         <Input
                           id={name}
