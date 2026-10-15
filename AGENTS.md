@@ -15,6 +15,11 @@
 
 ## Teach while building
 
+- After implementing a new feature, create or update a beginner-friendly Markdown
+  guide under `docs/features/` and link it in the final response. Walk through a
+  concrete example, explain the important files and data flow in plain language,
+  include verified setup and usage commands, and distinguish verified behavior
+  from limitations. Update an existing guide for related follow-up work.
 - Explain the purpose of the files and commands involved in the current task in
   concise, plain language. Connect each explanation to the change being made.
 - For setup guidance, explain how to install dependencies, start development,
@@ -29,6 +34,10 @@
 
 ## Develop and verify
 
+- Split substantial implementations into focused, coherent, verified commits.
+  Use Conventional Commits with a short imperative description and a space after
+  the colon, for example `feat: add case ingestion`. Include related tests with
+  their feature, inspect each staged diff, and stage only intended files.
 - Use Bun and retain `bun.lock`. After intentional dependency or package-name
   changes, run `bun install` and review the lockfile diff; use frozen installation
   when reproducing an unchanged dependency set.

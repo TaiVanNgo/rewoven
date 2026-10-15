@@ -138,7 +138,7 @@ export function WorkspaceSidebar() {
           <CardContent className="flex flex-col gap-1">
             <CardTitle>Demo session</CardTitle>
             <CardDescription>
-              Try a request using fictional examples.
+              Explore fictional cases or add your own sources.
             </CardDescription>
           </CardContent>
           <CardFooter>

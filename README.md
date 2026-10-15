@@ -2,13 +2,17 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. It is a frontend preview: case ingestion, retrieval, AI analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library now supports Supabase persistence, original-source inspection, keyword search, and text/Markdown/PDF ingestion. AI retrieval, analysis, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
-The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library and Saved plans currently contain headings and preview empty states; browsing cases, uploads, and saving plans are not implemented.
+The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing ten read-only fictional samples and session-owned additions. Saved plans remains a preview empty state.
 
 The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** shows an inline message explaining that retrieval is not connected. The request and all constraints stay in memory while navigating between the workspace pages, then reset on reload or closing the tab. Drafts are not sent to a backend or saved to browser storage.
 
 To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. Use the sidebar links to visit the other pages and return without losing your draft. On desktop, use the sidebar toggle to collapse or expand navigation; its state survives navigation too. Use **Change theme** in the workspace header to choose Light, Dark, or System. Stop the dev server with Ctrl+C.
+
+Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases persist in a cookie-backed demo session for 24 hours; request drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
+
+For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
 ## Quick start
 
@@ -40,7 +44,16 @@ SUPABASE_SECRET_KEY=replace-with-your-local-secret-key
 
 Older CLI versions may label the server key `service_role`. Port 54321 serves the HTTP API; the PostgreSQL connection URL on port 54322 is for direct database clients, not `SUPABASE_URL`. Keep local credentials in `.env.local`; configure hosted credentials separately in your deployment service.
 
-`db:start` starts Supabase and creates or updates the private `case-sources` bucket with a 5 MB upload limit from `supabase/config.toml`. You do not need to create the bucket in Studio manually. This command explicitly targets local storage, and can be rerun after a normal stop. The first startup downloads the container images and can take several minutes. Local migrations and `supabase/seed.sql` run during initial database creation; an ordinary restart preserves the existing database.
+`db:start` starts Supabase and creates or updates the private `case-sources` bucket with a 5 MB upload limit from `supabase/config.toml`. You do not need to create the bucket in Studio manually. This command explicitly targets local storage, and can be rerun after a normal stop. The first startup downloads the container images and can take several minutes. Local migrations run during initial database creation; an ordinary restart preserves the existing database. Case fixtures and their original files are imported with the separate seed command below.
+
+After configuring the local credentials, apply pending migrations and import the ten fictional samples:
+
+```bash
+bun run db:migrate
+bun run db:seed
+```
+
+These commands preserve existing data and already-Ready seed cases. Run `db:migrate` after pulling schema changes. `db:start` does not apply pending migrations to an existing database. `db:seed` is local-only and uploads original fixture files as well as creating records.
 
 After the first-time setup, start local Supabase and the web app with one command:
 
@@ -69,29 +82,34 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Replace the demo homepage and favicon with the product interface and branding.
 - [x] Remove `MotionDemo` when replacing the homepage.
 - [x] Establish shared workspace routes, shadcn primitives, and Light / Dark / System themes.
-- [ ] Implement case ingestion, retrieval, AI analysis, and plan persistence; choose and configure the AI provider before building that integration.
+- [x] Implement session-isolated case browsing, keyword search, source inspection, and text/Markdown/PDF ingestion.
+- [ ] Implement AI retrieval, analysis, and plan persistence; choose and configure the AI provider before building that integration.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
-The current foundation does not need database credentials or an AI API key to run. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
+The New request preview runs without database credentials. The case library requires configured Supabase services; it does not need an AI API key. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
 
 `AGENTS.md` contains the development workflow. Optional skills in `.agents/skills/` provide agent guidance; their presence does not install their recommended libraries. Review their licenses before redistributing them.
 
 ## Commands
 
-| Command                | Purpose                                                                          |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| `bun run dev`          | Start development with Fast Refresh.                                             |
-| `bun run devx`         | Start local Supabase, provision storage, then start Next.js with Fast Refresh.   |
-| `bun run db:start`     | Start local Supabase and provision the declared storage bucket.                  |
-| `bun run db:status`    | Show local service URLs and credentials.                                         |
-| `bun run db:stop`      | Stop local Supabase while preserving local data.                                 |
-| `bun run lint`         | Check Biome lint and import organization without writing fixes.                  |
-| `bun run format`       | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.  |
-| `bun run format:check` | Check formatting and Tailwind class order without writing changes.               |
-| `bun run typecheck`    | Generate Next.js route types, then check TypeScript without emitting JavaScript. |
-| `bun run build`        | Build the application for production.                                            |
-| `bun run start`        | Serve the production build; run `build` first.                                   |
+| Command                    | Purpose                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `bun run dev`              | Start development with Fast Refresh.                                             |
+| `bun run devx`             | Start local Supabase, provision storage, then start Next.js with Fast Refresh.   |
+| `bun run db:start`         | Start local Supabase and provision the declared storage bucket.                  |
+| `bun run db:migrate`       | Apply pending local migrations without resetting data.                           |
+| `bun run db:seed`          | Import ten fictional cases and original files locally; preserve Ready seeds.     |
+| `bun run test`             | Run focused validation, extraction, and session unit tests.                      |
+| `bun run test:integration` | Test the running local API, persistence, isolation, and processing recovery.     |
+| `bun run db:status`        | Show local service URLs and credentials.                                         |
+| `bun run db:stop`          | Stop local Supabase while preserving local data.                                 |
+| `bun run lint`             | Check Biome lint and import organization without writing fixes.                  |
+| `bun run format`           | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.  |
+| `bun run format:check`     | Check formatting and Tailwind class order without writing changes.               |
+| `bun run typecheck`        | Generate Next.js route types, then check TypeScript without emitting JavaScript. |
+| `bun run build`            | Build the application for production.                                            |
+| `bun run start`            | Serve the production build; run `build` first.                                   |
 
 `format` formats code and sorts Tailwind classes; address remaining lint or import organization findings separately. Next.js builds do not run Biome or Prettier, so lint and formatting are separate checks.
 
@@ -124,6 +142,9 @@ src/components/
   ui/                       Shadcn primitives customized for Rewoven
   workspace/                Sidebar, shell, page header, logo, theme dropdown
   providers/                Theme and Motion providers
+src/features/cases/          Library, source viewer, form, types, validation, extraction
+  server/                   Supabase access, ownership, ingestion, sessions
+src/app/api/                Session, case, retry, and authorized original-file routes
 src/features/requests/
   request-composer.tsx       Form interactions and sample loading
   request-draft.tsx          Draft type, provider, and access hook
@@ -143,7 +164,10 @@ biome.json                  Linting and import organization
 tsconfig.json               TypeScript; @/* resolves to src/*
 AGENTS.md                   Agent development workflow
 .agents/skills/             Optional agent guidance
-supabase/                   Local service configuration and seed data
+supabase/                   Local configuration, migrations, and source fixtures
+scripts/seed-cases.ts        Idempotent local case/file import
+tests/                      Unit tests, API integration suite, and PDF fixtures
+docs/features/              Beginner-friendly implementation guides
 ```
 
 The `(workspace)` route group organizes related pages without adding a URL segment. Its layout keeps the sidebar and request-draft provider mounted during client navigation. Pages and the shared shell remain Server Components; Client Components own form state, sidebar collapse, and theme controls. Add another workspace route under this group when it needs the same frame.
@@ -154,13 +178,13 @@ The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for heading
 
 The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens.
 
-`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. Local Supabase services and source storage are configured; application database access, authentication, test runners, and CI workflows are not implemented yet.
+`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and live API tests. Account authentication and CI workflows are not implemented yet.
 
 ## Shared UI with shadcn
 
 The project uses the official shadcn registry, the `base-nova` style, Base UI primitives, and Lucide icons. `components.json` records the configuration. The current CLI initializes this style with `--preset nova --base base`; the resulting configuration calls it `base-nova`.
 
-The UI primitives are source files owned by this repository, including Button, Input, Textarea, Field, Card, Empty, Badge, Separator, and DropdownMenu. Label is included as a dependency of Field. Base UI supplies interactive behavior, `class-variance-authority` supplies variants, and `cn()` merges conditional Tailwind classes. The `shadcn` and `tw-animate-css` stylesheet imports supply state variants and popup animations.
+The UI primitives are source files owned by this repository, including Button, Input, Textarea, Field, Card, Empty, Badge, Separator, DropdownMenu, Dialog, Tabs, Alert, and Skeleton. Label is included as a dependency of Field. Base UI supplies interactive behavior, `class-variance-authority` supplies variants, and `cn()` merges conditional Tailwind classes. The `shadcn` and `tw-animate-css` stylesheet imports supply state variants and popup animations.
 
 Use existing primitives and variants before adding custom control markup. Rewoven’s navigation, sample-button, card, and category-badge variants are defined centrally in the UI files. Compose forms with FieldGroup, Field, and labeled controls. Use real Next.js Link elements with `buttonVariants()` for navigation; keep Button for actions. Use `cn()` for conditional classes and Lucide icons with accessible labels on icon-only controls.
 
@@ -168,7 +192,7 @@ Before adding another component, check whether it already exists. Use the config
 
 ## Themes and design tokens
 
-Light / Dark / System is available through **Change theme** in every workspace page’s header. System is the default and follows live device preference changes. An explicit choice overrides the device and persists in local storage under `rewoven-theme`, including after a reload. Only the theme preference is persisted; request drafts stay in memory.
+Light / Dark / System is available through **Change theme** in every workspace page’s header. System is the default and follows live device preference changes. An explicit choice overrides the device and persists in local storage under `rewoven-theme`, including after a reload. Theme preferences use browser local storage; cases use Supabase and a session cookie. Request drafts stay in memory.
 
 `src/components/providers/theme-provider.tsx` uses `next-themes` to apply a `light` or `dark` class before the page paints. The root HTML permits that intentional class/style difference during hydration. Theme changes disable color transitions temporarily to avoid unrelated elements fading at different speeds.
 
@@ -217,6 +241,7 @@ Before launch, inspect the deployed page source for title, description, canonica
 ## Verify before sharing or deploying
 
 ```bash
+bun run test
 bun run lint
 bun run format:check
 bun run typecheck
@@ -228,6 +253,8 @@ Check the production page at the printed URL, including mobile layout, keyboard
 navigation, Light / Dark / System themes, preference persistence, retained drafts, and reduced motion. Stop the development server before serving
 production on the same port, or use `bun run start --port 3001`. Use `dev` while
 editing and `build` followed by `start` to verify production behavior.
+
+With configured local Supabase and the app running, use `bun run test:integration` to verify the API workflow. It creates and cleans up its own sessions and files. Set `TEST_BASE_URL=http://localhost:3001` when checking a production server on that port.
 
 ## Working with an AI agent
 
