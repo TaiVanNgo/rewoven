@@ -1,1 +1,1 @@
--- Fictional case seed data will be added when the case library is implemented.
+-- After configuring .env.local, run bun run db:seed to seed cases and their original files.

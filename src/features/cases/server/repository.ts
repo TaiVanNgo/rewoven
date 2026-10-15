@@ -43,7 +43,7 @@ export async function listCases(
     );
   checkDatabase(sources.error);
   return cases.map((c) => ({
-    ...c,
+    ...publicCase(c),
     sources: (sources.data ?? []).filter((s) => s.case_id === c.id),
   }));
 }
@@ -58,5 +58,32 @@ export async function caseDetail(
     .eq("case_id", record.id)
     .order("created_at");
   checkDatabase(error);
-  return { ...record, sources: (data ?? []) as SourceDocument[] };
+  return { ...publicCase(record), sources: (data ?? []) as SourceDocument[] };
+}
+
+function publicCase(record: CaseRecord): CaseRecord {
+  const {
+    id,
+    is_seed,
+    title,
+    context,
+    outcome,
+    lessons,
+    status,
+    error_message,
+    processing_started_at,
+    created_at,
+  } = record;
+  return {
+    id,
+    is_seed,
+    title,
+    context,
+    outcome,
+    lessons,
+    status,
+    error_message,
+    processing_started_at,
+    created_at,
+  };
 }

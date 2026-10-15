@@ -1,0 +1,54 @@
+[
+  {
+    "title": "Expense Approval Portal",
+    "context": "Single-manager expense approval with role-based permissions and decision history.",
+    "sources": ["delivery-notes.pdf", "retrospective.md"]
+  },
+  {
+    "title": "Client Onboarding Checklist",
+    "context": "Structured client verification with explicit role assignment.",
+    "sources": ["client-onboarding.md"]
+  },
+  {
+    "title": "Support Knowledge Base",
+    "context": "Internal documentation search with tag filters and versioned articles.",
+    "sources": ["support-guide.pdf"]
+  },
+  {
+    "title": "Purchase Workflow Notes",
+    "context": "Purchase approvals with an explicit rejection path.",
+    "sources": ["purchase-workflow.txt"]
+  },
+  {
+    "title": "Inventory Reconciliation",
+    "context": "Nightly warehouse reconciliation with exception review.",
+    "sources": ["inventory.md"],
+    "outcome": "The fictional pilot recorded unresolved mismatches for manual review."
+  },
+  {
+    "title": "Appointment Scheduling",
+    "context": "Shared calendar booking with capacity limits.",
+    "sources": ["scheduling.md"]
+  },
+  {
+    "title": "Vendor Billing Portal",
+    "context": "Invoice submissions, duplicate checks, and finance review.",
+    "sources": ["billing.md"]
+  },
+  {
+    "title": "Incident Handoff Log",
+    "context": "Structured incident handoffs between support shifts.",
+    "sources": ["incident.md"],
+    "lessons": "Require an owner for each unresolved action."
+  },
+  {
+    "title": "Customer Import Tool",
+    "context": "CSV imports with validation, preview, and row-level errors.",
+    "sources": ["imports.md"]
+  },
+  {
+    "title": "Release Checklist",
+    "context": "Manual release gates, smoke checks, and a rollback checklist.",
+    "sources": ["releases.md"]
+  }
+]
