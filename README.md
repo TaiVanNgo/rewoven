@@ -12,6 +12,8 @@ To inspect this interface without starting Supabase, install dependencies with `
 
 Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases persist in a cookie-backed demo session for 24 hours; request drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
 
+For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
+
 ## Quick start
 
 Install Node.js 20.19 or newer (required by the Tailwind Prettier plugin) and the Bun version specified in `package.json` (`packageManager`). Bun manages dependencies and scripts; Next.js runs on Node.js.

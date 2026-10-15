@@ -16,6 +16,8 @@ Rewoven stores the original material, extracts readable text, and prepares that 
 
 A blank outcome stays **Outcome not recorded**. The application does not invent a success story from the fact that a project exists.
 
+For the loading placeholders and request transitions, see [Understanding loading states and skeletons](loading-states.md).
+
 ## How the pieces work together
 
 The **browser** handles typing, selection, the dialog, and progress feedback. The **Next.js server** validates requests, checks ownership, and processes documents. **Supabase** supplies two different services: a database for structured records and Storage for uploaded files.
