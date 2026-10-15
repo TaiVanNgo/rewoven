@@ -260,28 +260,39 @@ export function CaseLibrary() {
                 </div>
               </aside>
             )}
-            {detail?.id === selectedId ? (
-              <CaseDetail
-                key={detail.id}
-                record={detail}
-                actions={
-                  <RetryCase record={detail} onProcessed={onProcessed} />
-                }
-              />
-            ) : detailError?.id === selectedId ? (
-              <Alert id="case-detail" variant="destructive">
-                <AlertTitle>Could not load this case</AlertTitle>
-                <AlertDescription>{detailError.message}</AlertDescription>
-                <Button
-                  variant="outline"
-                  onClick={() => setRevision((r) => r + 1)}
+            <div className="flex min-w-0 flex-col gap-5">
+              {detailError?.id === selectedId && (
+                <Alert
+                  id={detail?.id === selectedId ? undefined : "case-detail"}
+                  variant="destructive"
                 >
-                  Try again
-                </Button>
-              </Alert>
-            ) : (
-              <CaseDetailSkeleton />
-            )}
+                  <AlertTitle>Could not load this case</AlertTitle>
+                  <AlertDescription>
+                    {detailError.message}
+                    {detail?.id === selectedId && (
+                      <p>Showing the last loaded details until you retry.</p>
+                    )}
+                  </AlertDescription>
+                  <Button
+                    variant="outline"
+                    onClick={() => setRevision((r) => r + 1)}
+                  >
+                    Try again
+                  </Button>
+                </Alert>
+              )}
+              {detail?.id === selectedId ? (
+                <CaseDetail
+                  key={detail.id}
+                  record={detail}
+                  actions={
+                    <RetryCase record={detail} onProcessed={onProcessed} />
+                  }
+                />
+              ) : detailError?.id !== selectedId ? (
+                <CaseDetailSkeleton />
+              ) : null}
+            </div>
           </div>
         )
       )}

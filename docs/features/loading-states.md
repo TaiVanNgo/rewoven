@@ -47,6 +47,8 @@ That is why [case-library.tsx](../../src/features/cases/case-library.tsx) also c
 
 Requests cancelled by newer searches cannot overwrite the newer results. Detail errors belong to the selected case and offer a retry, instead of leaving its loading placeholder indefinitely.
 
+If a refresh fails after details have loaded, the error appears above the retained case with a **Try again** button. For example, a case can show its last loaded Processing status while explaining that its latest details could not be fetched. Retry fetches the selected case again; after success, the error clears and processing-status polling can continue. The error and cached content render independently so cached details cannot hide the recovery action.
+
 Processing-status polling waits until current list/detail requests finish, then waits two seconds before refreshing. This prevents a slow request from being cancelled repeatedly by the next polling tick. A background refresh keeps data that is already on screen.
 
 ## The reusable components
@@ -113,9 +115,10 @@ Then open [the production-mode library](http://localhost:3002/case-library).
 
 ## What was verified
 
-- Formatting, lint, TypeScript checking, production compilation, and the eight existing unit tests passed.
+- Formatting, lint, TypeScript checking, production compilation, and unit tests passed.
 - Delayed browser responses verified initial loading, case selection, searching, empty results, detail errors, retry, and rapid query changes.
 - Production-mode checks used requests lasting three seconds to confirm that polling waits and loaded content remains visible. A simulated session failure also ended loading correctly and stayed visible when the search text changed.
+- A production-mode browser check simulated a successful detail load followed by a failed processing-status refresh. Cached details stayed visible alongside the error and retry button. Selecting **Try again** cleared the error and displayed the refreshed Ready status. The simulated API responses lived in a temporary local proxy, outside the application.
 - The three route fallback components were rendered as isolated previews for visual checks. Each had one accessible status announcement, no fake buttons, no horizontal overflow at 390px, and no pulse animation under reduced motion. Desktop/light and mobile/dark previews were inspected.
 
 Network delays and simulated failures were confined to browser verification. No preview route, test delay, or skeleton toggle was added to the public application. Cached route transitions can be too fast to show their fallback naturally. A full screen-reader audit and hosted deployment verification were not performed.
