@@ -35,9 +35,15 @@ export function SourceViewer({ sources }: { sources: SourceDocument[] }) {
               className="h-auto! max-w-full flex-wrap justify-start"
             >
               {sources.map((source, index) => (
-                <TabsTrigger key={source.id} value={source.id}>
+                <TabsTrigger
+                  key={source.id}
+                  value={source.id}
+                  className="max-w-full min-w-0"
+                >
                   <FileTextIcon aria-hidden="true" />
-                  {source.title}{" "}
+                  <span className="min-w-0 truncate" title={source.title}>
+                    {source.title}
+                  </span>
                   <span className="font-mono text-xs">[S{index + 1}]</span>
                 </TabsTrigger>
               ))}

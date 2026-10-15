@@ -14,9 +14,11 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AddCaseDialog } from "./add-case-dialog";
 import { caseApi } from "./api-client";
 import { CaseDetail } from "./case-detail";
 import { CaseStatusBadge } from "./case-status";
+import { RetryCase } from "./retry-case";
 import type { CaseDetail as CaseDetailRecord, CaseSummary } from "./types";
 
 export function CaseLibrary() {
@@ -102,6 +104,16 @@ export function CaseLibrary() {
     const timer = setInterval(() => setRevision((r) => r + 1), 2000);
     return () => clearInterval(timer);
   }, [cases]);
+  function onCreated(record: CaseDetailRecord) {
+    setQuery("");
+    setSelectedId(record.id);
+    setDetail(record);
+    setRevision((r) => r + 1);
+  }
+  function onProcessed(record: CaseDetailRecord) {
+    setDetail(record);
+    setRevision((r) => r + 1);
+  }
   return (
     <div className="flex flex-col gap-5" aria-busy={loading}>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -118,9 +130,7 @@ export function CaseLibrary() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </Field>
-        <p className="text-xs text-muted-foreground">
-          Your additions stay in this demo session for 24 hours.
-        </p>
+        <AddCaseDialog disabled={!sessionReady} onCreated={onCreated} />
       </div>
       {error && (
         <Alert variant="destructive">
@@ -211,7 +221,13 @@ export function CaseLibrary() {
               </div>
             </aside>
             {detail?.id === selectedId ? (
-              <CaseDetail key={detail.id} record={detail} />
+              <CaseDetail
+                key={detail.id}
+                record={detail}
+                actions={
+                  <RetryCase record={detail} onProcessed={onProcessed} />
+                }
+              />
             ) : (
               <LibraryLoading />
             )}

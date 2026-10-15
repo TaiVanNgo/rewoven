@@ -80,8 +80,9 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
       403,
     );
     const seeds = (await (await api(a, "/api/cases")).json()).cases;
-    assert.ok(
-      seeds.filter((c: { is_seed: boolean }) => c.is_seed).length >= 10,
+    assert.equal(
+      seeds.filter((c: { is_seed: boolean }) => c.is_seed).length,
+      10,
     );
     const seed = seeds.find(
       (c: { title: string }) => c.title === "Expense Approval Portal",
@@ -140,6 +141,67 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.equal(bMatches.length, 0);
     assert.equal((await create(a, { text: " " })).status, 400);
     assert.equal((await create(a, { text: "x".repeat(50_001) })).status, 400);
+    for (const file of [
+      "supabase/fixtures/retrospective.md",
+      "supabase/fixtures/purchase-workflow.txt",
+    ]) {
+      const response = await create(a, { file });
+      assert.equal(response.status, 201);
+      const record = (await response.json()).case;
+      assert.equal(record.status, "ready");
+      const original = await api(
+        a,
+        `/api/sources/${record.sources[0].id}/original`,
+      );
+      assert.equal(await original.text(), await readFile(file, "utf8"));
+    }
+    for (const [filename, content] of [
+      ["bad.docx", new Uint8Array([1])],
+      ["big.txt", new Uint8Array(5_000_001)],
+    ] as const) {
+      const form = new FormData();
+      form.set("requestKey", randomUUID());
+      form.set("title", "Invalid upload");
+      form.set("mode", "file");
+      form.set("file", new Blob([content]), filename);
+      const response = await api(a, "/api/cases", {
+        method: "POST",
+        body: form,
+      });
+      assert.equal(response.status, 400);
+    }
+    for (const file of [
+      "tests/fixtures/encrypted.pdf",
+      "tests/fixtures/too-much-text.pdf",
+    ]) {
+      const record = (await (await create(a, { file })).json()).case;
+      assert.equal(record.status, "failed");
+      assert.ok(record.error_message);
+      assert.equal(record.sources[0].extracted_text, null);
+    }
+    await db.from("cases").update({ status: "failed" }).eq("id", key);
+    assert.equal(
+      (await (await api(a, "/api/cases?q=narwhal")).json()).cases.length,
+      0,
+    );
+    const activeToken = randomUUID();
+    await db
+      .from("cases")
+      .update({
+        status: "processing",
+        processing_token: activeToken,
+        processing_started_at: new Date().toISOString(),
+      })
+      .eq("id", key);
+    const busy = (
+      await (await api(a, `/api/cases/${key}/retry`, { method: "POST" })).json()
+    ).case;
+    assert.equal(busy.status, "processing");
+    assert.equal(
+      (await db.from("cases").select("processing_token").eq("id", key).single())
+        .data?.processing_token,
+      activeToken,
+    );
     const mixed = (
       await (await create(a, { file: "tests/fixtures/mixed-pages.pdf" })).json()
     ).case;
