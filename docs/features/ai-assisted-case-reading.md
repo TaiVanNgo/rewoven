@@ -123,11 +123,11 @@ Add or confirm these server-only settings in `.env.local`:
 ```dotenv
 OPENAI_API_KEY=your-api-key
 OPENAI_CASE_MODEL=gpt-4.1-mini-2025-04-14
-AI_CASE_SESSION_LIMIT=10
+AI_CASE_SESSION_LIMIT=50
 AI_CASE_DAILY_LIMIT=100
 ```
 
-The model and limits have the defaults shown above, so only the API key is required for AI reading. Restart your development server after changing environment settings:
+Only the API key is required for AI reading. The model and production limits have the defaults shown above. Both attempt limits are ignored during `bun run dev` / `bun run devx`; development has no session or daily attempt cap. Restart your development server after changing environment settings:
 
 ```bash
 bun run dev
@@ -139,9 +139,16 @@ For a repeatable example, upload [the fictional three-page delivery notes](../..
 
 ## Costs, limits, and privacy
 
-The default allowance is 10 reserved attempts during a demo session and 100 across the database per UTC day. The daily allowance resets at midnight UTC. Reservations are atomic, so concurrent workers cannot each spend the last available attempt.
+Attempt limits depend on the server mode:
 
-Repeated readings of the same original, model, and prompt version reuse a successful result within the same session. Failed provider calls consume attempts too. Invalid source extraction is rejected before reserving an AI attempt. Set either limit to `0` to block new readings; existing cached results remain available.
+| Server mode                                       | Session attempt limit | Database-wide daily attempt limit |
+| ------------------------------------------------- | --------------------- | --------------------------------- |
+| `bun run dev` or `bun run devx`                   | Unlimited             | Unlimited                         |
+| Production (`bun run build` then `bun run start`) | 50 by default         | 100 per UTC day by default        |
+
+The server checks `NODE_ENV === "development"`; a production server running on localhost still uses production limits. Next.js sets this mode from the command, so do not add `NODE_ENV` to your environment file to control the allowance. Outside development, `AI_CASE_SESSION_LIMIT` and `AI_CASE_DAILY_LIMIT` override the defaults. The daily allowance resets at midnight UTC; the session allowance covers the existing 24-hour demo session. Reservations are atomic, so concurrent production workers cannot each spend the last available attempt.
+
+Repeated readings of the same original, model, and prompt version reuse a successful result within the same session. Failed provider calls consume attempts too. Invalid source extraction is rejected before reserving an AI attempt. Outside development, set either limit to `0` to block new readings; existing cached results remain available. Development ignores these variables, including `0`.
 
 These are **attempt limits, not a dollar budget**. Text length and model pricing affect actual charges. A request that times out locally may still incur provider charges. Configure provider billing controls separately.
 
@@ -227,3 +234,15 @@ Verification for version 3: the regression reproduces the exact third-reference 
 The 29 unit tests, both API integration suites, lint, formatting, type checking, and the production build passed. Browser checks with controlled output verified three context quotes with PDF pages, a blank unsupported outcome, and source/title preservation after a simulated provider failure. The first broader library integration run returned a storage error during duplicate case creation; its rerun passed. This change does not establish that the storage issue is resolved.
 
 Selecting a real excerpt guarantees that the displayed quote exists. It still does not guarantee that the AI's suggested claim follows from that excerpt; review remains necessary.
+
+## Environment-specific reading limits
+
+For example, reading all ten files in the manual test pack through `bun run dev` can continue beyond earlier failed attempts in the same session. No counter reset or cookie deletion is required. The server passes `null` for both limits, which means unlimited reservations. It still checks session expiry, permits only one in-progress reading per session, records attempts, and reuses successful cached readings. Provider errors and API billing remain separate from Rewoven's attempt allowance.
+
+Production passes finite limits, with defaults of 50 per session and 100 per UTC day. Existing deployment variables take precedence: change an old `AI_CASE_SESSION_LIMIT=10` to `50` or remove that override to use the new default. Set hosted variables through the deployment configuration, separately from ignored local credentials. This repository change does not deploy the app or update hosted environment variables.
+
+Apply the additive [optional-limit migration](../../supabase/migrations/202610150004_case_ai_optional_limits.sql) using `bun run db:migrate` for an existing local database. It makes the unlimited meaning explicit in the reservation function without resetting records or changing its service-role access. New local databases receive the migration during setup. Use the same migration in your established deployment workflow before relying on this behavior in a hosted environment.
+
+The regression checks cover production defaults and zero overrides, unlimited development despite zero-valued environment settings, reservation 50 succeeding and 51 being blocked under a finite limit, and development succeeding after more than 100 recorded attempts. Controlled readers exercise this path without OpenAI calls. Session-expiry, concurrent-reading, cache, and finite daily-limit checks remain in the integration suite.
+
+Verified locally for this policy change: 30 unit tests, both API integration suites, lint, formatting, type checking, and the production build passed. The local migration was applied without resetting records. All model responses in the policy tests were controlled; no paid OpenAI requests or hosted deployment changes were made.

@@ -84,8 +84,8 @@ test("AI reading validates sources, persists review evidence, isolates sessions,
   async function reserve(
     session: string,
     hash: string,
-    sessionLimit = 10,
-    dailyLimit = 1000,
+    sessionLimit: number | null = 10,
+    dailyLimit: number | null = 1000,
   ) {
     const token = randomUUID();
     const result = await db.rpc("reserve_case_ai_reading", {
@@ -268,6 +268,76 @@ test("AI reading validates sources, persists review evidence, isolates sessions,
       p_daily_limit: 0,
     });
     assert.equal(atLimit.data.state, "cached");
+
+    // The 50th production reservation succeeds; the 51st is blocked.
+    const f = await session();
+    const firstAttempt = await reserve(f.id, "limit-boundary-first", 50, null);
+    assert.equal(firstAttempt.state, "reserved");
+    assert.equal((await reserve(f.id, "still-busy", null, null)).state, "busy");
+    const released = await db
+      .from("case_ai_readings")
+      .update({ status: "failed", processing_token: null })
+      .eq("id", firstAttempt.id);
+    assert.equal(released.error, null);
+    const historicalAttempts = await db.from("case_ai_attempts").insert(
+      Array.from({ length: 48 }, () => ({
+        session_id: f.id,
+        reading_id: firstAttempt.id,
+      })),
+    );
+    assert.equal(historicalAttempts.error, null);
+    const fiftieth = await reserve(f.id, "limit-boundary-50", 50, null);
+    assert.equal(fiftieth.state, "reserved");
+    const releaseFiftieth = await db
+      .from("case_ai_readings")
+      .update({ status: "failed", processing_token: null })
+      .eq("id", fiftieth.id);
+    assert.equal(releaseFiftieth.error, null);
+    assert.equal(
+      (await reserve(f.id, "limit-boundary-51", 50, null)).state,
+      "session_limit",
+    );
+    assert.equal(
+      (await reserve(f.id, "daily-still-limited", null, 0)).state,
+      "daily_limit",
+    );
+    // Cross both production defaults without making any provider calls.
+    const moreAttempts = await db.from("case_ai_attempts").insert(
+      Array.from({ length: 51 }, () => ({
+        session_id: f.id,
+        reading_id: firstAttempt.id,
+      })),
+    );
+    assert.equal(moreAttempts.error, null);
+    const savedEnvironment = {
+      NODE_ENV: process.env.NODE_ENV,
+      AI_CASE_SESSION_LIMIT: process.env.AI_CASE_SESSION_LIMIT,
+      AI_CASE_DAILY_LIMIT: process.env.AI_CASE_DAILY_LIMIT,
+    };
+    try {
+      Object.assign(process.env, {
+        NODE_ENV: "development",
+        AI_CASE_SESSION_LIMIT: "0",
+        AI_CASE_DAILY_LIMIT: "0",
+      });
+      assert.equal(caseAIConfig().sessionLimit, null);
+      assert.equal(caseAIConfig().dailyLimit, null);
+      const developmentReading = await analyzeSource(
+        textForm("Development reading beyond 101 previous attempts."),
+        f.id,
+        fakeReader,
+      );
+      assert.ok(developmentReading.id);
+      assert.equal(
+        developmentReading.suggestions.title.value,
+        "AI fixture title",
+      );
+    } finally {
+      for (const [name, value] of Object.entries(savedEnvironment)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
     await db
       .from("demo_sessions")
       .update({ expires_at: new Date(Date.now() - 1000).toISOString() })
@@ -283,6 +353,7 @@ test("AI reading validates sources, persists review evidence, isolates sessions,
       401,
     );
     assert.equal((await reserve(a.id, "one")).state, "expired");
+    assert.equal((await reserve(a.id, "one", null, null)).state, "expired");
     assert.equal(
       (await fetch(`${base}/api/cases/analyze`, { method: "POST" })).status,
       401,

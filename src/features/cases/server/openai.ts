@@ -30,11 +30,12 @@ export function caseAIConfig() {
       503,
       "AI reading is not configured. Configure OPENAI_API_KEY on the server, or enter the details manually.",
     );
+  const development = process.env.NODE_ENV === "development";
   return {
     key,
     model: process.env.OPENAI_CASE_MODEL || "gpt-4.1-mini-2025-04-14",
-    sessionLimit: limit("AI_CASE_SESSION_LIMIT", 10),
-    dailyLimit: limit("AI_CASE_DAILY_LIMIT", 100),
+    sessionLimit: development ? null : limit("AI_CASE_SESSION_LIMIT", 50),
+    dailyLimit: development ? null : limit("AI_CASE_DAILY_LIMIT", 100),
   };
 }
 

@@ -314,3 +314,41 @@ test("missing keys and invalid budget configuration fail closed", () => {
     else process.env.AI_CASE_SESSION_LIMIT = saved.limit;
   }
 });
+
+test("production defaults to 50 session attempts and 100 daily, while development has neither limit", () => {
+  const names = [
+    "NODE_ENV",
+    "OPENAI_API_KEY",
+    "AI_CASE_SESSION_LIMIT",
+    "AI_CASE_DAILY_LIMIT",
+  ] as const;
+  const saved = Object.fromEntries(
+    names.map((name) => [name, process.env[name]]),
+  );
+  try {
+    process.env.OPENAI_API_KEY = "test-key";
+    delete process.env.AI_CASE_SESSION_LIMIT;
+    delete process.env.AI_CASE_DAILY_LIMIT;
+    Object.assign(process.env, { NODE_ENV: "production" });
+    assert.equal(caseAIConfig().sessionLimit, 50);
+    assert.equal(caseAIConfig().dailyLimit, 100);
+    // next start is production mode even when the server is on localhost.
+    process.env.AI_CASE_SESSION_LIMIT = "0";
+    process.env.AI_CASE_DAILY_LIMIT = "0";
+    assert.equal(caseAIConfig().sessionLimit, 0);
+    assert.equal(caseAIConfig().dailyLimit, 0);
+    Object.assign(process.env, { NODE_ENV: "development" });
+    assert.equal(caseAIConfig().sessionLimit, null);
+    assert.equal(caseAIConfig().dailyLimit, null);
+    Object.assign(process.env, { NODE_ENV: "test" });
+    delete process.env.AI_CASE_SESSION_LIMIT;
+    delete process.env.AI_CASE_DAILY_LIMIT;
+    assert.equal(caseAIConfig().sessionLimit, 50);
+    assert.equal(caseAIConfig().dailyLimit, 100);
+  } finally {
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+});
