@@ -364,8 +364,20 @@ export function CaseLibrary() {
                       <RetryCase record={detail} onProcessed={onProcessed} />
                       {!detail.is_seed && (
                         <AddCaseDialog
+                          key={`reader-${detail.id}`}
                           caseId={detail.id}
                           existingSources={detail.sources}
+                          existingCase={detail}
+                          readExisting
+                          disabled={!sessionReady}
+                          onCreated={onProcessed}
+                        />
+                      )}
+                      {!detail.is_seed && (
+                        <AddCaseDialog
+                          caseId={detail.id}
+                          existingSources={detail.sources}
+                          existingCase={detail}
                           disabled={!sessionReady}
                           onCreated={onProcessed}
                         />

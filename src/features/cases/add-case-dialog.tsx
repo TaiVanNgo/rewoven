@@ -7,7 +7,7 @@ import {
   PlusIcon,
   SparklesIcon,
 } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,28 +39,39 @@ import {
   fillCaseDraft,
   invalidateCaseDraft,
 } from "./case-draft";
+import { caseFields } from "./case-reading";
 import {
   type CaseAnalysis,
   SUGGESTION_FIELDS,
   type SuggestionField,
 } from "./case-suggestions";
+import { readCaseDocuments } from "./read-case";
 import { CASE_FIELD_LABELS, SuggestionEvidence } from "./suggestion-evidence";
-import {
-  type CaseDetail,
-  MAX_AI_SOURCE_CHARS,
-  MAX_SOURCE_CHARS,
-} from "./types";
+import { type CaseDetail, MAX_SOURCE_CHARS } from "./types";
 import { type PendingUpload, uploadFiles } from "./upload-sources";
 import { validateFile, validateText } from "./validation";
+
+function entryDraft(record?: CaseDetail) {
+  const draft = emptyCaseDraft();
+  if (record)
+    Object.assign(draft.fields, caseFields(record), {
+      title: record.title === "AI reading in progress" ? "" : record.title,
+    });
+  return draft;
+}
 
 export function AddCaseDialog({
   disabled,
   onCreated,
   caseId,
   existingSources = [],
+  existingCase,
+  readExisting = false,
 }: {
   caseId?: string;
   existingSources?: CaseDetail["sources"];
+  existingCase?: CaseDetail;
+  readExisting?: boolean;
   disabled: boolean;
   onCreated: (record: CaseDetail) => void;
 }) {
@@ -68,9 +79,21 @@ export function AddCaseDialog({
   const [pending, setPending] = useState(false);
   const [reading, setReading] = useState(false);
   const [mode, setMode] = useState("file");
-  const [draft, setDraft] = useState(emptyCaseDraft);
+  const [draft, setDraft] = useState(() => entryDraft(existingCase));
+  const [manualEntry, setManualEntry] = useState(false);
+  const [readingProgress, setReadingProgress] = useState("");
+  const [expected, setExpected] = useState<Record<string, string> | null>(() =>
+    existingCase ? caseFields(existingCase) : null,
+  );
+  const stopped = useRef(false);
+  const pastedSourceKey = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      stopped.current = true;
+    },
+    [],
+  );
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
-  const file = uploads.length === 1 ? uploads[0].file : null;
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [error, setError] = useState("");
@@ -84,8 +107,11 @@ export function AddCaseDialog({
   const { fields, applied } = draft;
   const busy = pending || reading;
   const tooLong = fields.text.length > MAX_SOURCE_CHARS;
-  const sourceReady =
-    mode === "file" ? uploads.length > 0 : !!fields.text.trim() && !tooLong;
+  const sourceReady = readExisting
+    ? existingSources.length > 0
+    : mode === "file"
+      ? uploads.length > 0
+      : !!fields.text.trim() && !tooLong;
 
   function update(name: keyof typeof fields, value: string) {
     if (busyRef.current) return;
@@ -93,6 +119,7 @@ export function AddCaseDialog({
     requestKey.current = null;
   }
   function invalidateAnalysis() {
+    pastedSourceKey.current = null;
     setDraft(invalidateCaseDraft);
     if (analysis) setSourceNotice(true);
     setAnalysis(null);
@@ -143,48 +170,99 @@ export function AddCaseDialog({
       current.map((item) => (item.key === key ? { ...item, ...patch } : item)),
     );
   }
-  function sourceForm() {
-    if (mode === "text") validateText(fields.text);
-    else if (!file) throw new Error("Choose a source file.");
-    else validateFile(file.name, file.size);
-    const body = new FormData();
-    body.set("mode", mode);
-    if (mode === "text") body.set("text", fields.text);
-    else if (file) body.set("file", file);
-    return body;
+  async function prepareSources() {
+    if (!sourceReady)
+      throw new Error("Choose documents or paste source text first.");
+    requestKey.current ??= crypto.randomUUID();
+    let target = caseId ?? createdId;
+    if (!target) {
+      const result = await caseApi<{ case: CaseDetail }>("/api/cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestKey: requestKey.current,
+          ...caseFields({
+            ...fields,
+            title: fields.title.trim() || "AI reading in progress",
+          }),
+        }),
+      });
+      target = result.case.id;
+      setCreatedId(target);
+      setExpected(caseFields(result.case));
+    }
+    if (!readExisting) {
+      if (mode === "text") {
+        validateText(fields.text);
+        pastedSourceKey.current ??= crypto.randomUUID();
+        const source = await caseApi<{ sourceId: string }>(
+          `/api/cases/${target}/sources`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              requestKey: pastedSourceKey.current,
+              title: "Pasted source.txt",
+              text: fields.text,
+            }),
+          },
+        );
+        await caseApi(`/api/sources/${source.sourceId}/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+      } else {
+        const batch = await uploadFiles(target, uploads, updateUpload);
+        if (batch.failed > 0)
+          throw new Error(
+            "Some files did not finish uploading. Retry to resume them; completed documents are preserved.",
+          );
+      }
+    }
+    const result = await caseApi<{ case: CaseDetail }>(`/api/cases/${target}`);
+    const currentFields = caseFields(result.case);
+    if (
+      expected &&
+      Object.entries(currentFields).some(
+        ([name, value]) => expected[name] !== value,
+      )
+    )
+      throw new Error(
+        "The saved case details changed. Reopen the case before reading to preserve the latest edits.",
+      );
+    setExpected(currentFields);
+    return target;
   }
   async function readSource() {
     if (busyRef.current) return;
+    busyRef.current = true;
+    stopped.current = false;
+    setReading(true);
     setAIError("");
+    setReadingProgress("Uploading and preparing documents…");
     try {
-      if (mode === "text" && fields.text.length > MAX_AI_SOURCE_CHARS)
-        throw new Error(
-          "Single-source AI reading supports up to 50,000 characters. You can still upload and index the complete source.",
-        );
-      if (
-        mode === "file" &&
-        (uploads.length !== 1 || (file?.size ?? 0) > 4_000_000)
-      )
-        throw new Error(
-          "Choose one source for AI reading. Multi-document overview generation comes later.",
-        );
-      const body = sourceForm();
-      busyRef.current = true;
-      setReading(true);
-      const result = await caseApi<CaseAnalysis>("/api/cases/analyze", {
-        method: "POST",
-        body,
-      });
+      const target = await prepareSources();
+      const result = await readCaseDocuments(
+        target,
+        setReadingProgress,
+        () => {},
+        () => stopped.current,
+      );
+      if (stopped.current) return;
       setAnalysis(result);
       setDraft((current) => fillCaseDraft(current, result.suggestions));
       setSourceNotice(false);
-      requestKey.current = null;
+      const record = await caseApi<{ case: CaseDetail }>(
+        `/api/cases/${target}`,
+      );
+      onCreated(record.case);
       reviewHeading.current?.focus();
     } catch (error) {
       setAIError(
         error instanceof Error
           ? error.message
-          : "AI reading could not finish. Try again or enter the fields manually.",
+          : "AI reading could not finish. Retry saved progress.",
       );
     } finally {
       busyRef.current = false;
@@ -203,6 +281,33 @@ export function AddCaseDialog({
     if (busyRef.current) return;
     setError("");
     try {
+      if (analysis?.caseId && expected) {
+        busyRef.current = true;
+        setPending(true);
+        const result = await caseApi<{ case: CaseDetail }>(
+          `/api/cases/${analysis.caseId}/review`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              readingId: analysis.id,
+              fields: caseFields(fields),
+              expected,
+            }),
+          },
+        );
+        onCreated(result.case);
+        setOpen(false);
+        setCreatedId(null);
+        setAnalysis(null);
+        setUploads([]);
+        setDraft(entryDraft(caseId ? result.case : undefined));
+        setManualEntry(false);
+        pastedSourceKey.current = null;
+        setExpected(caseId ? caseFields(result.case) : null);
+        requestKey.current = null;
+        return;
+      }
       if (!caseId && !fields.title.trim())
         throw new Error("Enter a case title.");
       if (
@@ -238,13 +343,14 @@ export function AddCaseDialog({
       let uploadFailed = false;
       if (mode === "text") {
         validateText(fields.text);
+        pastedSourceKey.current ??= crypto.randomUUID();
         const reserved = await caseApi<{ sourceId: string }>(
           `/api/cases/${target}/sources`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              requestKey: requestKey.current,
+              requestKey: pastedSourceKey.current,
               title: "Pasted source.txt",
               text: fields.text,
             }),
@@ -267,6 +373,18 @@ export function AddCaseDialog({
       const result = await caseApi<{ case: CaseDetail }>(
         `/api/cases/${target}`,
       );
+      if (!caseId && createdId && expected) {
+        const saved = await caseApi<{ case: CaseDetail }>(
+          `/api/cases/${target}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fields: caseFields(fields), expected }),
+          },
+        );
+        result.case = saved.case;
+        setExpected(caseFields(saved.case));
+      }
       onCreated(result.case);
       const failed = result.case.sources.some(
         (source) => source.status === "uploading",
@@ -280,7 +398,10 @@ export function AddCaseDialog({
       setOpen(false);
       setCreatedId(null);
       setUploads([]);
-      setDraft(emptyCaseDraft());
+      setDraft(entryDraft(caseId ? result.case : undefined));
+      setExpected(caseId ? caseFields(result.case) : null);
+      setManualEntry(false);
+      pastedSourceKey.current = null;
       setAnalysis(null);
       setSourceError("");
       setAIError("");
@@ -301,22 +422,35 @@ export function AddCaseDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!busyRef.current) setOpen(next);
+        if (!pending) {
+          if (!next) stopped.current = true;
+          setOpen(next);
+        }
       }}
     >
       <DialogTrigger render={<Button disabled={disabled} />}>
         <PlusIcon data-icon="inline-start" aria-hidden="true" />
-        {caseId ? "Add documents" : "Add case"}
+        {readExisting
+          ? "Read case with AI"
+          : caseId
+            ? "Add documents"
+            : "Add case"}
       </DialogTrigger>
       <DialogContent
         className="max-h-[92dvh] overflow-y-auto sm:max-w-[620px]"
-        showCloseButton={!busy}
+        showCloseButton={!pending}
       >
         <DialogHeader>
-          <DialogTitle>{caseId ? "Add documents" : "Add a case"}</DialogTitle>
+          <DialogTitle>
+            {readExisting
+              ? "Read case with AI"
+              : caseId
+                ? "Add documents"
+                : "Add a case"}
+          </DialogTitle>
           <DialogDescription>
-            Start with a source. Read it with AI or enter the details yourself,
-            then review before saving.
+            Upload your project documents and let AI fill in the case details.
+            Review the suggestions and source evidence before saving.
           </DialogDescription>
         </DialogHeader>
         <Separator />
@@ -325,7 +459,7 @@ export function AddCaseDialog({
           className="flex min-w-0 flex-col gap-5"
           aria-busy={pending}
         >
-          <FieldSet disabled={busy}>
+          <FieldSet disabled={busy} hidden={readExisting}>
             <FieldGroup>
               <Tabs
                 value={mode}
@@ -449,17 +583,8 @@ export function AddCaseDialog({
               <div className="flex flex-col items-start gap-2">
                 <Button
                   type="button"
-                  variant="outline"
-                  disabled={
-                    busy ||
-                    !sourceReady ||
-                    !!caseId ||
-                    (mode === "file" &&
-                      (uploads.length !== 1 ||
-                        (file?.size ?? 0) > 4_000_000)) ||
-                    (mode === "text" &&
-                      fields.text.length > MAX_AI_SOURCE_CHARS)
-                  }
+                  variant="default"
+                  disabled={busy || !sourceReady}
                   onClick={readSource}
                 >
                   {reading ? (
@@ -472,30 +597,41 @@ export function AddCaseDialog({
                     <SparklesIcon data-icon="inline-start" aria-hidden="true" />
                   )}
                   {reading
-                    ? "Reading source…"
+                    ? "Reading documents…"
                     : aiError
                       ? "Retry AI reading"
-                      : "Read with AI"}
+                      : "Read documents with AI"}
                 </Button>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Reads one source up to 50,000 characters. For files above 4
-                  MB, enter fields manually; full 5 MB uploads remain available.
-                  Multi-file uploads use manual case fields for now. Sends
-                  source text to OpenAI. For files above 4 MB, fill the fields
-                  manually; the full 5 MB upload remains available. AI use is
-                  billed to the project's API account. You can also fill the
-                  fields manually.
+                  Reads all accepted documents in saved stages: up to 500,000
+                  characters per document and 5,000,000 per case. AI use is
+                  billed to the project's API account. You can still enter
+                  details yourself.
                 </p>
               </div>
             </FieldGroup>
           </FieldSet>
+          {readExisting && (
+            <Button
+              type="button"
+              onClick={readSource}
+              disabled={busy || !sourceReady}
+            >
+              {reading
+                ? "Reading documents…"
+                : aiError
+                  ? "Retry saved reading"
+                  : "Read all case documents"}
+            </Button>
+          )}
           {reading && (
             <output
               aria-live="polite"
               className="text-sm text-muted-foreground"
             >
-              Reading source text and checking suggestions against its evidence.
-              This may take up to a minute.
+              {readingProgress} Each AI step may take up to a minute; larger
+              cases need several steps. Closing this dialog pauses after the
+              current step.
             </output>
           )}
           {aiError && (
@@ -516,34 +652,46 @@ export function AddCaseDialog({
             </Alert>
           )}
           {analysis && (
-            <Alert role="status">
+            <Alert>
               <CheckIcon aria-hidden="true" />
               <AlertTitle>Ready for your review</AlertTitle>
               <AlertDescription>
-                Read{" "}
-                {analysis.isPdf
-                  ? `${analysis.pageCount} PDF pages`
-                  : "source text"}
-                . Blank fields were filled where evidence was found; your
-                existing text was kept. Check each suggestion before confirming.
+                Read {analysis.sourceIds?.length ?? 1} document(s) across{" "}
+                {analysis.pageCount} extracted page(s) . Blank fields were
+                filled where evidence was found; your existing text was kept.
+                Check each suggestion before confirming.
               </AlertDescription>
             </Alert>
           )}
           {analysis && analysis.warnings.length > 0 && (
             <Alert variant="caution">
-              <AlertTitle>Some content is unavailable</AlertTitle>
+              <AlertTitle>Reading notes and limitations</AlertTitle>
               <AlertDescription>{analysis.warnings.join(" ")}</AlertDescription>
             </Alert>
           )}
           <Separator />
+          {!analysis && !manualEntry && !caseId && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setManualEntry(true)}
+            >
+              Enter details yourself instead
+            </Button>
+          )}
           <h3
+            hidden={!analysis && !manualEntry}
             ref={reviewHeading}
             tabIndex={-1}
             className="font-heading font-semibold outline-none"
           >
             Review case details
           </h3>
-          <FieldSet disabled={busy || !!caseId} hidden={!!caseId}>
+          <FieldSet
+            disabled={busy || (!analysis && !manualEntry)}
+            hidden={!analysis && !manualEntry}
+          >
             <FieldGroup>
               {SUGGESTION_FIELDS.map((field) => {
                 const suggestion = analysis?.suggestions[field];
@@ -635,29 +783,34 @@ export function AddCaseDialog({
           )}
           {pending && (
             <p aria-live="polite" className="text-sm text-muted-foreground">
-              Storing originals. Processing resumes in Case library. Keep this
-              dialog open.
+              Saving the reviewed case and its original documents.
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            AI suggestions and quotes are kept separately from your final edits
-            when you confirm. Uploaded documents survive refresh; pending local
-            files and unsaved form edits need to be supplied again.
+            AI drafts and source quotes are saved separately from your final
+            edits when you confirm. Uploaded documents survive refresh; pending
+            local files and unsaved form edits need to be supplied again.
           </p>
           <Separator />
           <div className="flex flex-wrap justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              disabled={busy}
-              onClick={() => setOpen(false)}
+              disabled={pending}
+              onClick={() => {
+                stopped.current = true;
+                setOpen(false);
+              }}
             >
-              Cancel
+              {reading ? "Pause reading" : "Close"}
             </Button>
             <Button
               type="submit"
               disabled={
-                busy || (!caseId && !fields.title.trim()) || !sourceReady
+                busy ||
+                (!caseId && !fields.title.trim()) ||
+                !sourceReady ||
+                (readExisting && !analysis)
               }
             >
               {pending && (
@@ -668,10 +821,12 @@ export function AddCaseDialog({
                 />
               )}
               {pending
-                ? "Uploading…"
-                : caseId
-                  ? "Add documents"
-                  : "Confirm & add case"}
+                ? "Saving…"
+                : analysis?.caseId
+                  ? "Confirm case details"
+                  : caseId
+                    ? "Add documents"
+                    : "Confirm & add case"}
             </Button>
           </div>
         </form>

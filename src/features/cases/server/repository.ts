@@ -1,4 +1,5 @@
 import "server-only";
+import { readingProgress } from "../case-reading";
 import type { CaseAIReview } from "../case-suggestions";
 import type {
   CaseDetail,
@@ -88,6 +89,15 @@ export async function caseDetail(
           createdAt: review.data.created_at,
         }
       : null;
+  const currentReading = await database()
+    .from("case_ai_readings")
+    .select("id,status,work,error_message,result")
+    .eq("case_id", record.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  checkDatabase(currentReading.error);
+  const activeReading = currentReading.data;
   return {
     ...publicCase(record),
     sources: (data ?? []).map((source) => ({
@@ -96,6 +106,15 @@ export async function caseDetail(
       pages: [],
     })) as SourceDocument[],
     aiReview,
+    aiReading: activeReading?.work
+      ? readingProgress(
+          activeReading.id,
+          activeReading.status,
+          activeReading.work,
+          activeReading.error_message,
+          activeReading.result,
+        )
+      : null,
   };
 }
 

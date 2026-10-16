@@ -79,3 +79,48 @@ export function resolveSourceReferences(
   }
   return validateSuggestions(resolved, pages, isPdf);
 }
+
+// A large reading should retain independently verified fields when another field is malformed.
+export function resolveSectionReferences(
+  value: unknown,
+  excerpts: SourceExcerpt[],
+  pages: SourcePage[],
+  isPdf: boolean,
+  warnings: string[],
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return resolveSourceReferences(value, excerpts, pages, isPdf);
+  const input = value as Record<string, unknown>;
+  const result = {} as ReturnType<typeof resolveSourceReferences>;
+  for (const field of SUGGESTION_FIELDS) {
+    const empty = Object.fromEntries(
+      SUGGESTION_FIELDS.map((name) => [name, { value: "", evidence: [] }]),
+    );
+    let candidate = input[field];
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      !Array.isArray(candidate)
+    ) {
+      const item = candidate as Record<string, unknown>;
+      // No factual claim remains when the value is blank; discard dangling citation IDs.
+      if (typeof item.value === "string" && !item.value.trim())
+        candidate = { value: "", evidence: [] };
+    }
+    try {
+      result[field] = resolveSourceReferences(
+        { ...empty, [field]: candidate },
+        excerpts,
+        pages,
+        isPdf,
+      )[field];
+    } catch (error) {
+      if (!(error instanceof SuggestionError)) throw error;
+      result[field] = { value: "", evidence: [] };
+      warnings.push(
+        `A ${field} suggestion was left blank because its evidence could not be verified. Review the original documents or retry the reading before supplying that field.`,
+      );
+    }
+  }
+  return result;
+}

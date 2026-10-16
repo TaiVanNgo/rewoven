@@ -2,7 +2,7 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted case reading can suggest editable fields with source quotes. New requests retrieve up to three cases with source excerpts. AI comparisons, combined project overviews, client request attachments, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and fills editable case fields with source quotes; no title is required before reading. New requests retrieve up to three cases with source excerpts. AI comparisons, richer project overviews, client request attachments, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
 The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing ten read-only fictional samples and session-owned additions. Saved plans remains a preview empty state.
 
@@ -75,7 +75,7 @@ with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx
 
 Open Supabase Studio at the URL printed by `db:status` (normally `http://127.0.0.1:54323`) to inspect local data and storage. Stop Supabase with `bun run db:stop`; this preserves local data. Each developer runs their own instance. The hosted demo's data and files are separate.
 
-The homepage and manual case entry run without an AI key. **Read with AI** requires `OPENAI_API_KEY` in `.env.local`; optional `OPENAI_CASE_MODEL`, `AI_CASE_SESSION_LIMIT`, and `AI_CASE_DAILY_LIMIT` settings are documented in the [AI reading guide](docs/features/ai-assisted-case-reading.md). The model defaults to the pinned GPT-4.1 mini model in `.env.example`. Production defaults to 50 attempts per session and 100 attempts per UTC day across the database. `bun run dev` and `bun run devx` disable both attempt limits, even if the limit variables are present. A local production server (`bun run build` followed by `bun run start`) still enforces the production limits. Restart Next.js after changing environment settings. Live AI requests are billed even when the database is local.
+The homepage and manual case entry run without an AI key. **Read documents with AI** requires `OPENAI_API_KEY` in `.env.local`; optional `OPENAI_CASE_MODEL`, `AI_CASE_SESSION_LIMIT`, and `AI_CASE_DAILY_LIMIT` settings are documented in the [AI reading guide](docs/features/ai-assisted-case-reading.md). The model defaults to the pinned GPT-4.1 mini model in `.env.example`. Production defaults to 50 attempts per session and 100 attempts per UTC day across the database. `bun run dev` and `bun run devx` disable both attempt limits, even if the limit variables are present. A local production server (`bun run build` followed by `bun run start`) still enforces the production limits. Restart Next.js after changing environment settings. Live AI requests are billed even when the database is local.
 
 For a hosted deployment, provision the same bucket using the declared configuration as part of a deliberate deployment step, such as `supabase seed buckets --linked` after linking the intended hosted project. The local startup command does not provision hosted storage.
 
@@ -91,7 +91,8 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Implement session-isolated case browsing, keyword search, source inspection, and text/Markdown/PDF ingestion.
 - [x] Implement optional OpenAI-assisted case reading, editable suggestions, source evidence, and saved review records.
 - [x] Implement multi-document upload, resumable indexing, and request-to-case passage retrieval.
-- [ ] Implement combined project overviews, client request attachments, AI comparison, and plan persistence.
+- [x] Read large and multiple documents with AI, resume saved progress, and review combined case metadata.
+- [ ] Implement richer project overviews, client request attachments, AI comparison, and plan persistence.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
@@ -101,28 +102,29 @@ The New request interface renders without database credentials; searching cases 
 
 ## Commands
 
-| Command                       | Purpose                                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `bun run dev`                 | Start development with Fast Refresh.                                                              |
-| `bun run devx`                | Start local Supabase, provision storage, then start Next.js with Fast Refresh.                    |
-| `bun run db:start`            | Start local Supabase and provision the declared storage bucket.                                   |
-| `bun run db:migrate`          | Apply pending local migrations without resetting data.                                            |
-| `bun run db:seed:production`  | Import samples only in Vercel Production with explicit opt-in; see the deployment guide.          |
-| `bun run db:seed`             | Import ten fictional cases and original files locally; preserve Ready seeds.                      |
-| `bun run test`                | Run focused validation, extraction, and session unit tests.                                       |
-| `bun run test:ai:live`        | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.               |
-| `bun run test:integration`    | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls. |
-| `bun run db:backfill`         | Backfill missing original sizes; add `--embed` for billable, resumable semantic indexing.         |
-| `bun run test:retrieval:live` | Evaluate semantic relevance against local fictional cases with billable query embeddings.         |
-| `bun run db:status`           | Show local service URLs and credentials.                                                          |
-| `bun run db:stop`             | Stop local Supabase while preserving local data.                                                  |
-| `bun run lint`                | Check Biome lint and import organization without writing fixes.                                   |
-| `bun run format`              | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.                   |
-| `bun run format:check`        | Check formatting and Tailwind class order without writing changes.                                |
-| `bun run typecheck`           | Generate Next.js route types, then check TypeScript without emitting JavaScript.                  |
-| `bun run build`               | Build the application for production.                                                             |
-| `bun run build:vercel`        | Vercel build entry point; migrate hosted Supabase only inside Vercel Production.                  |
-| `bun run start`               | Serve the production build; run `build` first.                                                    |
+| Command                          | Purpose                                                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `bun run dev`                    | Start development with Fast Refresh.                                                                 |
+| `bun run devx`                   | Start local Supabase, provision storage, then start Next.js with Fast Refresh.                       |
+| `bun run db:start`               | Start local Supabase and provision the declared storage bucket.                                      |
+| `bun run db:migrate`             | Apply pending local migrations without resetting data.                                               |
+| `bun run db:seed:production`     | Import samples only in Vercel Production with explicit opt-in; see the deployment guide.             |
+| `bun run db:seed`                | Import ten fictional cases and original files locally; preserve Ready seeds.                         |
+| `bun run test`                   | Run focused validation, extraction, and session unit tests.                                          |
+| `bun run test:case-reading:live` | Run billable staged reading of three fictional documents, including a source over 50,000 characters. |
+| `bun run test:ai:live`           | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.                  |
+| `bun run test:integration`       | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls.    |
+| `bun run db:backfill`            | Backfill missing original sizes; add `--embed` for billable, resumable semantic indexing.            |
+| `bun run test:retrieval:live`    | Evaluate semantic relevance against local fictional cases with billable query embeddings.            |
+| `bun run db:status`              | Show local service URLs and credentials.                                                             |
+| `bun run db:stop`                | Stop local Supabase while preserving local data.                                                     |
+| `bun run lint`                   | Check Biome lint and import organization without writing fixes.                                      |
+| `bun run format`                 | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.                      |
+| `bun run format:check`           | Check formatting and Tailwind class order without writing changes.                                   |
+| `bun run typecheck`              | Generate Next.js route types, then check TypeScript without emitting JavaScript.                     |
+| `bun run build`                  | Build the application for production.                                                                |
+| `bun run build:vercel`           | Vercel build entry point; migrate hosted Supabase only inside Vercel Production.                     |
+| `bun run start`                  | Serve the production build; run `build` first.                                                       |
 
 `format` formats code and sorts Tailwind classes; address remaining lint or import organization findings separately. Next.js builds do not run Biome or Prettier, so lint and formatting are separate checks.
 

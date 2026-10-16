@@ -2,7 +2,7 @@
 
 Imagine one historical project with `SRS.pdf`, `meeting-minutes.md`, and `retrospective.txt`. Add them to one case. Rewoven keeps each original separately, extracts its text, and makes source passages searchable. Later, describe a new project on **New request** and choose **Find past cases**. Results contain up to three cases with original excerpts and links that open the matching document location.
 
-This milestone retrieves evidence. It does not generate a combined project overview, compare projects with an LLM, draft advice, save plans, or accept client request attachments.
+Retrieval returns original evidence. [AI-assisted case entry](ai-assisted-case-reading.md) now combines metadata from multiple documents in saved stages. Richer project overviews, generated project comparisons, advice, saved plans, and client request attachments remain future work.
 
 ## Run it locally
 
@@ -72,7 +72,7 @@ EMBEDDING_DAILY_TOKEN_LIMIT=10000000
 
 They apply to indexing and query embeddings. Budget reservation uses a conservative UTF-8 byte bound and settles to reported provider token usage on success. Failed or uncertain calls retain their reservation to avoid undercounting potentially billed work. Reaching a budget pauses indexing; the original and keyword search remain available. The daily window resets at midnight UTC; a session budget lasts for that session.
 
-The existing **Read with AI** feature still handles one source with up to 50,000 extracted characters. Its separate limit prevents the larger ingestion limit from becoming one oversized model prompt. Multi-source overviews are a later feature. Its original multipart upload path remains subject to hosting payload limits; the new case-ingestion upload path supports the complete 5 MB file limit.
+**Read documents with AI** accepts the same 500,000-character per-document and 5,000,000-character per-case limits. It reads saved sources in bounded stages and combines supported findings for review. This replaces the browser's earlier 50,000-character single-source path. See the [AI-assisted case entry guide](ai-assisted-case-reading.md) for setup, recovery, and separate attempt limits.
 
 ## Verification and limitations
 
