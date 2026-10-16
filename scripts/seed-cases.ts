@@ -3,16 +3,9 @@ import { readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { chunkPages, extractSource } from "../src/features/cases/extraction";
 import type { SourceFormat } from "../src/features/cases/types";
+import { seedTarget } from "./seed-target";
 
-const url = process.env.SUPABASE_URL;
-const secret = process.env.SUPABASE_SECRET_KEY;
-if (!url || !secret)
-  throw new Error(
-    "Configure SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local first.",
-  );
-// This script intentionally seeds only local services. Hosted seeding is a separate deployment decision.
-if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname))
-  throw new Error("db:seed only targets local Supabase.");
+const { url, secret } = seedTarget(process.argv.includes("--production"));
 const db = createClient(url, secret, { auth: { persistSession: false } });
 const folder = new URL("../supabase/fixtures/", import.meta.url);
 type SeedCase = {
