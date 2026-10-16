@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import type { CaseAnalysis } from "../case-suggestions";
 import { extractSource } from "../extraction";
-import { MAX_AI_SOURCE_CHARS } from "../types";
+import { MAX_INLINE_AI_SOURCE_CHARS } from "../types";
 import { checkDatabase, database } from "./db";
 import { ApiError } from "./http";
 import { CASE_PROMPT_VERSION, caseAIConfig, suggestCase } from "./openai";
@@ -16,10 +16,10 @@ export async function analyzeSource(
   const config = caseAIConfig();
   const source = await sourceInput(form);
   const extracted = await extractSource(source.bytes, source.format);
-  if (extracted.text.length > MAX_AI_SOURCE_CHARS)
+  if (extracted.text.length > MAX_INLINE_AI_SOURCE_CHARS)
     throw new ApiError(
       400,
-      "Single-source AI reading supports up to 50,000 characters. Upload and index this document with manual case fields; no text was truncated.",
+      "The legacy inline reading endpoint accepts up to 50,000 characters. Use Read documents with AI in Case library to read larger or multiple documents in saved stages.",
     );
   const db = database();
   const token = randomUUID();

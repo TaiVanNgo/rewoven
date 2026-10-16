@@ -1,8 +1,9 @@
+import type { ReadingProgress } from "./case-reading";
 import type { CaseAIReview } from "./case-suggestions";
 
 export const MAX_FILE_BYTES = 5_000_000;
 export const MAX_SOURCE_CHARS = 500_000;
-export const MAX_AI_SOURCE_CHARS = 50_000;
+export const MAX_INLINE_AI_SOURCE_CHARS = 50_000;
 export const PROCESSING_LEASE_MS = 120_000;
 export type CaseStatus = "processing" | "ready" | "failed";
 export type SourceFormat = "text" | "txt" | "md" | "pdf";
@@ -46,4 +47,5 @@ export type CaseSummary = CaseRecord & {
 export type CaseDetail = CaseRecord & {
   sources: SourceDocument[];
   aiReview?: CaseAIReview | null;
+  aiReading?: ReadingProgress | null;
 };

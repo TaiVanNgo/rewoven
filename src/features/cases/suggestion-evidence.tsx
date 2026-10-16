@@ -22,21 +22,23 @@ export function SuggestionEvidence({
       <div className="flex flex-col gap-3 pt-2">
         {evidence.map((item) => (
           <blockquote
-            key={`${item.page}:${item.quote}`}
+            key={`${item.sourceId ?? sourceId}:${item.page}:${item.quote}`}
             className="border-l-2 border-primary pl-3"
           >
             <p className="wrap-anywhere whitespace-pre-wrap">“{item.quote}”</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {sourceId ? (
+              {(item.sourceId ?? sourceId) ? (
                 <a
                   className="underline underline-offset-4"
-                  href={`/api/sources/${sourceId}/original${item.page === null ? "" : `#page=${item.page}`}`}
+                  href={`/api/sources/${item.sourceId ?? sourceId}/original${item.page === null ? "" : `#page=${item.page}`}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {item.page === null
-                    ? "Original source"
-                    : `Original PDF · Page ${item.page}`}
+                  {item.sourceTitle
+                    ? `${item.sourceTitle}${item.page === null ? "" : ` · Page ${item.page}`}`
+                    : item.page === null
+                      ? "Original source"
+                      : `Original PDF · Page ${item.page}`}
                 </a>
               ) : item.page === null ? (
                 "Source text"

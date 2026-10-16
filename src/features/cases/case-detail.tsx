@@ -24,6 +24,13 @@ export function CaseDetail({
   actions?: ReactNode;
   onSourceChange?: () => void;
 }) {
+  const reviewedSources =
+    record.aiReview?.sourceIds ??
+    (record.aiReview ? [record.aiReview.sourceId] : []);
+  const readingStale =
+    !!record.aiReview &&
+    (reviewedSources.length !== record.sources.length ||
+      record.sources.some((source) => !reviewedSources.includes(source.id)));
   return (
     <section
       id="case-detail"
@@ -85,6 +92,33 @@ export function CaseDetail({
               processing was interrupted, retry becomes available after two
               minutes.
             </p>
+          )}
+          {record.aiReading && record.aiReview?.id !== record.aiReading.id && (
+            <Alert>
+              <AlertTitle>
+                {record.aiReading.status === "ready"
+                  ? "AI draft ready for review"
+                  : record.aiReading.status === "failed"
+                    ? "AI reading paused"
+                    : "AI reading in progress"}
+              </AlertTitle>
+              <AlertDescription>
+                {record.aiReading.error ??
+                  `${record.aiReading.completed}/${record.aiReading.total} sections read across ${record.aiReading.documents} document(s).`}{" "}
+                Open Read case with AI to resume or review. Existing case
+                details stay unchanged until you confirm.
+              </AlertDescription>
+            </Alert>
+          )}
+          {readingStale && (
+            <Alert variant="caution">
+              <AlertTitle>AI reading needs refresh</AlertTitle>
+              <AlertDescription>
+                Documents were added after the reviewed reading. Read case with
+                AI to include them; your saved edits are preserved until you
+                confirm a new draft.
+              </AlertDescription>
+            </Alert>
           )}
           {actions}
         </CardContent>
