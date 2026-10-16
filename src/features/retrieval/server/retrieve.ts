@@ -10,6 +10,11 @@ export async function retrieve(
   input: Record<string, unknown>,
   sessionId: string,
   embedder: typeof embedTexts = embedTexts,
+  scope: {
+    caseId?: string;
+    excludeCaseId?: string;
+    conversational?: boolean;
+  } = {},
 ): Promise<RetrievalResult> {
   const request = typeof input.request === "string" ? input.request.trim() : "";
   if (!request || request.length > 10000)
@@ -44,11 +49,22 @@ export async function retrieve(
   }
   const db = database();
   const [result, coverage] = await Promise.all([
-    db.rpc("retrieve_passages", {
-      p_session: sessionId,
-      p_query: query,
-      p_vector: vector ? JSON.stringify(vector) : null,
-    }),
+    db.rpc(
+      scope.conversational || scope.caseId || scope.excludeCaseId
+        ? "retrieve_query_passages"
+        : "retrieve_passages",
+      {
+        p_session: sessionId,
+        p_query: query,
+        p_vector: vector ? JSON.stringify(vector) : null,
+        ...(scope.conversational || scope.caseId || scope.excludeCaseId
+          ? {
+              p_case: scope.caseId ?? null,
+              p_exclude: scope.excludeCaseId ?? null,
+            }
+          : {}),
+      },
+    ),
     db
       .from("cases")
       .select("source_documents(status,indexing_status)")
