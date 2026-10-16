@@ -1,4 +1,4 @@
-import { test } from "bun:test";
+import { mock, test } from "bun:test";
 import assert from "node:assert/strict";
 import {
   emptyOverview,
@@ -6,7 +6,10 @@ import {
   overviewStale,
   reviewOverview,
 } from "../src/features/cases/case-overview";
-import { resolveSourceReferences } from "../src/features/cases/server/source-evidence";
+
+mock.module("server-only", () => ({}));
+const { resolveSourceReferences } =
+  await import("../src/features/cases/server/source-evidence");
 
 test("editing a finding removes inherited or forged citations; unchanged findings keep only server evidence", () => {
   const original = emptyOverview();

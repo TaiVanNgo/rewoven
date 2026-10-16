@@ -8,6 +8,8 @@ On a feature branch, create a migration with `supabase migration new add_saved_p
 
 Opening a pull request starts GitHub's **CI / Checks** job. It installs locked dependencies, checks formatting, lint, types, and unit tests, starts disposable local Supabase, applies migrations, imports fictional fixtures, builds the app, and tests the API. AI responses are mocked. CI does not receive production credentials or run the billable `test:ai:live` command.
 
+To investigate a unit-test failure, run that file alone, for example `bun test ./tests/case-overview.test.ts`, then run the full suite with `bun run test`. Each test file that imports a server-only module must register its own `server-only` mock before dynamically importing the module. Relying on another test file's mock can pass locally and fail in CI when files run in a different order. This mock belongs only in tests; application modules retain their server-only protection.
+
 Vercel builds a preview for the branch. The preview runs the application build and skips hosted migrations, even if deployment credentials were accidentally supplied to it. Backend previews need their own staging database and schema; this setup does not provision staging infrastructure automatically.
 
 When the change merges into `main`, Vercel's production build runs:
