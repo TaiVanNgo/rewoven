@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 import { Separator } from "@/components/ui/separator";
 import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
 
@@ -12,7 +12,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <div className="mx-auto flex min-h-[calc(100dvh-56px)] max-w-[1540px] flex-col items-stretch gap-gutter lg:flex-row">
-        <WorkspaceSidebar />
+        <Suspense
+          fallback={
+            <div
+              className="shrink-0 rounded-workspace border border-border bg-card p-5 lg:w-[270px]"
+              aria-hidden="true"
+            >
+              Rewoven
+            </div>
+          }
+        >
+          <WorkspaceSidebar />
+        </Suspense>
         <main
           id="main-content"
           tabIndex={-1}

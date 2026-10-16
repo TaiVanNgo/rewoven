@@ -1,3 +1,4 @@
+import { emptyOverview, OVERVIEW_KEYS } from "../case-overview";
 import "server-only";
 import {
   MAX_EVIDENCE_QUOTES,
@@ -77,7 +78,11 @@ export function resolveSourceReferences(
       }),
     };
   }
-  return validateSuggestions(resolved, pages, isPdf);
+  const result = validateSuggestions(resolved, pages, isPdf);
+  if (input.overview !== undefined)
+    result.overview = resolveOverview(input.overview, excerpts, pages, isPdf);
+  enforceClassification(result);
+  return result;
 }
 
 // A large reading should retain independently verified fields when another field is malformed.
@@ -122,5 +127,73 @@ export function resolveSectionReferences(
       );
     }
   }
+  if (input.overview !== undefined)
+    result.overview = resolveOverview(input.overview, excerpts, pages, isPdf);
+  enforceClassification(result);
   return result;
+}
+
+function enforceClassification(result: ReturnType<typeof validateSuggestions>) {
+  if (
+    result.overview?.classification === "non_project" &&
+    SUGGESTION_FIELDS.some((key) => result[key].value)
+  )
+    throw new SuggestionError(
+      "Non-project material cannot contain project suggestions.",
+    );
+}
+function resolveOverview(
+  value: unknown,
+  excerpts: SourceExcerpt[],
+  pages: SourcePage[],
+  isPdf: boolean,
+) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new SuggestionError("AI returned an invalid project overview.");
+  const raw = value as Record<string, unknown>;
+  if (
+    !["project", "non_project", "unclear"].includes(String(raw.classification))
+  )
+    throw new SuggestionError("AI returned an invalid project classification.");
+  const overview = emptyOverview();
+  overview.provenance = "ai";
+  overview.classification =
+    raw.classification as typeof overview.classification;
+  for (const key of OVERVIEW_KEYS) {
+    const entries = raw[key];
+    if (!Array.isArray(entries) || entries.length > 4)
+      throw new SuggestionError("AI returned an oversized overview section.");
+    overview.sections[key] = entries.map((entry, index) => {
+      if (
+        !entry ||
+        typeof entry.text !== "string" ||
+        !entry.text.trim() ||
+        entry.text.length > 600
+      )
+        throw new SuggestionError("AI returned an invalid overview finding.");
+      const empty = Object.fromEntries(
+        SUGGESTION_FIELDS.map((field) => [field, { value: "", evidence: [] }]),
+      );
+      const resolved = resolveSourceReferences(
+        { ...empty, context: { value: entry.text, evidence: entry.evidence } },
+        excerpts,
+        pages,
+        isPdf,
+      );
+      return {
+        id: `${key}-${index + 1}`,
+        text: entry.text.trim(),
+        origin: "source" as const,
+        evidence: resolved.context.evidence,
+      };
+    });
+  }
+  if (
+    overview.classification === "non_project" &&
+    OVERVIEW_KEYS.some((key) => overview.sections[key].length)
+  )
+    throw new SuggestionError(
+      "Non-project material cannot contain project findings.",
+    );
+  return overview;
 }

@@ -168,8 +168,8 @@ test("AI reading validates sources, persists review evidence, isolates sessions,
       reading.id,
     );
     for (const [path, type] of [
-      ["supabase/fixtures/retrospective.md", "md"],
-      ["supabase/fixtures/purchase-workflow.txt", "txt"],
+      ["tests/fixtures/review-notes.md", "md"],
+      ["tests/fixtures/plain-source.txt", "txt"],
       ["tests/fixtures/mixed-pages.pdf", "pdf"],
     ]) {
       const upload = new FormData();

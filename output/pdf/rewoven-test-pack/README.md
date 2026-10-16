@@ -17,7 +17,7 @@ Ten distinct, long, fictional source documents: five text-based PDFs and five UT
 | [09-summit-course-registration.md](markdown/09-summit-course-registration.md)             | 3,511 words            | Synthetic concurrency results               |
 | [10-commonplace-notebook-no-project.md](markdown/10-commonplace-notebook-no-project.md)   | 4,115 words            | Non-project control                         |
 
-Each file has roughly 23,000-27,000 extracted characters and is far below Rewoven's 5 MB / 50,000-character limits. All PDFs have embedded selectable text. The sensor pilot includes one intentionally blank physical page.
+Each file has roughly 23,000-27,000 extracted characters and is far below Rewoven's 5 MB / 500,000-character per-document limits. All PDFs have embedded selectable text. The sensor pilot includes one intentionally blank physical page.
 
 ## How to test
 
@@ -82,3 +82,7 @@ Start with **01** for an ordinary measured pilot. Then try **02** for a proposal
 All ten inputs were read with the app's actual `extractSource` function. File type, byte size, extracted-character length, page count, and extraction warnings are recorded in `expected-results.json`. Every generated evidence excerpt was checked by the existing quote/page validator. All PDF pages were rendered for visual inspection. The sensor PDF is expected to produce one warning for blank page 6; text and evidence after it should keep their physical page numbers.
 
 These checks confirm readable inputs and valid source excerpts. No live model calls were made while generating this pack. The expectations are a human review rubric, not an assertion that the model has already passed these scenarios. Prompts can influence model behavior without guaranteeing semantic accuracy.
+
+## Prepared library catalog
+
+The application now uses documents 01–09 as nine curated, read-only fictional project cases. Document 10 remains a non-project test control. Their original bytes are unchanged. `bun run db:seed` reads only the nine source files and the separately curated manifest; it does not upload this README or the answer key, and makes no model calls. See [the overview guide](../../../docs/features/case-overviews.md).

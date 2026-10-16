@@ -32,10 +32,12 @@ test("live fictional PDF reading survives review, save, reload, and source inspe
   const headers = { Cookie: cookie };
   let paths: string[] = [];
   try {
-    const original = await readFile("supabase/fixtures/delivery-notes.pdf");
+    const original = await readFile(
+      "output/pdf/rewoven-test-pack/pdf/01-harbor-route-planning.pdf",
+    );
     const form = new FormData();
     form.set("mode", "file");
-    form.set("file", new File([original], "delivery-notes.pdf"));
+    form.set("file", new File([original], "01-harbor-route-planning.pdf"));
     const read = await fetch(`${base}/api/cases/analyze`, {
       method: "POST",
       headers,
@@ -45,8 +47,8 @@ test("live fictional PDF reading survives review, save, reload, and source inspe
     const analysis = await read.json();
     assert.ok(analysis.suggestions.title.value);
     assert.equal(analysis.isPdf, true);
-    assert.equal(analysis.pageCount, 3);
-    assert.equal(analysis.suggestions.outcome.value, "");
+    assert.equal(analysis.pageCount, 12);
+    assert.ok(analysis.suggestions.outcome.value);
     assert.ok(analysis.suggestions.context.evidence.length);
     const cached = await fetch(`${base}/api/cases/analyze`, {
       method: "POST",
@@ -62,9 +64,9 @@ test("live fictional PDF reading survives review, save, reload, and source inspe
     const id = crypto.randomUUID();
     form.set("requestKey", id);
     form.set("analysisId", analysis.id);
-    form.set("title", "Reviewed fictional approval portal");
+    form.set("title", "Reviewed fictional route planning pilot");
     form.set("context", analysis.suggestions.context.value);
-    form.set("outcome", "");
+    form.set("outcome", analysis.suggestions.outcome.value);
     form.set("lessons", analysis.suggestions.lessons.value);
     const added = await fetch(`${base}/api/cases`, {
       method: "POST",
@@ -77,7 +79,7 @@ test("live fictional PDF reading survives review, save, reload, and source inspe
       await fetch(`${base}/api/cases/${id}`, { headers })
     ).json();
     assert.equal(detail.case.status, "ready");
-    assert.equal(detail.case.title, "Reviewed fictional approval portal");
+    assert.equal(detail.case.title, "Reviewed fictional route planning pilot");
     assert.equal(
       detail.case.aiReview.suggestions.title.value,
       analysis.suggestions.title.value,

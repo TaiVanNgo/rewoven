@@ -39,12 +39,18 @@ import {
   fillCaseDraft,
   invalidateCaseDraft,
 } from "./case-draft";
+import {
+  type CaseOverview,
+  emptyOverview,
+  OVERVIEW_KEYS,
+} from "./case-overview";
 import { caseFields } from "./case-reading";
 import {
   type CaseAnalysis,
   SUGGESTION_FIELDS,
   type SuggestionField,
 } from "./case-suggestions";
+import { OverviewEditor } from "./overview-editor";
 import { readCaseDocuments } from "./read-case";
 import { CASE_FIELD_LABELS, SuggestionEvidence } from "./suggestion-evidence";
 import { type CaseDetail, MAX_SOURCE_CHARS } from "./types";
@@ -57,12 +63,14 @@ function entryDraft(record?: CaseDetail) {
     Object.assign(draft.fields, caseFields(record), {
       title: record.title === "AI reading in progress" ? "" : record.title,
     });
+  if (record?.overview) draft.overview = structuredClone(record.overview);
   return draft;
 }
 
 export function AddCaseDialog({
   disabled,
   onCreated,
+  onPrepared,
   caseId,
   existingSources = [],
   existingCase,
@@ -74,6 +82,7 @@ export function AddCaseDialog({
   readExisting?: boolean;
   disabled: boolean;
   onCreated: (record: CaseDetail) => void;
+  onPrepared?: (record: CaseDetail) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -84,6 +93,9 @@ export function AddCaseDialog({
   const [readingProgress, setReadingProgress] = useState("");
   const [expected, setExpected] = useState<Record<string, string> | null>(() =>
     existingCase ? caseFields(existingCase) : null,
+  );
+  const [expectedRevision, setExpectedRevision] = useState(
+    existingCase?.overviewRevision ?? 0,
   );
   const stopped = useRef(false);
   const pastedSourceKey = useRef<string | null>(null);
@@ -113,6 +125,13 @@ export function AddCaseDialog({
       ? uploads.length > 0
       : !!fields.text.trim() && !tooLong;
 
+  function beginManualEntry() {
+    setManualEntry(true);
+    setDraft((current) => ({
+      ...current,
+      overview: current.overview ?? emptyOverview(),
+    }));
+  }
   function update(name: keyof typeof fields, value: string) {
     if (busyRef.current) return;
     setDraft((current) => editCaseDraft(current, name, value));
@@ -231,6 +250,9 @@ export function AddCaseDialog({
       throw new Error(
         "The saved case details changed. Reopen the case before reading to preserve the latest edits.",
       );
+    if (expected && expectedRevision !== (result.case.overviewRevision ?? 0))
+      throw new Error("The overview changed. Reopen the case before reading.");
+    setExpectedRevision(result.case.overviewRevision ?? 0);
     setExpected(currentFields);
     return target;
   }
@@ -256,7 +278,7 @@ export function AddCaseDialog({
       const record = await caseApi<{ case: CaseDetail }>(
         `/api/cases/${target}`,
       );
-      onCreated(record.case);
+      onPrepared?.(record.case);
       reviewHeading.current?.focus();
     } catch (error) {
       setAIError(
@@ -293,6 +315,12 @@ export function AddCaseDialog({
               readingId: analysis.id,
               fields: caseFields(fields),
               expected,
+              ...(draft.overview
+                ? {
+                    overview: cleanOverview(draft.overview),
+                    expectedOverviewRevision: expectedRevision,
+                  }
+                : {}),
             }),
           },
         );
@@ -373,19 +401,27 @@ export function AddCaseDialog({
       const result = await caseApi<{ case: CaseDetail }>(
         `/api/cases/${target}`,
       );
-      if (!caseId && createdId && expected) {
+      if (!caseId && (draft.overview || (createdId && expected))) {
         const saved = await caseApi<{ case: CaseDetail }>(
           `/api/cases/${target}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fields: caseFields(fields), expected }),
+            body: JSON.stringify({
+              fields: caseFields(fields),
+              expected: expected ?? caseFields(result.case),
+              ...(draft.overview
+                ? {
+                    overview: cleanOverview(draft.overview),
+                    expectedOverviewRevision: expectedRevision,
+                  }
+                : {}),
+            }),
           },
         );
         result.case = saved.case;
         setExpected(caseFields(saved.case));
       }
-      onCreated(result.case);
       const failed = result.case.sources.some(
         (source) => source.status === "uploading",
       );
@@ -395,6 +431,7 @@ export function AddCaseDialog({
         );
         return;
       }
+      onCreated(result.case);
       setOpen(false);
       setCreatedId(null);
       setUploads([]);
@@ -675,7 +712,7 @@ export function AddCaseDialog({
               type="button"
               variant="outline"
               disabled={busy}
-              onClick={() => setManualEntry(true)}
+              onClick={() => beginManualEntry()}
             >
               Enter details yourself instead
             </Button>
@@ -693,7 +730,9 @@ export function AddCaseDialog({
             hidden={!analysis && !manualEntry}
           >
             <FieldGroup>
-              {SUGGESTION_FIELDS.map((field) => {
+              {SUGGESTION_FIELDS.filter(
+                (field) => field === "title" || !draft.overview,
+              ).map((field) => {
                 const suggestion = analysis?.suggestions[field];
                 const isApplied = applied[field] !== undefined;
                 const unused =
@@ -724,7 +763,7 @@ export function AddCaseDialog({
                         id="case-title"
                         required
                         maxLength={200}
-                        placeholder="e.g., Vendor Billing Portal"
+                        placeholder="e.g., Delivery planning pilot"
                         value={fields.title}
                         onChange={(e) => update("title", e.target.value)}
                       />
@@ -775,6 +814,72 @@ export function AddCaseDialog({
               })}
             </FieldGroup>
           </FieldSet>
+          {(analysis || manualEntry) && (
+            <section
+              className="flex flex-col gap-4"
+              aria-label="Structured overview review"
+            >
+              <h3 className="font-heading text-lg font-bold">
+                Review project overview
+              </h3>
+              {analysis?.suggestions.overview && draft.overview && (
+                <details>
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Compare the new AI overview
+                  </summary>
+                  <div className="flex flex-col gap-4 py-4">
+                    {OVERVIEW_KEYS.map((key) => (
+                      <div key={key}>
+                        <h4 className="font-semibold">{key}</h4>
+                        {analysis.suggestions.overview?.sections[key].map(
+                          (f) => (
+                            <div key={f.id}>
+                              <p className="text-sm">{f.text}</p>
+                              <SuggestionEvidence evidence={f.evidence} />
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => {
+                        const next = structuredClone(
+                          analysis.suggestions.overview,
+                        );
+                        if (!next) return;
+                        for (const key of OVERVIEW_KEYS) {
+                          const notes =
+                            draft.overview?.sections[key].filter(
+                              (f) => f.origin === "user",
+                            ) ?? [];
+                          next.sections[key] = [
+                            ...notes,
+                            ...next.sections[key].filter(
+                              (f) => !notes.some((note) => note.id === f.id),
+                            ),
+                          ].slice(0, 4);
+                        }
+                        setDraft((current) => ({ ...current, overview: next }));
+                      }}
+                    >
+                      Use new overview, keeping my notes
+                    </Button>
+                  </div>
+                </details>
+              )}
+              <OverviewEditor
+                value={draft.overview ?? null}
+                disabled={busy}
+                onChange={(overview) =>
+                  setDraft((current) => ({ ...current, overview }))
+                }
+                prefix="review"
+              />
+            </section>
+          )}
           {error && (
             <Alert variant="destructive">
               <AlertTitle>Could not add the case</AlertTitle>
@@ -833,4 +938,13 @@ export function AddCaseDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function cleanOverview(value: CaseOverview) {
+  const overview = structuredClone(value);
+  for (const key of OVERVIEW_KEYS)
+    overview.sections[key] = overview.sections[key].filter((f) =>
+      f.text.trim(),
+    );
+  return overview;
 }
