@@ -146,3 +146,75 @@ test("section recovery retains verified fields, drops dangling empty citations, 
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /context/);
 });
+
+test("structured synthesis restores original source versions and physical locations across documents", async () => {
+  const { emptyOverview } = await import("../src/features/cases/case-overview");
+  const left = structuredClone(empty),
+    right = structuredClone(empty);
+  left.overview = emptyOverview();
+  right.overview = emptyOverview();
+  left.overview.classification = "project";
+  right.overview.classification = "project";
+  const planned = {
+    sourceId: "spec",
+    sourceTitle: "Spec.pdf",
+    sourceVersion: 2,
+    page: 3,
+    quote: "The plan proposes alerts.",
+  };
+  const changed = {
+    sourceId: "retro",
+    sourceTitle: "Retro.pdf",
+    sourceVersion: 4,
+    page: 9,
+    quote: "Alerts did not ship.",
+  };
+  left.overview.sections.summary = [
+    {
+      id: "summary-1",
+      text: "Alerts were proposed.",
+      origin: "source",
+      evidence: [planned],
+    },
+  ];
+  right.overview.sections.gaps = [
+    {
+      id: "gaps-1",
+      text: "Alerts did not ship.",
+      origin: "source",
+      evidence: [changed],
+    },
+  ];
+  const result = await combineReadings(
+    [left, right],
+    { key: "test", model: "test" },
+    async () =>
+      Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  ...empty,
+                  overview: {
+                    classification: "project",
+                    summary: [{ text: "Alerts were proposed.", evidence: [1] }],
+                    problem: [],
+                    approach: [],
+                    results: [],
+                    lessons: [],
+                    gaps: [{ text: "Alerts did not ship.", evidence: [2] }],
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      }),
+  );
+  assert.deepEqual(result.overview?.sections.summary[0].evidence, [planned]);
+  assert.deepEqual(result.overview?.sections.gaps[0].evidence, [changed]);
+});

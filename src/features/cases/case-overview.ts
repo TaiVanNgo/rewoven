@@ -122,14 +122,17 @@ export function reviewOverview(
   result.classification = candidate.classification;
   result.provenance = original?.provenance ?? "manual";
   result.sources = original?.sources ?? [];
+  const ids = new Set<string>();
   for (const key of OVERVIEW_KEYS) {
     const findings = candidate.sections[key];
     if (!Array.isArray(findings) || findings.length > 4)
       throw new Error("Each overview section supports up to four findings.");
-    const ids = new Set<string>();
     result.sections[key] = findings.map((finding) => {
       if (
+        !finding ||
+        typeof finding !== "object" ||
         typeof finding.id !== "string" ||
+        !finding.id.trim() ||
         finding.id.length > 100 ||
         ids.has(finding.id) ||
         typeof finding.text !== "string" ||
@@ -140,9 +143,15 @@ export function reviewOverview(
           "Findings need unique IDs and 1–600 characters of text.",
         );
       ids.add(finding.id);
-      const old = original?.sections[key].find(
-        (f) => f.id === finding.id && f.text === finding.text.trim(),
-      );
+      const old =
+        finding.origin === "source"
+          ? original?.sections[key].find(
+              (f) =>
+                f.origin === "source" &&
+                f.id === finding.id &&
+                f.text === finding.text.trim(),
+            )
+          : undefined;
       return old
         ? structuredClone(old)
         : {

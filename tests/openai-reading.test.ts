@@ -352,3 +352,59 @@ test("production defaults to 50 session attempts and 100 daily, while developmen
     }
   }
 });
+
+test("the notebook control traverses the structured transport without becoming project findings", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const text = await readFile(
+    "output/pdf/rewoven-test-pack/markdown/10-commonplace-notebook-no-project.md",
+    "utf8",
+  );
+  const result = await suggestCase(
+    [{ number: 1, text }],
+    false,
+    config,
+    async (_url, init) => {
+      const request = JSON.parse(String(init.body));
+      assert.match(request.instructions, /non_project/);
+      assert.equal(
+        request.text.format.schema.properties.overview.properties.classification.enum.includes(
+          "non_project",
+        ),
+        true,
+      );
+      const empty = { value: "", evidence: [] };
+      return Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify({
+                  title: empty,
+                  context: empty,
+                  outcome: empty,
+                  lessons: empty,
+                  overview: {
+                    classification: "non_project",
+                    summary: [],
+                    problem: [],
+                    approach: [],
+                    results: [],
+                    lessons: [],
+                    gaps: [],
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      });
+    },
+  );
+  assert.equal(result.overview?.classification, "non_project");
+  assert.equal(Object.values(result.overview?.sections ?? {}).flat().length, 0);
+  for (const key of ["title", "context", "outcome", "lessons"] as const)
+    assert.equal(result[key].value, "");
+});

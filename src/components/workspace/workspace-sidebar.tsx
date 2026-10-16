@@ -107,12 +107,20 @@ export function WorkspaceSidebar() {
             <Link
               key={href}
               href={href}
-              aria-current={pathname === href ? "page" : undefined}
+              aria-current={
+                pathname === href ||
+                (href !== "/" && pathname.startsWith(`${href}/`))
+                  ? "page"
+                  : undefined
+              }
               title={label}
               className={cn(
                 buttonVariants({
                   variant:
-                    pathname === href ? "navigation-active" : "navigation",
+                    pathname === href ||
+                    (href !== "/" && pathname.startsWith(`${href}/`))
+                      ? "navigation-active"
+                      : "navigation",
                   size: "navigation",
                 }),
                 navigationLayout,

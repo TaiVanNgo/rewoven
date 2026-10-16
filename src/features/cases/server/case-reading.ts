@@ -554,7 +554,7 @@ export async function saveCaseFields(
     p_input: values,
     p_expected: input.expected,
   });
-  if (result.error && /changed/.test(result.error.message))
+  if (result.error && /changed|required/.test(result.error.message))
     throw new ApiError(409, result.error.message);
   checkDatabase(result.error);
   return caseDetail(caseId, sessionId);

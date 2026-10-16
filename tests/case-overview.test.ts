@@ -38,6 +38,12 @@ test("editing a finding removes inherited or forged citations; unchanged finding
   const reviewed = reviewOverview(submitted, original);
   assert.deepEqual(reviewed.sections.results[0].evidence, []);
   assert.equal(reviewed.sections.results[0].origin, "user");
+  const retyped = structuredClone(reviewed);
+  retyped.sections.results[0].text = original.sections.results[0].text;
+  assert.deepEqual(
+    reviewOverview(retyped, original).sections.results[0].evidence,
+    [],
+  );
   assert.equal(overviewProjection(reviewed).outcome, "My amended result");
   assert.equal(overviewStale(reviewed, [{ id: "source", version: 3 }]), true);
   assert.equal(overviewStale(reviewed, original.sources), false);

@@ -58,7 +58,7 @@ export function RetrievalResults({ result }: { result: RetrievalResult }) {
                   </p>
                   <Link
                     className="mt-2 inline-block text-sm underline underline-offset-4"
-                    href={`/case-library?case=${record.id}&source=${p.source_id}&page=${p.page_number ?? 1}&start=${p.char_start}&end=${p.char_end}`}
+                    href={`/case-library/${record.id}?source=${p.source_id}&page=${p.page_number ?? 1}&start=${p.char_start}&end=${p.char_end}`}
                   >
                     {p.source_title} · v{p.version}
                     {p.page_number ? ` · Page ${p.page_number}` : ""} · View

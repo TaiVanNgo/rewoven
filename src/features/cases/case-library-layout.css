@@ -3,131 +3,29 @@
   flex-direction: column;
   gap: 1.75rem;
 }
-
-@media (min-width: 64rem) {
-  .case-library-page,
-  .case-library,
-  .case-library-skeleton {
-    gap: 1rem;
-  }
-
-  /* Use the same compact structure for the page header and its loading state. */
-  .case-library-page > :first-child {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 1rem;
-  }
-
-  .case-library-page > :first-child > :first-child {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  /* The title already names this page, so omit the duplicate eyebrow label. */
-  .case-library-page > :first-child > :first-child > :first-child {
-    display: none;
-  }
-
-  .case-library-page > :first-child > :last-child {
-    grid-column: 1;
-    grid-row: 1;
-    gap: 0.25rem;
-  }
-
-  .case-library-page > :first-child h1 {
-    font-size: 1.75rem;
-    line-height: 1.2;
-  }
-
-  .case-library-page > :first-child > :last-child > p {
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-
-  .case-library-page > :first-child > :last-child > [data-slot="skeleton"] {
-    height: 1.3125rem;
-  }
-
-  .case-library-page
-    > :first-child
-    > :last-child
-    > [data-slot="skeleton"]:first-child {
-    height: 2.1rem;
-  }
+.case-folio {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  gap: 1.5rem;
 }
-
-/* Stacked layouts and short windows keep normal document scrolling. */
-@media (min-width: 80rem) and (min-height: 44rem) {
-  /* Use active navigation because Next.js retains hidden pages after navigation. */
-  aside:has(#sidebar-navigation > a[href="/case-library"][aria-current="page"])
-    + main {
-    height: calc(100dvh - 56px);
-    min-height: 0;
+.case-narrative {
+  min-width: 0;
+}
+.case-narrative p {
+  max-width: 72ch;
+}
+.case-narrative section {
+  scroll-margin-top: 1.5rem;
+}
+@media (min-width: 80rem) {
+  .case-folio:has(.case-evidence-panel) {
+    grid-template-columns: minmax(0, 1fr) 320px;
   }
-
-  aside:has(#sidebar-navigation > a[href="/case-library"][aria-current="page"])
-    + main
-    > div {
-    flex: 1;
-    min-height: 0;
-  }
-
-  aside:has(#sidebar-navigation > a[href="/case-library"][aria-current="page"])
-    + main
-    > footer {
-    flex-shrink: 0;
-  }
-
-  .case-library-page,
-  .case-library,
-  .case-library-skeleton,
-  .case-library-grid {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .case-library-page > :first-child,
-  .case-library > * {
-    flex-shrink: 0;
-  }
-
-  .case-library > .case-library-grid,
-  .case-library > .case-library-skeleton {
-    flex: 1;
-  }
-
-  .case-library-grid {
-    align-items: stretch;
-  }
-
-  .case-list,
-  .case-library-grid > [data-slot="skeleton-group"] {
-    height: 100%;
-    min-height: 0;
-  }
-
-  .case-library-grid > [data-slot="skeleton-group"] {
-    overflow: hidden;
-  }
-
-  .case-list > :first-child,
-  .case-list-scroll > *,
-  .case-content > * {
-    flex-shrink: 0;
-  }
-
-  .case-list-scroll {
-    flex: 1;
-    min-height: 0;
-    max-height: none;
-    overscroll-behavior-y: contain;
-  }
-
-  .case-content {
-    min-height: 0;
+  .case-evidence-panel {
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100dvh - 3rem);
     overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scrollbar-gutter: stable;
   }
 }
