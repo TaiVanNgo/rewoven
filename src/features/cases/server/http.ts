@@ -42,3 +42,33 @@ export function validId(value: string) {
     throw new ApiError(400, "Invalid record identifier.");
   return value;
 }
+
+export async function boundedJson(
+  request: Request,
+): Promise<Record<string, unknown>> {
+  const reader = request.body?.getReader();
+  if (!reader) throw new ApiError(400, "Request body is required.");
+  const parts: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 3_100_000) {
+        await reader.cancel();
+        throw new ApiError(413, "Request text is too large.");
+      }
+      parts.push(value);
+    }
+    const value = JSON.parse(Buffer.concat(parts).toString("utf8"));
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error("Invalid object");
+    return value;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(400, "Request must be a JSON object.");
+  } finally {
+    reader.releaseLock();
+  }
+}
