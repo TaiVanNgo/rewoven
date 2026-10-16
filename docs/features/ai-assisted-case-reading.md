@@ -1,248 +1,115 @@
-# AI-assisted case reading
+# AI-assisted case entry
 
-Rewoven can read a source and suggest a case title, context, recorded outcome, and lessons. You review the suggestions before saving. Manual entry still works without an OpenAI key.
+Upload the documents from one historical project and let Rewoven suggest its title, context, recorded outcome, and lessons. You review and confirm the draft rather than typing those fields from scratch. The reader accepts the same material as ingestion: up to **5 MB and 500,000 extracted characters per document**, with **50 documents, 100 MB of originals, and 5,000,000 accepted extracted characters per case**.
 
-## Try it with one project
+For example, upload an SRS proposing automated notifications, meeting minutes postponing that feature, and a retrospective describing the manual approval flow that actually shipped. The reader processes all three documents and combines their supported findings. Planned features must remain distinct from delivered work; intended benefits must not become measured outcomes.
 
-Suppose you have delivery notes for an expense approval portal. The notes describe manager approvals and an audit log, but contain no measured delivery outcome.
+## Try the upload-first flow
 
-1. Open **Case library → Add case**.
-2. Choose the PDF or paste the original notes.
-3. Select **Read with AI**. This sends extracted source text to OpenAI and can incur API charges.
-4. Review the suggested title and context. Expand **Supporting evidence** to see the source quotes and PDF page numbers.
-5. Leave the outcome blank when no actual result is recorded. A goal such as “reduce approval time” is not a measured outcome.
-6. Edit the title, then select **Confirm & add case**.
-7. In the saved case, expand **AI reading record → View original AI suggestions**. Your edited title appears in the case description; the original suggestion remains in the reading record.
-8. Follow an evidence link to inspect the original PDF at its cited page.
+1. Open **Case library → Add case** and select your files, or choose **Paste text**.
+2. Select **Read documents with AI**. No case title or other metadata is required before this action. OpenAI API use is billed to the project's account.
+3. Keep the dialog open while it uploads, extracts text, reads sections, and combines findings. Larger cases need multiple steps; each provider request can take up to a minute.
+4. Review the filled-in fields. Expand **Supporting evidence** to inspect original quotes, document names, and physical PDF pages.
+5. Edit anything that needs correction, or use **Use suggestion** to deliberately replace an existing field.
+6. Select **Confirm case details**. Your final fields are saved separately from the original AI draft.
+7. Expand **AI reading record** in the saved case to inspect the original suggestions and their sources.
 
-Refreshing retains a confirmed case. The library initially selects its default sample, so select your added case from the list after refreshing.
+If AI cannot establish a field from the documents, it stays blank. A title remains required when confirming; unrelated or unreadable material may require you to supply one. **Enter details yourself instead** is an optional fallback, including when no API key is configured.
 
-## Three different features
+Unlike the earlier inline reader, clicking Read now stores the original documents and creates a session-owned case before generating metadata. An unfinished case can appear as **AI reading in progress** until you confirm its details. Text extraction and semantic indexing remain independent of metadata review.
 
-| Term          | Plain meaning                                                          | Current state    |
-| ------------- | ---------------------------------------------------------------------- | ---------------- |
-| AI extraction | Read a document and suggest fields for a person to review              | Implemented here |
-| Embeddings    | Represent text with numbers so search can compare meaning              | Not implemented  |
-| RAG           | Retrieve relevant evidence and give it to AI to help answer a question | Not implemented  |
+## Pause, refresh, and add documents
 
-Existing `source_chunks` are smaller pieces of extracted text. Their `search_vector` is PostgreSQL's keyword-search representation, not an AI embedding. This feature does not change the **Find past cases** preview into a working RAG flow.
+Closing the dialog pauses after the request already in progress; refreshing has the same effect. The server retains originals, extracted text, completed AI sections, and intermediate combinations. Unsaved edits in the form remain in memory and are lost on refresh.
 
-## What happens when you click Read with AI?
+Return to **Case library**, select the unfinished case, and choose **Read case with AI → Read all case documents**. It resumes saved work, or loads the completed draft without another provider call. The library may initially select its default fictional sample after refreshing; choose your own case from the list.
 
-```text
-Browser: selected PDF or pasted notes
-    ↓ POST /api/cases/analyze
-Next.js server: check demo session, validate source, extract text by page
-    ↓ Reserve an AI attempt, or reuse a completed reading
-OpenAI: suggest structured fields and select supporting excerpt IDs
-    ↓
-Next.js server: resolve selected excerpt IDs to exact quotes/pages, then validate
-    ↓
-Browser: show editable suggestions for review
-    ↓ Confirm & add case → POST /api/cases
-Supabase: save final fields, original source, and link to the AI reading
-```
+Use **Add documents** to extend an existing case. Selecting **Read documents with AI** there reads the existing sources and the newly uploaded material together. Alternatively, upload first, then choose **Read case with AI**. Previously saved metadata stays unchanged until confirmation. AI fills blank fields, keeps your existing text, and offers explicit per-field replacement through **Use suggestion**.
 
-The **browser** is the page running on your computer. It handles typing, file selection, and buttons. The **Next.js server** handles requests from that page and calls Supabase and OpenAI using private keys. These keys never need to be sent to the browser.
+A warning identifies a reviewed reading that predates newly attached documents. Source changes invalidate the old reading for confirmation. A fresh reading is keyed to the complete source snapshot, model, and reader version. It creates a new draft without rewriting completed reading records or silently replacing your corrections.
 
-A **Route Handler** is the server code behind an address such as `/api/cases/analyze`. The browser asks that address to read a source; it does not call OpenAI or Supabase directly.
+## Local setup
 
-The server uses the existing PDF reader to extract embedded text. OpenAI receives all readable text as numbered excerpts in source order, each at most 600 characters and bound to a physical page. It does not receive the PDF binary or a file-storage URL. Empty pages retain their physical numbering but produce no excerpts. Images and diagrams are not interpreted.
-
-**Structured output** means the model must return a specific JSON shape. Each of the four fields has a `value` and an `evidence` list of excerpt IDs. An unsupported field has an empty value and no evidence. The server converts those IDs into the quote/page objects displayed in the form and stored in the reading record. See [OpenAI's structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
-
-For every nonempty suggestion, the server checks that its quotes occur on the cited pages, allowing extraction whitespace differences. Non-PDF text uses `page: null`. A field may have up to three quotes, each at most 600 characters. Suggested titles are limited to 200 characters; other suggested fields to 2,000. Final user-entered fields keep the existing limits: 200 for the title and 5,000 for each other field.
-
-Reader version 3 builds its output schema from the excerpt count: evidence IDs must be integers between 1 and that count. The schema also bounds evidence counts and field lengths. The model never generates quotes or page numbers. The server resolves the selected IDs, rejects unknown IDs, and then runs the existing quote/page checks on the resolved suggestions. PDFs retain their physical page numbers; text sources use `null`.
-
-**A matching quote does not prove that the AI interpreted it correctly.** Review the claim against its evidence. The prompt asks the model to ignore document instructions, preserve conflicts, and avoid turning planned benefits into recorded results; these instructions reduce mistakes but do not guarantee correctness.
-
-## Your edits take priority
-
-- AI fills blank fields and leaves your existing text intact.
-- **Use suggestion** deliberately replaces one field with its AI suggestion.
-- Editing a suggested field marks it as your text.
-- Replacing the source clears untouched AI-filled values. Your edited and manually entered fields remain, with a reminder to review them against the new source.
-- A failed AI reading leaves the source and form available for retry or manual entry.
-- Confirmation is the only action that creates a case.
-
-Closing and reopening the dialog preserves its in-memory draft while the page stays mounted. Refreshing loses unfinished sources and edits. Selecting the same original again and clicking **Read with AI** may reuse its cached suggestions; it does not restore your unsaved edits.
-
-## What Supabase stores
-
-A **fingerprint** is a SHA-256 identifier calculated from the exact source bytes and format. Changing either makes it a different source for AI review purposes.
-
-| Record                              | Why it exists                                                                                                                 |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `case_ai_readings`                  | Session-owned reading status, fingerprint, model, prompt version, attempt count, suggestions, quotes, and extraction warnings |
-| `case_ai_attempts`                  | One timestamp per reserved attempt, used to enforce session and daily limits                                                  |
-| `case_ai_reviews`                   | Connects a confirmed case and its source to the original AI reading                                                           |
-| Existing cases, sources, and chunks | Keep your final fields, original material, extracted pages, and keyword-search text                                           |
-
-The preview does not store an uploaded original in Supabase. It stores the AI reading and its evidence snippets. Confirmation stores the original using the existing private bucket or pasted-text database field.
-
-Completed readings cannot be updated. Your final fields are stored separately, so editing a suggestion before confirmation does not rewrite the AI draft. Case creation verifies that the analysis ID belongs to your session and matches the submitted original, then attaches the review in the same database transaction as the case and source records.
-
-The new tables have RLS enabled and ordinary direct access revoked. The server still checks ownership because its Supabase secret key bypasses RLS. Shared sample cases remain read-only. The existing HttpOnly cookie identifies your anonymous 24-hour session; it is separate from Supabase Auth accounts.
-
-Session expiry ends access. Automatic deletion of expired records, cached quotes, and files is not implemented.
-
-## Important files
-
-| File                                                                             | Purpose                                                                                     |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| [Add a case dialog](../../src/features/cases/add-case-dialog.tsx)                | Source selection, explicit AI action, review, and confirmation                              |
-| [Draft rules](../../src/features/cases/case-draft.ts)                            | Preserve user edits and clear outdated AI values when sources change                        |
-| [Analysis endpoint](../../src/app/api/cases/analyze/route.ts)                    | Check origin/session and accept a bounded upload                                            |
-| [Reading coordinator](../../src/features/cases/server/analyze-source.ts)         | Extract text, reserve attempts, reuse cached readings, and save results                     |
-| [Source excerpts](../../src/features/cases/server/source-evidence.ts)            | Split readable text into bounded excerpts and resolve selected IDs to original quotes/pages |
-| [OpenAI request](../../src/features/cases/server/openai.ts)                      | Server-only configuration, prompt, schema request, timeout, and provider errors             |
-| [Suggestion validation](../../src/features/cases/case-suggestions.ts)            | Shared types and checks for output sizes and real source quotes                             |
-| [Source input](../../src/features/cases/server/source-input.ts)                  | Shared input validation and exact-original fingerprinting                                   |
-| [Case ingestion](../../src/features/cases/server/ingestion.ts)                   | Check the selected analysis and save the original with final fields                         |
-| [AI reading viewer](../../src/features/cases/ai-reading-record.tsx)              | Display the original suggestions separately from the final case                             |
-| [Database migration](../../supabase/migrations/202610150003_case_ai_reading.sql) | Private reading records, atomic budget reservation, and review attachment                   |
-
-## Setup and run
-
-Follow the [README setup](../../README.md#quick-start) first, including local Supabase credentials. Keep the existing `.env.local`; do not overwrite it when adding AI settings.
-
-From the project root:
+Use the Node.js and Bun versions described in the README. Start your Docker-compatible runtime and preserve an existing ignored `.env.local`.
 
 ```bash
 bun install --frozen-lockfile
 bun run db:start
 bun run db:migrate
-bun run db:seed
+bun run dev
 ```
 
-`db:start` needs OrbStack or Docker Desktop running. `db:migrate` applies pending migrations without resetting existing data. Seeding is optional for adding your own case; it provides the fictional library used in the walkthrough.
-
-Add or confirm these server-only settings in `.env.local`:
+Configure local `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `OPENAI_API_KEY` in `.env.local` using the README. These credentials stay on the server. Optional settings are:
 
 ```dotenv
-OPENAI_API_KEY=your-api-key
 OPENAI_CASE_MODEL=gpt-4.1-mini-2025-04-14
 AI_CASE_SESSION_LIMIT=50
 AI_CASE_DAILY_LIMIT=100
 ```
 
-Only the API key is required for AI reading. The model and production limits have the defaults shown above. Both attempt limits are ignored during `bun run dev` / `bun run devx`; development has no session or daily attempt cap. Restart your development server after changing environment settings:
+Open the URL printed by Next.js, usually `http://localhost:3000`. Stop Next.js with Ctrl+C; Supabase keeps running. `bun run db:stop` stops its containers and retains local data. For production testing, run `bun run build` before `bun run start`; the production server needs the compiled output.
 
-```bash
-bun run dev
+The additive migration `202610160003_staged_case_reading.sql` adds resumable work to existing reading records and transactional review functions. It does not reset existing cases, evidence, or completed readings. Apply it to an existing local database with `bun run db:migrate`; use the established deployment workflow for hosted Supabase.
+
+## How a larger case is read
+
+```text
+Select documents → reserve private source paths → upload directly to storage
+    ↓
+Extract original text in saved stages, keeping physical page numbers
+    ↓
+Read up to 32 original excerpts per AI step (at most 19,200 characters)
+    ↓
+Combine up to four partial drafts at a time, retaining original evidence
+    ↓
+Show a complete editable draft → confirm → save reviewed case fields
 ```
 
-Open [the local case library](http://localhost:3000/case-library). If your app is already running with the right settings, use that server. Stop it with Ctrl+C when finished; Supabase stays running until `bun run db:stop`.
+The 500,000-character limit controls accepted document text, not one giant prompt. Every readable excerpt is assigned to a reading step. Completed steps are checkpointed before the next request. Combinations form a bounded hierarchy rather than sending hundreds of partial drafts in one request. A failed call retries from the last saved checkpoint; an in-flight call with an uncertain response can be billed again if retried.
 
-For a repeatable example, upload [the fictional three-page delivery notes](../../supabase/fixtures/delivery-notes.pdf). Follow the opening walkthrough. Expect editable suggestions and real page references, with the outcome left blank. Exact AI wording can vary.
+The browser drives the loop through Next.js Route Handlers. Each `/api/cases/:id/read` request advances at most one provider step. This is resumable foreground processing, not a background worker that continues scheduling after the app closes. Existing source extraction also resumes through its own bounded endpoint.
 
-## Costs, limits, and privacy
+OpenAI returns structured fields and selects excerpt IDs. The server resolves those IDs to actual source quotes and page locations. During combination it keeps the original source identity, including when two documents use the same page number. The model does not generate the displayed quote text or citation locations. See [OpenAI's structured output documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-Attempt limits depend on the server mode:
+If one field has unverifiable evidence, the staged reader clears that field and adds a review note while retaining independently validated fields. Empty fields discard dangling citation IDs. Fabricated quotes or unknown IDs never become accepted evidence.
 
-| Server mode                                       | Session attempt limit | Database-wide daily attempt limit |
-| ------------------------------------------------- | --------------------- | --------------------------------- |
-| `bun run dev` or `bun run devx`                   | Unlimited             | Unlimited                         |
-| Production (`bun run build` then `bun run start`) | 50 by default         | 100 per UTC day by default        |
+Each field can cite up to three quotes of at most 600 characters. Suggested titles are limited to 200 characters; other suggested fields to 2,000. Final edited fields retain their existing limits of 200 and 5,000 respectively. A matching quote proves that the quote exists, not that the model interpreted it correctly; review factual claims against the evidence.
 
-The server checks `NODE_ENV === "development"`; a production server running on localhost still uses production limits. Next.js sets this mode from the command, so do not add `NODE_ENV` to your environment file to control the allowance. Outside development, `AI_CASE_SESSION_LIMIT` and `AI_CASE_DAILY_LIMIT` override the defaults. The daily allowance resets at midnight UTC; the session allowance covers the existing 24-hour demo session. Reservations are atomic, so concurrent production workers cannot each spend the last available attempt.
+## Data, ownership, and review
 
-Repeated readings of the same original, model, and prompt version reuse a successful result within the same session. Failed provider calls consume attempts too. Invalid source extraction is rejected before reserving an AI attempt. Outside development, set either limit to `0` to block new readings; existing cached results remain available. Development ignores these variables, including `0`.
+- `case_ai_readings` stores the source snapshot, model, reader version, work cursor, partial drafts, errors, and completed result. Completed records remain immutable.
+- `case_ai_attempts` meters whole-case reading attempts. One successful run can make multiple bounded provider calls while using one attempt. Retrying a failed run uses another attempt and preserves its checkpoints.
+- `case_ai_reviews` points a confirmed case to its reviewed draft. Each evidence item retains its own source ID; the legacy single-source relationship remains compatible.
+- Confirmation checks ownership, current source versions, and the previous case field values in one transaction. A concurrent change produces a conflict instead of overwriting someone else's saved details.
 
-These are **attempt limits, not a dollar budget**. Text length and model pricing affect actual charges. A request that times out locally may still incur provider charges. Configure provider billing controls separately.
+All routes use the existing HttpOnly demo-session cookie. Direct browser database access remains blocked; server keys and provider keys remain private. Shared fictional samples remain read-only. Sessions last 24 hours. Expiry ends access; automatic deletion of expired data and originals is still not implemented.
 
-Only one new reading can run in a session at a time. Provider requests time out after 60 seconds. If server work is interrupted, retry is allowed after the two-minute processing lease expires. A lease is a temporary claim that prevents two workers processing the same reading simultaneously.
+Development (`bun run dev` / `bun run devx`) keeps the existing unlimited attempt policy. Production defaults to 50 attempts per session and 100 per UTC day, including legacy inline readings. Deployment variables override those defaults; zero blocks new attempts. A successful cached result remains reusable. These are run-attempt limits, not model-call or monetary budgets. Provider billing and rate limits still apply. Embedding token budgets remain separate.
 
-Requests use `store: false`, which disables storing the response for later API retrieval. This does not promise zero provider retention; consult [OpenAI's data controls](https://developers.openai.com/api/docs/guides/your-data). Cached suggestions and quotes remain in your own database until explicitly cleaned up.
+## Important code and APIs
 
-## Common errors
+- `src/features/cases/server/case-reading.ts` plans sections, resumes model steps, combines evidence-backed drafts, and validates review saves.
+- `src/features/cases/read-case.ts` drives preparation and reading from the browser; `add-case-dialog.tsx` handles upload-first entry and editable review.
+- `src/features/cases/server/openai.ts` owns provider requests and strict output validation; `source-evidence.ts` resolves excerpt IDs to originals.
 
-| Message or situation                                                | What to do                                                                                                       |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| AI reading is not configured                                        | Set the server's `OPENAI_API_KEY`, restart Next.js, or enter fields manually                                     |
-| Key cannot access AI reading                                        | Check the key and selected model's availability for your API account                                             |
-| OpenAI usage limit reached                                          | Check provider billing/quota or wait; manual entry still works                                                   |
-| Session or daily reading limit reached                              | Use manual entry; daily allowance returns at midnight UTC                                                        |
-| A source is already being read                                      | Wait for completion; interrupted work can retry after two minutes                                                |
-| Reference does not identify a supplied source excerpt               | Retry or use manual entry. Invalid IDs are rejected; quote/page checks remain enabled                            |
-| Quote could not be verified                                         | Inspect the source, retry, or enter the details manually; the rejected output is not shown as a valid suggestion |
-| Analysis does not match the source                                  | Read the current source again, or replace the source to clear its analysis and submit manually                   |
-| PDF has no readable text, is encrypted, corrupt, or over the limits | Supply a supported text-based file or paste its text; no OCR or silent truncation is performed                   |
-| Source storage is unavailable                                       | Check Supabase and apply pending migrations; preserve the draft while fixing the connection                      |
+`POST /api/cases/:id/read` returns progress and a completed draft when ready. `POST /api/cases/:id/review` confirms edited fields against the original metadata snapshot. `PATCH /api/cases/:id` preserves manual fallback for a case created during an interrupted reading. The older multipart `/api/cases/analyze` route remains compatible for inline sources up to 50,000 characters; it is no longer the browser's AI intake path. Larger documents and complete 5 MB uploads use stored sources through the new route.
 
-## Verification
-
-With local Supabase and the web app running:
+## Verification and boundaries
 
 ```bash
-bun run test
-bun run test:integration
+bun run format:check
 bun run lint
 bun run typecheck
-bun run format:check
+bun run test
 bun run build
+# With local Supabase and an application server running:
+bun run test:integration
+# Optional, billable: reads fictional sources including a document over 50,000 characters:
+bun run test:case-reading:live
 ```
 
-The unit tests cover output validation, quote/page checks, safe provider failures, configuration, source fingerprints, and preservation of user edits. Integration tests create and clean up their own sessions, use fake model output, and make no OpenAI calls. They verify input formats, cache reuse, immutable results, source binding, session isolation/expiry, retries, processing leases, and atomic session/global limits.
+Automated checks cover a full 500,000-character document with another source, full section coverage, checkpoint recovery, source-specific citations, cached reuse, separate reviewed edits, session isolation, and rejection of stale or concurrent review saves. Unit tests cover bounded draft combinations and restoration of physical PDF pages across sources. The existing ingestion, retrieval, and inline-reading regressions remain in the suite.
 
-The explicit live test makes one billable reading of a fictional PDF and checks cached reuse, reviewed fields, refresh persistence, and preserved original bytes:
+Local verification on 16 October 2026: 46 unit tests and 8 integration tests passed, along with formatting, lint, TypeScript, and a production build. A live OpenAI run read all 6 sections from three fictional documents, including an SRS above 50,000 characters, and retained original citations. Browser verification uploaded a PDF and Markdown document with no manually entered title, reviewed the filled draft, saved the case, and checked the intake dialog at a 390-pixel mobile width. This does not establish factual quality for arbitrary client documents or performance at the complete case quota.
 
-```bash
-bun run test:ai:live
-```
-
-The live test is local-only and is not part of the default test commands. The model must return a complete, grounded result for it to pass. It cleans up its test case, source, and session.
-
-For production-mode local verification, build before starting the production server:
-
-```bash
-bun run build
-bun run start --port 3001
-```
-
-In another terminal, target that server without repeating the live AI call:
-
-```bash
-TEST_BASE_URL=http://localhost:3001 bun run test:integration
-```
-
-Verified locally on 15 October 2026: 21 unit tests, both integration suites, formatting, lint, type checking, and the production build passed. One live OpenAI PDF reading passed. Browser checks covered editable suggestions, evidence, real save/refresh/source access, manual fallback, file selection/drop, simulated provider/network errors, keyboard focus, light/dark themes, 320/390px layouts, long filenames, and reduced motion. Browser failure scenarios and one full browser flow used controlled AI output to avoid extra paid calls. Development-only cache/reduced-motion notices were observed; no full screen-reader audit or hosted deployment verification was performed.
-
-## What remains
-
-There are no embeddings, semantic retrieval, RAG answers, reusable-artifact tags, diagram interpretation, OCR, saved plans, or resumable unfinished drafts. This increment has not been deployed. Prompt quality has been checked with a small fictional fixture set, not a broad accuracy evaluation; human review is required.
-
-## Source-reference validation fix
-
-Reader version 2 constrains source references in the OpenAI request itself. This is separate from checking that a quote really occurs in the document, which still happens on the server. It does not shorten or silently accept an invalid citation.
-
-A local regression check confirmed that the old schema allowed a `null` PDF page and did not bound quote length. Version 2 requires integer PDF pages, limits quotes to 1–600 characters with non-whitespace content, and names the affected field and reference if validation fails. The reader version changed so old cached readings are not reused for new requests; saved version-1 review records remain available.
-
-Verification for this fix: 24 unit tests, both integration suites, and a new live reading of a fictional 11-page PDF passed. The live response contained six verified references and its repeated request reused the cache. The supplied personal journal was inspected locally only: it had 11 readable pages and 12,798 extracted characters. Its original rejected AI response was not retained, so the precise trigger of that earlier attempt remains unknown. The journal was not sent to OpenAI during this fix.
-
-## Quote-copying failure fix
-
-The error “AI context reference 3 quote could not be verified on its source page” means the third context citation failed the server's source check. Version 2 still asked the model to copy exact text and supply its page. A paraphrase or wrong page could therefore reject the whole reading even when the rest of its output was usable. Whitespace normalization alone did not prevent this.
-
-Version 3 removes that copying step. For example, the server might send `{ "id": 7, "page": 3, "quote": "Managers approve expenses." }`. The model returns `evidence: [7]`; the server supplies the exact quote and page 3. No fuzzy matching or acceptance of unverified quotes is involved. Excerpts cover all readable text without crossing PDF page boundaries. Long passages are split; empty pages do not shift later page numbers. The existing review UI and stored evidence shape remain the same.
-
-The prompt version changed from 2 to 3, so new requests use the new reader/cache identity. Existing saved reading records remain available. Restart the app if it is running a production build: stop the server, run `bun run build`, then `bun run start`. During `bun run dev`, edits reload automatically. Keep the open dialog's draft and select **Read with AI** again; refreshing would lose an unfinished draft.
-
-Verification for version 3: the regression reproduces the exact third-reference error with a controlled paraphrased quote, then confirms three PDF references resolve correctly through the new provider boundary. Tests also cover unknown IDs, uncited fields, physical page numbers across empty pages, Unicode characters, quote length limits, and original text preservation. The supplied engineering journal extracted locally into 11 pages, 12,798 characters, and 27 excerpts; every excerpt passed the original quote/page validator using controlled model responses. The original failed response was not retained, so its precise mismatch remains unknown. The journal was not sent to OpenAI during this investigation. No live model accuracy or paid-call result is claimed for this change.
-
-The 29 unit tests, both API integration suites, lint, formatting, type checking, and the production build passed. Browser checks with controlled output verified three context quotes with PDF pages, a blank unsupported outcome, and source/title preservation after a simulated provider failure. The first broader library integration run returned a storage error during duplicate case creation; its rerun passed. This change does not establish that the storage issue is resolved.
-
-Selecting a real excerpt guarantees that the displayed quote exists. It still does not guarantee that the AI's suggested claim follows from that excerpt; review remains necessary.
-
-## Environment-specific reading limits
-
-For example, reading all ten files in the manual test pack through `bun run dev` can continue beyond earlier failed attempts in the same session. No counter reset or cookie deletion is required. The server passes `null` for both limits, which means unlimited reservations. It still checks session expiry, permits only one in-progress reading per session, records attempts, and reuses successful cached readings. Provider errors and API billing remain separate from Rewoven's attempt allowance.
-
-Production passes finite limits, with defaults of 50 per session and 100 per UTC day. Existing deployment variables take precedence: change an old `AI_CASE_SESSION_LIMIT=10` to `50` or remove that override to use the new default. Set hosted variables through the deployment configuration, separately from ignored local credentials. This repository change does not deploy the app or update hosted environment variables.
-
-Apply the additive [optional-limit migration](../../supabase/migrations/202610150004_case_ai_optional_limits.sql) using `bun run db:migrate` for an existing local database. It makes the unlimited meaning explicit in the reservation function without resetting records or changing its service-role access. New local databases receive the migration during setup. Use the same migration in your established deployment workflow before relying on this behavior in a hosted environment.
-
-The regression checks cover production defaults and zero overrides, unlimited development despite zero-valued environment settings, reservation 50 succeeding and 51 being blocked under a finite limit, and development succeeding after more than 100 recorded attempts. Controlled readers exercise this path without OpenAI calls. Session-expiry, concurrent-reading, cache, and finite daily-limit checks remain in the integration suite.
-
-Verified locally for this policy change: 30 unit tests, both API integration suites, lint, formatting, type checking, and the production build passed. The local migration was applied without resetting records. All model responses in the policy tests were controlled; no paid OpenAI requests or hosted deployment changes were made.
+PDF support remains embedded text only: no OCR, diagrams, image interpretation, or complex-layout reconstruction. All documents must finish text extraction before the complete case can be read; extraction failures are disclosed rather than silently omitted. The output is four editable case fields, not the richer purpose/users/features overview, request comparison, or reuse plan. Maximum-capacity timing, multilingual factual quality, and hosted deployment behavior need separate verification.

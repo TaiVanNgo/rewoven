@@ -46,7 +46,7 @@ test("extracts real PDF text with page numbers and identifies empty pages", asyn
     [1, 3],
   );
 });
-test("rejects corrupt, textless, and oversized extracted PDFs", async () => {
+test("rejects corrupt and textless PDFs, accepts the previous 50,000-character boundary", async () => {
   await assert.rejects(extractSource(encode("not a PDF"), "pdf"), /corrupt/);
   await assert.rejects(
     extractSource(
@@ -55,13 +55,12 @@ test("rejects corrupt, textless, and oversized extracted PDFs", async () => {
     ),
     /Scanned PDFs/,
   );
-  await assert.rejects(
-    extractSource(
-      new Uint8Array(await readFile("tests/fixtures/too-much-text.pdf")),
-      "pdf",
-    ),
-    /50,000/,
+  const large = await extractSource(
+    new Uint8Array(await readFile("tests/fixtures/too-much-text.pdf")),
+    "pdf",
   );
+  assert.ok(large.text.length > 50_000);
+  assert.ok(large.text.length <= MAX_SOURCE_CHARS);
 });
 test("chunks retain offsets and do not cross page boundaries", () => {
   const chunks = chunkPages([{ number: 3, text: "x".repeat(4001) }], "pdf");

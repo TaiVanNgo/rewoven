@@ -1,3 +1,5 @@
+> Multi-document uploads and semantic retrieval extend this original single-source guide. Follow [the current multi-document guide](semantic-retrieval.md) for the 500,000-character source limit, direct storage uploads, per-source retries, and staged indexing. The single-source API remains a compatibility adapter; case details now return metadata and source text loads through the segmented text route.
+
 # Understanding the case library and source ingestion
 
 Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. Optional [AI-assisted case reading](ai-assisted-case-reading.md) now suggests editable metadata with source evidence. Request-to-case analysis and reuse-plan generation are still future work.
@@ -155,19 +157,19 @@ The build prepares the optimized application; `start` serves that output. Open [
 
 ### Input limits and recovery
 
-| Situation                             | What to do                                                           |
-| ------------------------------------- | -------------------------------------------------------------------- |
-| Unsupported file                      | Use UTF-8 `.txt`/`.md`, embedded-text `.pdf`, or paste text.         |
-| File above 5 MB                       | Choose a smaller file. The application limit is 5,000,000 bytes.     |
-| More than 50,000 extracted characters | Split the document. Rewoven does not truncate it silently.           |
-| Scanned or image-only PDF             | Provide a text-based PDF or paste the content; OCR is not included.  |
-| Password-protected/corrupt PDF        | Export an unlocked, valid text-based PDF or paste the text.          |
-| Some PDF pages contain no text        | Read the page warnings; images on those pages are unavailable.       |
-| Storage not configured or unavailable | Check `.env.local`, start Supabase, apply migrations, and try again. |
-| Request fails while adding            | The form stays available. Retry without retyping the evidence.       |
-| Processing was interrupted            | After two minutes, use **Retry processing** on the retained case.    |
+| Situation                              | What to do                                                           |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| Unsupported file                       | Use UTF-8 `.txt`/`.md`, embedded-text `.pdf`, or paste text.         |
+| File above 5 MB                        | Choose a smaller file. The application limit is 5,000,000 bytes.     |
+| More than 500,000 extracted characters | Split the document. Rewoven does not truncate it silently.           |
+| Scanned or image-only PDF              | Provide a text-based PDF or paste the content; OCR is not included.  |
+| Password-protected/corrupt PDF         | Export an unlocked, valid text-based PDF or paste the text.          |
+| Some PDF pages contain no text         | Read the page warnings; images on those pages are unavailable.       |
+| Storage not configured or unavailable  | Check `.env.local`, start Supabase, apply migrations, and try again. |
+| Request fails while adding             | The form stays available. Retry without retyping the evidence.       |
+| Processing was interrupted             | After two minutes, use **Retry processing** on the retained case.    |
 
-A title is required and limited to 200 characters. Context, outcome, and lessons are optional, each limited to 5,000 characters. Each submission accepts one source. Uploaded originals and pasted source material remain version 1; editing, replacing, or deleting evidence is not exposed in this interface.
+A title is required and limited to 200 characters. Context, outcome, and lessons are optional, each limited to 5,000 characters. The current interface accepts multiple documents, including later additions; the original multipart API remains a single-source compatibility adapter. Uploaded originals and pasted source material remain version 1; editing, replacing, or deleting evidence is not exposed in this interface.
 
 ## Verification and current limits
 
@@ -204,4 +206,4 @@ Verified locally on 15 October 2026:
 
 The deliberately simulated 503 appeared in the browser console as expected. Chromium also logged a transient `aria-hidden` focus warning during rapid dialog reopening; explicit initial-focus and focus-restoration checks passed. A screen-reader audit has not been performed.
 
-This is a locally verified feature, not a verified hosted deployment. Hosted migrations, seed provisioning, upload limits, and runtime behavior still need deployment-specific verification. There is no OCR, request-to-case AI analysis, semantic retrieval, saved-plan persistence, automatic expiry cleanup, or source editing. Optional [AI-assisted case reading](ai-assisted-case-reading.md) is implemented as a separate follow-up increment.
+This is a locally verified feature, not a verified hosted deployment. Hosted migrations, seed provisioning, upload limits, and runtime behavior still need deployment-specific verification. There is no OCR, generated request-to-case comparison, saved-plan persistence, automatic expiry cleanup, or source editing. Semantic retrieval is implemented in the linked current guide. Optional [AI-assisted case reading](ai-assisted-case-reading.md) is implemented as a separate follow-up increment.

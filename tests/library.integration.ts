@@ -179,7 +179,11 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     const pdf = seedDetail.sources.find(
       (s: { format: string }) => s.format === "pdf",
     );
-    assert.match(pdf.pages[2].text, /single manager/);
+    assert.equal(pdf.pages.length, 0);
+    assert.match(
+      (await (await api(a, `/api/sources/${pdf.id}/text?page=3`)).json()).text,
+      /single manager/,
+    );
     const original = await api(a, `/api/sources/${pdf.id}/original`);
     assert.equal(original.status, 200);
     assert.match(await original.text(), /%PDF/);
@@ -197,7 +201,12 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     const detail = (await (await api(a, `/api/cases/${key}`)).json()).case;
     assert.equal(detail.status, "ready");
     assert.equal(detail.sources.length, 1);
-    assert.equal(detail.sources[0].extracted_text, text);
+    assert.equal(detail.sources[0].extracted_text, null);
+    assert.equal(
+      (await (await api(a, `/api/sources/${detail.sources[0].id}/text`)).json())
+        .text,
+      text,
+    );
     assert.equal(detail.session_id, undefined);
     assert.equal(detail.processing_token, undefined);
     assert.equal(
@@ -222,7 +231,7 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.ok(aMatches.some((c: { id: string }) => c.id === key));
     assert.equal(bMatches.length, 0);
     assert.equal((await create(a, { text: " " })).status, 400);
-    assert.equal((await create(a, { text: "x".repeat(50_001) })).status, 400);
+    assert.equal((await create(a, { text: "x".repeat(500_001) })).status, 400);
     for (const file of [
       "supabase/fixtures/retrospective.md",
       "supabase/fixtures/purchase-workflow.txt",
@@ -252,43 +261,46 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
       });
       assert.equal(response.status, 400);
     }
-    for (const file of [
-      "tests/fixtures/encrypted.pdf",
-      "tests/fixtures/too-much-text.pdf",
-    ]) {
+    for (const file of ["tests/fixtures/encrypted.pdf"]) {
       const record = (await (await create(a, { file })).json()).case;
       assert.equal(record.status, "failed");
       assert.ok(record.error_message);
       assert.equal(record.sources[0].extracted_text, null);
     }
     await db.from("cases").update({ status: "failed" }).eq("id", key);
+    await db
+      .from("source_documents")
+      .update({ status: "failed" })
+      .eq("case_id", key);
     assert.equal(
       (await (await api(a, "/api/cases?q=narwhal")).json()).cases.length,
       0,
     );
     const activeToken = randomUUID();
     await db
-      .from("cases")
+      .from("source_documents")
       .update({
-        status: "processing",
+        status: "extracting",
         processing_token: activeToken,
         processing_started_at: new Date().toISOString(),
       })
-      .eq("id", key);
-    const busy = (
-      await (await api(a, `/api/cases/${key}/retry`, { method: "POST" })).json()
-    ).case;
-    assert.equal(busy.status, "processing");
+      .eq("case_id", key);
+    await api(a, `/api/cases/${key}/retry`, { method: "POST" });
     assert.equal(
-      (await db.from("cases").select("processing_token").eq("id", key).single())
-        .data?.processing_token,
+      (
+        await db
+          .from("source_documents")
+          .select("processing_token")
+          .eq("case_id", key)
+          .single()
+      ).data?.processing_token,
       activeToken,
     );
     const mixed = (
       await (await create(a, { file: "tests/fixtures/mixed-pages.pdf" })).json()
     ).case;
     assert.equal(mixed.status, "ready");
-    assert.equal(mixed.sources[0].pages[2].number, 3);
+    assert.equal(mixed.sources[0].page_count, 3);
     assert.equal(mixed.sources[0].warnings.length, 1);
     const failed = (
       await (await create(a, { file: "tests/fixtures/no-text.pdf" })).json()
@@ -307,13 +319,13 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.equal(retried.id, failed.id);
     assert.equal(retried.status, "failed");
     await db
-      .from("cases")
+      .from("source_documents")
       .update({
-        status: "processing",
+        status: "extracting",
         processing_token: randomUUID(),
         processing_started_at: new Date(Date.now() - 130_000).toISOString(),
       })
-      .eq("id", key);
+      .eq("case_id", key);
     const recovered = (
       await (await api(a, `/api/cases/${key}/retry`, { method: "POST" })).json()
     ).case;

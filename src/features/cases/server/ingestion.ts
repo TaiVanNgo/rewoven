@@ -1,12 +1,11 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
-import { chunkPages, extractSource } from "../extraction";
 import { MAX_FILE_BYTES } from "../types";
-import { InputError, metadataField } from "../validation";
+import { metadataField } from "../validation";
 import { checkDatabase, database } from "./db";
 import { ApiError, validId } from "./http";
 import { accessibleCase, caseDetail } from "./repository";
 import { sourceInput } from "./source-input";
+import { processSource } from "./sources";
 
 export async function boundedFormData(request: Request) {
   const limit = MAX_FILE_BYTES + 100_000;
@@ -97,6 +96,14 @@ export async function createCase(form: FormData, sessionId: string) {
   });
   checkDatabase(reserved.error);
   if (!reserved.data) return caseDetail(id, sessionId);
+  checkDatabase(
+    (
+      await db
+        .from("source_documents")
+        .update({ byte_size: bytes.length })
+        .eq("id", id)
+    ).error,
+  );
   if (bytes && storagePath) {
     const upload = await db.storage
       .from("case-sources")
@@ -106,15 +113,20 @@ export async function createCase(form: FormData, sessionId: string) {
         upsert: false,
       });
     if (upload.error) {
-      await db
-        .from("cases")
-        .update({
-          status: "failed",
-          error_message:
-            "The original upload did not finish. Add the case again with the file, or paste its text.",
-        })
-        .eq("id", id)
-        .eq("session_id", sessionId);
+      checkDatabase(
+        (
+          await db
+            .from("source_documents")
+            .update({
+              status: "failed",
+              error_message:
+                "The original upload did not finish. Add the case again with the file, or paste its text.",
+            })
+            .eq("id", id)
+            .eq("case_id", id)
+        ).error,
+      );
+      checkDatabase((await db.rpc("refresh_case_status", { p_id: id })).error);
       return caseDetail(id, sessionId);
     }
   }
@@ -124,58 +136,26 @@ export async function processCase(id: string, sessionId: string) {
   const record = await accessibleCase(id, sessionId);
   if (record.is_seed)
     throw new ApiError(403, "Fictional sample cases are read-only.");
-  const db = database();
-  const token = randomUUID();
-  const claim = await db.rpc("claim_case", {
-    p_id: id,
-    p_session: sessionId,
-    p_token: token,
-  });
-  checkDatabase(claim.error);
-  if (!claim.data) return caseDetail(id, sessionId);
-  try {
-    const source = await db
-      .from("source_documents")
-      .select("id,format,original_text,storage_path")
-      .eq("case_id", id)
-      .single();
-    checkDatabase(source.error);
-    if (!source.data) throw new Error("Source missing");
-    let bytes: Uint8Array;
-    if (source.data.original_text !== null)
-      bytes = new TextEncoder().encode(source.data.original_text);
-    else {
-      const file = await db.storage
-        .from("case-sources")
-        .download(source.data.storage_path);
-      if (file.error || !file.data) throw new Error("Original unavailable");
-      bytes = new Uint8Array(await file.data.arrayBuffer());
-    }
-    const extracted = await extractSource(bytes, source.data.format);
-    const finish = await db.rpc("finish_case", {
-      p_id: id,
-      p_token: token,
-      p_text: extracted.text,
-      p_pages: extracted.pages,
-      p_warnings: extracted.warnings,
-      p_chunks: chunkPages(extracted.pages, source.data.format),
-    });
-    checkDatabase(finish.error);
-  } catch (error) {
-    const message =
-      error instanceof InputError
-        ? error.message
-        : "Processing could not finish. Retry the retained original. If the original upload was interrupted, add the case again with its source.";
-    const failed = await db
-      .from("cases")
-      .update({
-        status: "failed",
-        error_message: message,
-        processing_token: null,
-      })
-      .eq("id", id)
-      .eq("processing_token", token);
-    checkDatabase(failed.error);
-  }
+  const result = await database()
+    .from("source_documents")
+    .select("id,status")
+    .eq("case_id", id)
+    .order("created_at");
+  checkDatabase(result.error);
+  // The compatibility retry must remain bounded even for a case with fifty sources.
+  checkDatabase(
+    (
+      await database()
+        .from("source_documents")
+        .update({ status: "queued", error_message: null })
+        .eq("case_id", id)
+        .eq("status", "failed")
+        .is("processing_token", null)
+    ).error,
+  );
+  const next = (result.data ?? []).find(
+    (source) => source.status !== "ready" && source.status !== "uploading",
+  );
+  if (next) await processSource(next.id, sessionId, true);
   return caseDetail(id, sessionId);
 }

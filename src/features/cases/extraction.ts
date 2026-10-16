@@ -12,6 +12,26 @@ export async function extractSource(
   bytes: Uint8Array,
   format: SourceFormat,
 ): Promise<ExtractedSource> {
+  let result = await extractSourceStage(bytes, format);
+  while (!result.complete)
+    result = await extractSourceStage(
+      bytes,
+      format,
+      result.pages,
+      result.warnings,
+    );
+  return {
+    text: result.pages.map((p) => p.text).join("\n\n"),
+    pages: result.pages,
+    warnings: result.warnings,
+  };
+}
+export async function extractSourceStage(
+  bytes: Uint8Array,
+  format: SourceFormat,
+  previous: SourcePage[] = [],
+  previousWarnings: string[] = [],
+) {
   if (format !== "pdf") {
     let text: string;
     try {
@@ -22,21 +42,27 @@ export async function extractSource(
       );
     }
     validateText(text);
-    return { text, pages: [{ number: 1, text }], warnings: [] };
+    return {
+      pages: [{ number: 1, text }],
+      warnings: [],
+      pageCount: 1,
+      complete: true,
+    };
   }
   if (!new TextDecoder().decode(bytes.slice(0, 1024)).includes("%PDF-"))
     throw new InputError(
-      "This PDF is corrupt or invalid. Choose a valid text-based PDF or paste the text.",
+      "This PDF is corrupt or invalid. Choose a text-based PDF or paste its text.",
     );
   let pdf: Awaited<ReturnType<typeof getDocumentProxy>> | undefined;
   try {
     pdf = await getDocumentProxy(new Uint8Array(bytes), {
       useSystemFonts: true,
     });
-    const pages: SourcePage[] = [];
-    const warnings: string[] = [];
-    let length = 0;
-    for (let number = 1; number <= pdf.numPages; number++) {
+    const pages = [...previous],
+      warnings = [...previousWarnings];
+    let length = pages.map((p) => p.text).join("\n\n").length;
+    const end = Math.min(pdf.numPages, pages.length + 10);
+    for (let number = pages.length + 1; number <= end; number++) {
       const page = await pdf.getPage(number);
       const content = await page.getTextContent();
       const text = content.items
@@ -48,7 +74,7 @@ export async function extractSource(
       length += text.length + (number > 1 ? 2 : 0);
       if (length > MAX_SOURCE_CHARS)
         throw new InputError(
-          "Extracted PDF text exceeds 50,000 characters. Split the PDF into smaller documents; no text has been truncated.",
+          "Extracted PDF text exceeds 500,000 characters. Split the PDF; no text has been truncated.",
         );
       pages.push({ number, text });
       if (!text.trim())
@@ -57,15 +83,12 @@ export async function extractSource(
         );
       page.cleanup();
     }
-    if (!pages.some((page) => page.text.trim()))
+    const complete = pages.length === pdf.numPages;
+    if (complete && !pages.some((p) => p.text.trim()))
       throw new InputError(
-        "This PDF has no readable embedded text. Scanned PDFs need OCR, which is not supported. Choose a text-based PDF or paste the text.",
+        "This PDF has no readable embedded text. Scanned PDFs need OCR, which is not supported.",
       );
-    return {
-      text: pages.map((page) => page.text).join("\n\n"),
-      pages,
-      warnings,
-    };
+    return { pages, warnings, pageCount: pdf.numPages, complete };
   } catch (error) {
     if (error instanceof InputError) throw error;
     if (
@@ -73,7 +96,7 @@ export async function extractSource(
       /password|encrypted/i.test(error.name + error.message)
     )
       throw new InputError(
-        "This PDF is password-protected. Export an unlocked text-based PDF or paste the text.",
+        "This PDF is password-protected. Export an unlocked PDF or paste the text.",
       );
     throw new InputError(
       "This PDF could not be read. It may be corrupt. Choose another text-based PDF or paste the text.",
@@ -108,6 +131,13 @@ export function chunkPages(pages: SourcePage[], format: SourceFormat) {
           if (boundary > 0) end = start + boundary + 1;
         }
       }
+      // PostgreSQL JSON cannot store half a UTF-16 surrogate pair. Keep exact offsets without splitting one.
+      if (
+        end < page.text.length &&
+        /[\uD800-\uDBFF]/u.test(page.text[end - 1]) &&
+        /[\uDC00-\uDFFF]/u.test(page.text[end])
+      )
+        end--;
       // An unbroken token longer than the limit still needs a bounded chunk.
       const text = page.text.slice(start, end);
       if (text.trim())

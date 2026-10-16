@@ -5,7 +5,7 @@ export function validateText(text: string) {
     throw new InputError("Add source text that contains readable content.");
   if (text.length > MAX_SOURCE_CHARS)
     throw new InputError(
-      "Source text exceeds 50,000 characters. Split it into smaller documents; no text has been truncated.",
+      "Source text exceeds 500,000 characters. Split it into smaller documents; no text has been truncated.",
     );
 }
 export function validateFile(

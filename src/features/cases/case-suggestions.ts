@@ -9,7 +9,12 @@ export const SUGGESTION_FIELDS = [
 export type SuggestionField = (typeof SUGGESTION_FIELDS)[number];
 export type SuggestedValue = {
   value: string;
-  evidence: { page: number | null; quote: string }[];
+  evidence: {
+    page: number | null;
+    quote: string;
+    sourceId?: string;
+    sourceTitle?: string;
+  }[];
 };
 export type CaseSuggestions = Record<SuggestionField, SuggestedValue>;
 export type CaseAnalysis = {
@@ -20,6 +25,8 @@ export type CaseAnalysis = {
   warnings: string[];
   pageCount: number;
   isPdf: boolean;
+  caseId?: string;
+  sourceIds?: string[];
 };
 export type CaseAIReview = CaseAnalysis & {
   sourceId: string;

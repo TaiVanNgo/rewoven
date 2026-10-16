@@ -1,4 +1,5 @@
 import "server-only";
+import { readingProgress } from "../case-reading";
 import type { CaseAIReview } from "../case-suggestions";
 import type {
   CaseDetail,
@@ -45,7 +46,7 @@ export async function listCases(
   if (!cases.length) return [];
   const sources = await db
     .from("source_documents")
-    .select("id, case_id, title, format")
+    .select("id, case_id, title, format, status, indexing_status")
     .in(
       "case_id",
       cases.map((c) => c.id),
@@ -63,7 +64,9 @@ export async function caseDetail(
   const record = await accessibleCase(id, sessionId);
   const { data, error } = await database()
     .from("source_documents")
-    .select("id,case_id,title,format,version,extracted_text,pages,warnings")
+    .select(
+      "id,case_id,title,format,version,warnings,status,indexing_status,error_message,indexing_error,byte_size,char_count,extraction_cursor,page_count",
+    )
     .eq("case_id", record.id)
     .order("created_at");
   checkDatabase(error);
@@ -86,10 +89,32 @@ export async function caseDetail(
           createdAt: review.data.created_at,
         }
       : null;
+  const currentReading = await database()
+    .from("case_ai_readings")
+    .select("id,status,work,error_message,result")
+    .eq("case_id", record.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  checkDatabase(currentReading.error);
+  const activeReading = currentReading.data;
   return {
     ...publicCase(record),
-    sources: (data ?? []) as SourceDocument[],
+    sources: (data ?? []).map((source) => ({
+      ...source,
+      extracted_text: null,
+      pages: [],
+    })) as SourceDocument[],
     aiReview,
+    aiReading: activeReading?.work
+      ? readingProgress(
+          activeReading.id,
+          activeReading.status,
+          activeReading.work,
+          activeReading.error_message,
+          activeReading.result,
+        )
+      : null,
   };
 }
 
