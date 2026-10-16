@@ -1,0 +1,115 @@
+.request-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* Keep the complete request form visible on shorter desktop screens. */
+@media (min-width: 80rem) and (max-height: 70rem) {
+  /* Active navigation excludes pages retained in Next.js's hidden route cache. */
+  aside:has(#sidebar-navigation > a[href="/"][aria-current="page"]) + main {
+    padding: 1.5rem;
+  }
+
+  aside:has(#sidebar-navigation > a[href="/"][aria-current="page"])
+    + main
+    > footer {
+    margin-top: 1rem;
+    gap: 0.75rem;
+  }
+
+  .request-page,
+  .request-composer {
+    gap: 1rem;
+  }
+
+  .request-page > header {
+    gap: 0.75rem;
+  }
+
+  .request-page > header h1 {
+    font-size: 2rem;
+  }
+
+  .request-page > header > div:last-child {
+    gap: 0.5rem;
+  }
+
+  .request-page > header > div:last-child > p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .request-grid {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 1.25rem;
+  }
+
+  .request-grid > [data-slot="card"] {
+    padding: 1.25rem;
+  }
+
+  .request-composer form > [data-slot="card-header"] {
+    margin-bottom: 0.5rem;
+  }
+
+  .request-composer textarea {
+    height: 6rem;
+    min-height: 6rem;
+    padding: 0.75rem;
+  }
+
+  .request-composer form [data-slot="field-group"] > [data-slot="field"] {
+    gap: 0.5rem;
+  }
+
+  .request-composer form [data-slot="separator"] {
+    margin-block: 0.75rem;
+  }
+
+  .request-composer form [data-slot="field-legend"] {
+    margin-bottom: 0.5rem;
+  }
+
+  .request-composer [id="request-hint"] {
+    max-width: none;
+  }
+
+  .request-composer form > [data-slot="card-footer"] {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .request-companion {
+    max-width: 220px;
+  }
+
+  .request-samples {
+    gap: 0.5rem;
+  }
+
+  .request-samples button {
+    min-height: 92px;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (min-width: 80rem) and (max-height: 52rem) {
+  aside:has(#sidebar-navigation > a[href="/"][aria-current="page"]) + main {
+    padding: 1.25rem;
+  }
+
+  .request-grid > [data-slot="card"] {
+    padding: 1rem;
+  }
+
+  .request-composer textarea {
+    height: 5rem;
+    min-height: 5rem;
+  }
+
+  .request-composer form [data-slot="separator"] {
+    margin-block: 0.5rem;
+  }
+}
