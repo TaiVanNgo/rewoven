@@ -16,7 +16,7 @@ Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
-For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions tests the app against disposable local Supabase, then releases `main` by building, applying hosted migrations and storage configuration, checking a staged Vercel deployment, and promoting it to `rewoven.dev`. Configure the GitHub `production` environment before merging this setup; direct Vercel Git deployments from `main` are disabled in `vercel.json` to keep deployment behind migrations. Branch previews remain enabled.
+For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
 
 ## Quick start
 
@@ -115,6 +115,7 @@ The New request preview runs without database credentials. The case library requ
 | `bun run format:check`     | Check formatting and Tailwind class order without writing changes.                                |
 | `bun run typecheck`        | Generate Next.js route types, then check TypeScript without emitting JavaScript.                  |
 | `bun run build`            | Build the application for production.                                                             |
+| `bun run build:vercel`     | Vercel build entry point; migrate hosted Supabase only inside Vercel Production.                  |
 | `bun run start`            | Serve the production build; run `build` first.                                                    |
 
 `format` formats code and sorts Tailwind classes; address remaining lint or import organization findings separately. Next.js builds do not run Biome or Prettier, so lint and formatting are separate checks.
@@ -184,7 +185,7 @@ The root layout loads Source Sans 3 for body text, Plus Jakarta Sans for heading
 
 The workspace is capped at 1540px. At 1024px and above, navigation becomes a 270px sidebar that can collapse to a 76px rail. Below 1024px, it becomes a compact header with navigation. The request and Wren panels sit side by side from 1280px and stack below that. Constraints and sample cards stack on narrow screens.
 
-`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and local API integration tests. `test:ai:live` is a separate, explicit billable OpenAI test. Account authentication is not implemented yet. CI and production release workflows are in `.github/workflows/`; their hosted setup and first successful production run still need verification.
+`next.config.ts` enables Cache Components and Partial Prefetching and integrates Tailwind through `@tailwindcss/turbopack`. Read the installed Next.js docs before changing caching, runtime, or CSS configuration. The case library uses server-only Supabase access and anonymous cookie-backed sessions. Bun runs the unit and local API integration tests. `test:ai:live` is a separate, explicit billable OpenAI test. Account authentication is not implemented yet. `.github/workflows/ci.yml` runs code and database checks. `scripts/vercel-build.ts` and `vercel.json` define Vercel-owned production migrations and deployment; the hosted production flow still needs verification with deployment credentials.
 
 ## Shared UI with shadcn
 
