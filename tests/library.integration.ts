@@ -13,6 +13,34 @@ const db = createClient(
   { auth: { persistSession: false } },
 );
 
+test("explicit grants repair hosted-style permissions while keeping browser roles blocked", async () => {
+  const migration = await readFile(
+    "supabase/migrations/202610160001_case_library_service_role_grants.sql",
+    "utf8",
+  );
+  const sql = (await readFile("tests/service-role-grants.sql", "utf8")).replace(
+    /^\\ir .*$/m,
+    migration,
+  );
+  const result = spawnSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "supabase_db_rewoven",
+      "psql",
+      "--username",
+      "postgres",
+      "--dbname",
+      "postgres",
+      "--set",
+      "ON_ERROR_STOP=1",
+    ],
+    { input: sql, encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+});
+
 test("concurrent duplicate reservations preserve one case and one source", async () => {
   const session = await db
     .from("demo_sessions")
