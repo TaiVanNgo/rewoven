@@ -16,7 +16,7 @@ export function CaseLibrarySkeleton({
   return (
     <SkeletonGroup
       label="Loading case library…"
-      className="flex flex-col gap-5"
+      className="case-library-skeleton flex flex-col gap-5"
     >
       {withToolbar && (
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -27,7 +27,7 @@ export function CaseLibrarySkeleton({
           <Skeleton className="h-11 w-28 rounded-control" />
         </div>
       )}
-      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.8fr)]">
+      <div className="case-library-grid grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.8fr)]">
         <CaseListPlaceholder />
         <CaseDetailPlaceholder />
       </div>
@@ -53,12 +53,12 @@ export function CaseDetailSkeleton() {
 
 function CaseListPlaceholder() {
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4">
+    <div className="case-list flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4">
       <div className="flex items-center justify-between px-1">
         <Skeleton className="h-5 w-16" />
         <Skeleton className="h-5 w-14 rounded-full" />
       </div>
-      <div className="flex max-h-[680px] flex-col gap-3 overflow-hidden p-1">
+      <div className="case-list-scroll flex max-h-[680px] flex-col gap-3 overflow-hidden p-1">
         {[0, 1, 2, 3].map((index) => (
           <div
             key={index}
@@ -88,7 +88,7 @@ function CaseListPlaceholder() {
 
 function CaseDetailPlaceholder() {
   return (
-    <div className="flex min-w-0 flex-col gap-5">
+    <div className="case-content flex min-w-0 flex-col gap-5">
       <Card variant="soft">
         <CardHeader>
           <div className="mb-2 flex gap-2">

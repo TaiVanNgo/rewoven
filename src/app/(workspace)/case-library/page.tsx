@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/workspace/page-header";
 import { CaseLibrary } from "@/features/cases/case-library";
+import "@/features/cases/case-library-layout.css";
 import { createPageMetadata } from "@/lib/seo";
 export const metadata = createPageMetadata({
   path: "/case-library",
@@ -9,13 +10,13 @@ export const metadata = createPageMetadata({
 });
 export default function CaseLibraryPage() {
   return (
-    <>
+    <div className="case-library-page">
       <PageHeader
         section="Case library"
         title="Case library"
         description="Past work, with the original sources."
       />
       <CaseLibrary />
-    </>
+    </div>
   );
 }
