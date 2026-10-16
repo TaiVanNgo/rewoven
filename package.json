@@ -12,6 +12,7 @@
     "db:status": "supabase status",
     "db:stop": "supabase stop",
     "build": "next build",
+    "build:vercel": "bun scripts/vercel-build.ts",
     "start": "next start",
     "lint": "biome check",
     "typecheck": "next typegen && tsc --noEmit",

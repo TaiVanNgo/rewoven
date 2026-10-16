@@ -74,6 +74,8 @@ No account is required. The server creates a random token and puts it in an **Ht
 
 Every library, detail, retry, and original-file request resolves that cookie to an unexpired server-side session. The server decides ownership; an owner ID supplied by the browser has no authority.
 
+Submitting the same request twice at once reuses one case and one original source. Migration `202610150005_case_reservation_conflicts.sql` makes reservation tolerate conflicts on both the case ID and the session/request key, while the API still checks ownership before returning an existing case. The integration suite exercises concurrent reservations directly against local PostgreSQL as well as duplicate HTTP submissions.
+
 Shared fictional samples are visible to everyone and read-only. Your additions are visible only within your browser's demo session. Sessions last 24 hours from creation, and refreshes do not extend that expiry. Tabs in the same browser profile normally share the session; a separate browser profile or private window gets a different one.
 
 **Row Level Security (RLS)** is also enabled in the database. Anonymous and ordinary authenticated database roles have no access to these tables or processing functions. The server's privileged key bypasses RLS, so explicit ownership checks in the server remain essential. Original files are served through an ownership-checked endpoint, without publishing the bucket.
