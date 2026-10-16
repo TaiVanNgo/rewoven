@@ -1,3 +1,4 @@
+import type { CaseOverview } from "./case-overview";
 import {
   type CaseSuggestions,
   SUGGESTION_FIELDS,
@@ -5,6 +6,7 @@ import {
 } from "./case-suggestions";
 
 export type CaseDraft = {
+  overview?: CaseOverview;
   fields: Record<SuggestionField | "text", string>;
   applied: Partial<Record<SuggestionField, string>>;
 };
@@ -21,7 +23,7 @@ export function editCaseDraft(
 ): CaseDraft {
   const applied = { ...draft.applied };
   if (field !== "text") delete applied[field];
-  return { fields: { ...draft.fields, [field]: value }, applied };
+  return { ...draft, fields: { ...draft.fields, [field]: value }, applied };
 }
 export function fillCaseDraft(
   draft: CaseDraft,
@@ -35,7 +37,14 @@ export function fillCaseDraft(
       applied[field] = suggestions[field].value;
     }
   }
-  return { fields, applied };
+  return {
+    ...draft,
+    fields,
+    applied,
+    ...(!draft.overview && suggestions.overview
+      ? { overview: structuredClone(suggestions.overview) }
+      : {}),
+  };
 }
 export function applyCaseSuggestion(
   draft: CaseDraft,
@@ -43,6 +52,7 @@ export function applyCaseSuggestion(
   value: string,
 ): CaseDraft {
   return {
+    ...draft,
     fields: { ...draft.fields, [field]: value },
     applied: { ...draft.applied, [field]: value },
   };
@@ -56,5 +66,20 @@ export function invalidateCaseDraft(draft: CaseDraft): CaseDraft {
     )
       fields[field] = "";
   }
-  return { fields, applied: {} };
+  return {
+    ...draft,
+    fields,
+    applied: {},
+    overview: draft.overview
+      ? {
+          ...draft.overview,
+          sections: Object.fromEntries(
+            Object.entries(draft.overview.sections).map(([key, findings]) => [
+              key,
+              findings.filter((f) => f.origin === "user"),
+            ]),
+          ) as CaseOverview["sections"],
+        }
+      : undefined,
+  };
 }

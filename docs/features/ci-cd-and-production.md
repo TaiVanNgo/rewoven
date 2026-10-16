@@ -8,6 +8,8 @@ On a feature branch, create a migration with `supabase migration new add_saved_p
 
 Opening a pull request starts GitHub's **CI / Checks** job. It installs locked dependencies, checks formatting, lint, types, and unit tests, starts disposable local Supabase, applies migrations, imports fictional fixtures, builds the app, and tests the API. AI responses are mocked. CI does not receive production credentials or run the billable `test:ai:live` command.
 
+To investigate a unit-test failure, run that file alone, for example `bun test ./tests/case-overview.test.ts`, then run the full suite with `bun run test`. Each test file that imports a server-only module must register its own `server-only` mock before dynamically importing the module. Relying on another test file's mock can pass locally and fail in CI when files run in a different order. This mock belongs only in tests; application modules retain their server-only protection.
+
 Vercel builds a preview for the branch. The preview runs the application build and skips hosted migrations, even if deployment credentials were accidentally supplied to it. Backend previews need their own staging database and schema; this setup does not provision staging infrastructure automatically.
 
 When the change merges into `main`, Vercel's production build runs:
@@ -15,7 +17,7 @@ When the change merges into `main`, Vercel's production build runs:
 1. Validate the production migration settings. The standard `SUPABASE_URL` must match `SUPABASE_PROJECT_REF`, and a supplied Git branch must be `main`.
 2. Run `bun run build`. A compilation failure stops before touching production Supabase.
 3. Use the pinned Supabase CLI through `npx --yes supabase@2.120.0` to link the intended project, run `db push --linked --yes`, and provision declared buckets with `seed buckets --linked --yes`.
-4. If `SEED_SAMPLE_CASES=true`, run `bun run db:seed:production` to import the ten fictional cases and their original files. Otherwise skip sample import.
+4. If `SEED_SAMPLE_CASES=true`, run `bun run db:seed:production` to import the nine curated fictional project cases and their original files. Otherwise skip sample import.
 5. Return success so Vercel can publish the frontend and API together. A failed migration, bucket, or sample import command fails the build and prevents this deployment from being published.
 
 Supabase's migration history causes already-applied migration files to be skipped on later builds. Redeploys rerun the migration check and bucket provisioning. The current build does not query application tables during prerendering; future features must preserve that boundary or revisit the ordering.
@@ -74,7 +76,7 @@ After merging this change into `main`:
 
 1. In the Rewoven Vercel project's **Settings → Environment Variables**, add `SEED_SAMPLE_CASES` with value `true`, scoped to **Production only**.
 2. Redeploy the latest `main` commit using the configured `bun run build:vercel` command. The build applies pending migrations, provisions `case-sources`, then imports samples through the server key already stored in Vercel. No production credentials are needed locally or in GitHub.
-3. Check the build log for `Ready: 10 fictional sample cases. Existing ready seeds were preserved.` Open `https://rewoven.dev/case-library`, browse a sample, and open its original source.
+3. Check the build log for `Ready: 9 fictional project samples. Originals and legacy citation links preserved; no AI calls made.` Open `https://rewoven.dev/case-library`, browse a sample, and open its original source.
 4. Remove `SEED_SAMPLE_CASES` or set it to `false` in Vercel Production after a successful import. Later deployments continue applying migrations without importing fixtures.
 
 `bun run db:seed:production` is a build-time command for Vercel Production. It refuses ordinary local runs, Preview, missing opt-in, non-`main` Git branches when supplied, and a URL that does not match `SUPABASE_PROJECT_REF`. The usual `bun run db:seed` remains local-only. The importer uses stable sample IDs, skips Ready samples, and refuses to overwrite a user case that occupies a sample ID. It uploads the original files as well as records and searchable chunks. It does not reset the database, remove user cases, or call OpenAI. Repeating the import can finish interrupted samples; a failed import can leave partial records/files and fails the deployment, so inspect the error and rerun after fixing it.
@@ -143,3 +145,5 @@ After a hosted release, open `https://rewoven.dev/case-library`, add a small tex
 Run `bun run format`, `bun run format:check`, `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` when editing this setup. The guard tests use injected commands, so they verify that preview builds cannot migrate and failures stop the sequence without running production commands. The integration suite verifies schema and API behavior with local Supabase, including a transaction that removes implicit server table grants and checks that the repair restores access while keeping browser roles blocked. An actual Vercel production build with correctly scoped credentials is still needed to verify hosted database permissions, networking, and publication.
 
 References: [Vercel system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables), [Vercel Git build configuration](https://vercel.com/docs/project-configuration/git-configuration), and [Supabase CLI setup](https://supabase.com/docs/guides/cli/getting-started).
+
+The overview refactor adds a forward migration; do not squash or edit already-applied migrations. The sample import validates the complete catalog before activating all nine projects. Only known legacy samples are hidden from browsing/search; their stored citation targets and user-added cases remain intact. The notebook is a test control, not a public sample. See [case overviews](case-overviews.md#replacing-the-sample-catalog).

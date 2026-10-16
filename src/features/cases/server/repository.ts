@@ -105,6 +105,12 @@ export async function caseDetail(
       extracted_text: null,
       pages: [],
     })) as SourceDocument[],
+    overview:
+      (record as typeof record & { overview?: CaseDetail["overview"] })
+        .overview ?? null,
+    overviewRevision:
+      (record as typeof record & { overview_revision?: number })
+        .overview_revision ?? 0,
     aiReview,
     aiReading: activeReading?.work
       ? readingProgress(

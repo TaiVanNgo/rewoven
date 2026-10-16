@@ -163,10 +163,10 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     const seeds = (await (await api(a, "/api/cases")).json()).cases;
     assert.equal(
       seeds.filter((c: { is_seed: boolean }) => c.is_seed).length,
-      10,
+      9,
     );
     const seed = seeds.find(
-      (c: { title: string }) => c.title === "Expense Approval Portal",
+      (c: { title: string }) => c.title === "Harbor Route Planning Pilot",
     );
     assert.ok(seed);
     assert.equal(
@@ -175,14 +175,14 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     );
     const seedDetail = (await (await api(a, `/api/cases/${seed.id}`)).json())
       .case;
-    assert.ok(seedDetail.sources.length === 2);
+    assert.ok(seedDetail.sources.length === 1);
     const pdf = seedDetail.sources.find(
       (s: { format: string }) => s.format === "pdf",
     );
     assert.equal(pdf.pages.length, 0);
     assert.match(
       (await (await api(a, `/api/sources/${pdf.id}/text?page=3`)).json()).text,
-      /single manager/,
+      /Two depots and six dispatchers/,
     );
     const original = await api(a, `/api/sources/${pdf.id}/original`);
     assert.equal(original.status, 200);
@@ -233,8 +233,8 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.equal((await create(a, { text: " " })).status, 400);
     assert.equal((await create(a, { text: "x".repeat(500_001) })).status, 400);
     for (const file of [
-      "supabase/fixtures/retrospective.md",
-      "supabase/fixtures/purchase-workflow.txt",
+      "output/pdf/rewoven-test-pack/markdown/06-compass-appointment-pilot.md",
+      "tests/fixtures/plain-source.txt",
     ]) {
       const response = await create(a, { file });
       assert.equal(response.status, 201);
@@ -349,7 +349,7 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     assert.ok(deniedRpc.error);
     const deniedFile = await anon.storage
       .from("case-sources")
-      .download(`seeds/${seed.id}/${pdf.id}/delivery-notes.pdf`);
+      .download(`seeds/${seed.id}/${pdf.id}/01-harbor-route-planning.pdf`);
     assert.ok(deniedFile.error);
     await db
       .from("demo_sessions")

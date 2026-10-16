@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { OVERVIEW_KEYS, OVERVIEW_SECTIONS } from "./case-overview";
 import { type CaseAIReview, SUGGESTION_FIELDS } from "./case-suggestions";
 import { CASE_FIELD_LABELS, SuggestionEvidence } from "./suggestion-evidence";
 
@@ -43,6 +44,35 @@ export function AIReadingRecord({ review }: { review: CaseAIReview }) {
                 />
               </section>
             ))}
+            {review.suggestions.overview && (
+              <section
+                className="flex flex-col gap-4"
+                aria-label="Original structured AI overview"
+              >
+                <h3 className="font-heading font-bold">
+                  Original project overview
+                </h3>
+                {OVERVIEW_KEYS.map((key) => (
+                  <div key={key}>
+                    <h4 className="font-semibold">{OVERVIEW_SECTIONS[key]}</h4>
+                    {review.suggestions.overview?.sections[key].length ? (
+                      review.suggestions.overview.sections[key].map(
+                        (finding) => (
+                          <div className="mt-2" key={finding.id}>
+                            <p>{finding.text}</p>
+                            <SuggestionEvidence evidence={finding.evidence} />
+                          </div>
+                        ),
+                      )
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Not established by this reading.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
             {review.warnings.length > 0 && (
               <p className="text-sm text-muted-foreground">
                 {review.warnings.join(" ")}

@@ -271,7 +271,12 @@ test("large multi-document reading checkpoints, resumes, cites originals, caches
     );
     const draft = progress.result;
     assert.ok(draft);
-    for (const field of Object.values(draft.suggestions))
+    for (const field of [
+      draft.suggestions.title,
+      draft.suggestions.context,
+      draft.suggestions.outcome,
+      draft.suggestions.lessons,
+    ])
       for (const evidence of field.evidence) {
         const original = await db
           .from("source_documents")
