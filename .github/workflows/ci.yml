@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      SITE_URL: http://localhost:3000
+      SITE_INDEXABLE: "false"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Check types
+        run: bun run typecheck
+
+      - name: Run unit tests
+        run: bun run test
+
+      - name: Set up Supabase CLI
+        id: supabase
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with:
+          version: 2.120.0
+
+      - name: Start disposable local Supabase
+        run: bun run db:start
+
+      - name: Configure local test services
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { writeFileSync } from 'node:fs';
+          const local = JSON.parse(execFileSync('supabase', ['status', '--output', 'json'], { encoding: 'utf8' }));
+          const key = local.SECRET_KEY || local.SERVICE_ROLE_KEY;
+          if (!local.API_URL || !key || new URL(local.API_URL).hostname !== '127.0.0.1') {
+            throw new Error('CI must use disposable local Supabase.');
+          }
+          const values = {
+            SUPABASE_URL: local.API_URL,
+            SUPABASE_SECRET_KEY: key,
+            OPENAI_API_KEY: 'ci-mocked-key',
+          };
+          writeFileSync('.env.local', Object.entries(values).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join('\n') + '\n', { mode: 0o600 });
+          NODE
+
+      - name: Apply local migrations and import fixtures
+        run: |
+          bun run db:migrate
+          bun run db:seed
+
+      - name: Build production application
+        run: bun run build
+
+      - name: Start production application locally
+        run: |
+          bun run start > "$RUNNER_TEMP/rewoven-next.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/rewoven-next.pid"
+          for attempt in {1..60}; do
+            if curl --fail --silent --output /dev/null http://localhost:3000; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/rewoven-next.log"
+          exit 1
+
+      - name: Test database and API flows with mocked AI
+        run: bun run test:integration
+
+      - name: Stop local application
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/rewoven-next.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/rewoven-next.pid")" || true
+          fi
+
+      - name: Stop disposable Supabase
+        if: always() && steps.supabase.outcome == 'success'
+        run: supabase stop --no-backup
