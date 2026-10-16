@@ -1,3 +1,4 @@
+import type { CaseOverview } from "./case-overview";
 import type { ReadingProgress } from "./case-reading";
 import type { CaseAIReview } from "./case-suggestions";
 
@@ -46,6 +47,8 @@ export type CaseSummary = CaseRecord & {
 };
 export type CaseDetail = CaseRecord & {
   sources: SourceDocument[];
+  overview?: CaseOverview | null;
+  overviewRevision?: number;
   aiReview?: CaseAIReview | null;
   aiReading?: ReadingProgress | null;
 };

@@ -4,7 +4,7 @@ import {
   SUGGESTION_FIELDS,
 } from "./case-suggestions";
 import type { CaseRecord } from "./types";
-export const CASE_READING_VERSION = 4;
+export const CASE_READING_VERSION = 6;
 export const READING_EXCERPTS_PER_STEP = 32;
 export type ReadingSource = {
   id: string;

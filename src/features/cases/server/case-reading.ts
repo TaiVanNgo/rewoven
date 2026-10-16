@@ -1,3 +1,9 @@
+import {
+  type CaseOverview,
+  OVERVIEW_KEYS,
+  overviewProjection,
+  reviewOverview,
+} from "../case-overview";
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -32,8 +38,37 @@ export async function combineReadings(
   warnings?: string[],
 ): Promise<CaseSuggestions> {
   const refs: CaseSuggestions["context"]["evidence"] = [];
-  const values = drafts.map((draft) =>
-    Object.fromEntries(
+  const reference = (ref: CaseSuggestions["context"]["evidence"][number]) => {
+    let index = refs.findIndex(
+      (r) =>
+        r.sourceId === ref.sourceId &&
+        r.page === ref.page &&
+        r.quote === ref.quote,
+    );
+    if (index < 0) {
+      refs.push(ref);
+      index = refs.length - 1;
+    }
+    return index + 1;
+  };
+  const values = drafts.map((draft) => ({
+    ...(draft.overview
+      ? {
+          overview: {
+            classification: draft.overview.classification,
+            ...Object.fromEntries(
+              OVERVIEW_KEYS.map((key) => [
+                key,
+                draft.overview?.sections[key].map((f) => ({
+                  text: f.text,
+                  evidence: f.evidence.map(reference),
+                })),
+              ]),
+            ),
+          },
+        }
+      : {}),
+    ...Object.fromEntries(
       SUGGESTION_FIELDS.map((field) => [
         field,
         {
@@ -54,10 +89,14 @@ export async function combineReadings(
         },
       ]),
     ),
-  );
+  }));
   if (!refs.length) {
     const empty = { value: "", evidence: [] };
     return {
+      ...(drafts[0]?.overview &&
+      drafts.every((d) => d.overview?.classification === "non_project")
+        ? { overview: { ...drafts[0].overview, sources: [] } }
+        : {}),
       title: { ...empty },
       context: { ...empty },
       outcome: { ...empty },
@@ -81,15 +120,23 @@ export async function combineReadings(
     values,
     warnings,
   );
-  return Object.fromEntries(
-    SUGGESTION_FIELDS.map((field) => [
-      field,
-      {
-        value: result[field].value,
-        evidence: result[field].evidence.map((e) => refs[(e.page ?? 0) - 1]),
-      },
-    ]),
-  ) as CaseSuggestions;
+  if (result.overview) {
+    for (const key of OVERVIEW_KEYS)
+      for (const finding of result.overview.sections[key])
+        finding.evidence = finding.evidence.map((e) => refs[(e.page ?? 0) - 1]);
+  }
+  return {
+    ...(result.overview ? { overview: result.overview } : {}),
+    ...Object.fromEntries(
+      SUGGESTION_FIELDS.map((field) => [
+        field,
+        {
+          value: result[field].value,
+          evidence: result[field].evidence.map((e) => refs[(e.page ?? 0) - 1]),
+        },
+      ]),
+    ),
+  } as CaseSuggestions;
 }
 async function sourceSnapshot(caseId: string) {
   const result = await database()
@@ -347,12 +394,26 @@ export async function advanceCaseReading(
           sourceId: source.id,
           sourceTitle: source.title,
         }));
+      if (suggestions.overview)
+        for (const key of OVERVIEW_KEYS)
+          for (const finding of suggestions.overview.sections[key])
+            finding.evidence = finding.evidence.map((e) => ({
+              ...e,
+              sourceId: source.id,
+              sourceTitle: source.title,
+              sourceVersion: source.version,
+            }));
       work.nodes.push({ level: 0, suggestions });
       work.cursor++;
       work.calls++;
     }
     const complete =
       work.cursor === work.segments.length && work.nodes.length === 1;
+    if (complete && work.nodes[0].suggestions.overview)
+      work.nodes[0].suggestions.overview.sources = work.sources.map((s) => ({
+        id: s.id,
+        version: s.version,
+      }));
     const result: CaseAnalysis | null = complete
       ? {
           id: run.id,
@@ -432,6 +493,17 @@ export async function reviewCaseReading(
       ),
     ]),
   );
+  const overview = await submittedOverview(
+    input,
+    record.id,
+    sessionId,
+    String(input.readingId ?? ""),
+  );
+  if (overview)
+    Object.assign(values, overviewProjection(overview), {
+      overview,
+      overview_revision: input.expectedOverviewRevision,
+    });
   const result = await database().rpc("review_case_reading", {
     p_case: caseId,
     p_session: sessionId,
@@ -470,6 +542,12 @@ export async function saveCaseFields(
       ),
     ]),
   );
+  const overview = await submittedOverview(input, record.id, sessionId);
+  if (overview)
+    Object.assign(values, overviewProjection(overview), {
+      overview,
+      overview_revision: input.expectedOverviewRevision,
+    });
   const result = await database().rpc("save_case_fields", {
     p_case: caseId,
     p_session: sessionId,
@@ -480,4 +558,64 @@ export async function saveCaseFields(
     throw new ApiError(409, result.error.message);
   checkDatabase(result.error);
   return caseDetail(caseId, sessionId);
+}
+
+async function submittedOverview(
+  input: Record<string, unknown>,
+  caseId: string,
+  sessionId: string,
+  readingId?: string,
+): Promise<CaseOverview | null> {
+  if (input.overview === undefined) return null;
+  if (
+    !Number.isSafeInteger(input.expectedOverviewRevision) ||
+    Number(input.expectedOverviewRevision) < 0
+  )
+    throw new ApiError(
+      400,
+      "The overview revision is required. Reload the case.",
+    );
+  const current = await caseDetail(caseId, sessionId);
+  let original = current.overview ?? null;
+  if (readingId) {
+    const reading = await database()
+      .from("case_ai_readings")
+      .select("result")
+      .eq("id", validId(readingId))
+      .eq("case_id", caseId)
+      .eq("session_id", sessionId)
+      .eq("status", "ready")
+      .maybeSingle();
+    checkDatabase(reading.error);
+    if (!reading.data)
+      throw new ApiError(400, "A completed reading for this case is required.");
+    original = reading.data.result?.suggestions?.overview ?? null;
+    // Preserve citations on existing contributor corrections too.
+    if (original && current.overview)
+      for (const key of OVERVIEW_KEYS) {
+        original.sections[key] = [
+          ...original.sections[key],
+          ...current.overview.sections[key].filter(
+            (f) =>
+              !original?.sections[key].some(
+                (old) => old.id === f.id && old.text === f.text,
+              ),
+          ),
+        ];
+      }
+  }
+  try {
+    const result = reviewOverview(input.overview, original);
+    if (!readingId && !current.overview)
+      result.sources = current.sources.map((s) => ({
+        id: s.id,
+        version: s.version,
+      }));
+    return result;
+  } catch (error) {
+    throw new ApiError(
+      400,
+      error instanceof Error ? error.message : "Invalid overview.",
+    );
+  }
 }

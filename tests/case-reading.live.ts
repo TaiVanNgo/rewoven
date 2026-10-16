@@ -94,7 +94,12 @@ test("live AI reads a large source and companion documents, then saves reviewed 
     assert.equal(reading.sourceIds?.length, 3);
     assert.ok(reading.suggestions.title.value);
     assert.ok(progress.total > 3);
-    for (const field of Object.values(reading.suggestions))
+    for (const field of [
+      reading.suggestions.title,
+      reading.suggestions.context,
+      reading.suggestions.outcome,
+      reading.suggestions.lessons,
+    ])
       for (const evidence of field.evidence) {
         assert.ok(evidence.sourceId);
         const source = await db
@@ -113,10 +118,12 @@ test("live AI reads a large source and companion documents, then saves reviewed 
     const outcome = reading.suggestions.outcome.value.toLowerCase();
     assert.ok(!/measured.*(faster|savings)|10x/.test(outcome));
     const fields = Object.fromEntries(
-      Object.entries(reading.suggestions).map(([name, value]) => [
-        name,
-        value.value,
-      ]),
+      Object.entries({
+        title: reading.suggestions.title,
+        context: reading.suggestions.context,
+        outcome: reading.suggestions.outcome,
+        lessons: reading.suggestions.lessons,
+      }).map(([name, value]) => [name, value.value]),
     );
     fields.title = "Reviewed Cedar invoice case";
     const saved = (
