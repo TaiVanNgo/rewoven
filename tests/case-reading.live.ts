@@ -131,6 +131,8 @@ test("live AI reads a large source and companion documents, then saves reviewed 
         readingId: reading.id,
         fields,
         expected: caseFields(initial),
+        overview: reading.suggestions.overview,
+        expectedOverviewRevision: initial.overviewRevision ?? 0,
       })
     ).case;
     assert.equal(saved.title, fields.title);

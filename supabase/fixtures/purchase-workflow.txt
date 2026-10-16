@@ -1,2 +1,0 @@
-Fictional sample: Purchase Workflow Notes
-A manager reviewed purchase requests before finance. Finance could return a request to the submitter with a reason. Resubmission restarted manager review. No implementation outcome was recorded.

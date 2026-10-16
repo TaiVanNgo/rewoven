@@ -30,7 +30,7 @@ for (;;) {
   const result = await db
     .from("source_documents")
     .select(
-      "id,case_id,original_text,storage_path,byte_size,status,indexing_status,cases!inner(is_seed,session_id,demo_sessions(expires_at))",
+      "id,case_id,original_text,storage_path,byte_size,status,indexing_status,cases!inner(is_seed,sample_visible,session_id,demo_sessions(expires_at))",
     )
     .gt("id", cursor || "00000000-0000-0000-0000-000000000000")
     .order("id")
@@ -63,11 +63,13 @@ for (;;) {
     }
     const owner = source.cases as unknown as {
       is_seed: boolean;
+      sample_visible: boolean;
       session_id: string;
       demo_sessions: { expires_at: string } | null;
     };
     if (
       !embed ||
+      (owner.is_seed && !owner.sample_visible) ||
       source.status !== "ready" ||
       source.indexing_status === "ready"
     )
