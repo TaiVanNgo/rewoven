@@ -3,6 +3,7 @@
 import { ArrowUpRightIcon, InfoIcon, SearchIcon } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useRef, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,8 +25,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { caseApi } from "@/features/cases/api-client";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { requestSamples } from "@/features/requests/request-samples";
+import { RetrievalResults } from "@/features/retrieval/retrieval-results";
+import type { RetrievalResult } from "@/features/retrieval/types";
 
 const MotionButton = motion.create(Button);
 const constraints = [
@@ -45,6 +49,41 @@ const constraints = [
 export function RequestComposer({ companion }: { companion: ReactNode }) {
   const { draft, updateDraft } = useRequestDraft();
   const [submitted, setSubmitted] = useState(false);
+  const [result, setResult] = useState<RetrievalResult | null>(null);
+  const [pending, setPending] = useState(false),
+    [error, setError] = useState("");
+  const searchId = useRef(0);
+  const draftKey = JSON.stringify(draft);
+  const [resultKey, setResultKey] = useState("");
+  async function search() {
+    if (pending || !draft.request.trim()) return;
+    const id = ++searchId.current;
+    setPending(true);
+    setError("");
+    setResult(null);
+    setResultKey(draftKey);
+    try {
+      await caseApi("/api/demo-session", { method: "POST" });
+      const found = await caseApi<RetrievalResult>("/api/retrieval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      if (id === searchId.current) {
+        setResult(found);
+        setSubmitted(true);
+      }
+    } catch (error) {
+      if (id === searchId.current)
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Search failed. Your request is preserved.",
+        );
+    } finally {
+      if (id === searchId.current) setPending(false);
+    }
+  }
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const reducedMotion = useReducedMotion();
   const canSubmit = draft.request.trim().length > 0;
@@ -67,7 +106,7 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
             className="flex flex-col"
             onSubmit={(event) => {
               event.preventDefault();
-              if (canSubmit) setSubmitted(true);
+              if (canSubmit) void search();
             }}
           >
             <CardHeader className="mb-3">
@@ -133,6 +172,7 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
                             updateDraft({ [name]: event.target.value })
                           }
                           placeholder={placeholder}
+                          maxLength={1000}
                         />
                       </Field>
                     ))}
@@ -143,18 +183,18 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
             <CardFooter className="flex-wrap gap-4">
               <MotionButton
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || pending}
                 initial={false}
                 whileTap={
                   reducedMotion || !canSubmit ? undefined : { scale: 0.98 }
                 }
               >
                 <SearchIcon data-icon="inline-start" aria-hidden="true" />
-                Find past cases
+                {pending ? "Finding cases…" : "Find past cases"}
               </MotionButton>
               <output className="max-w-[300px] text-xs leading-relaxed text-muted-foreground">
                 {submitted
-                  ? "This is a UI preview. Case retrieval is not connected yet."
+                  ? "Review the matched original passages below."
                   : "Enter a request or choose a sample below."}
               </output>
             </CardFooter>
@@ -162,6 +202,14 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
         </Card>
         {companion}
       </div>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error} Your request is preserved; try again.
+          </AlertDescription>
+        </Alert>
+      )}
+      {result && resultKey === draftKey && <RetrievalResults result={result} />}
       <section
         aria-labelledby="samples-title"
         className="request-samples flex flex-col gap-3.5"
