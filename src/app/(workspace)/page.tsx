@@ -4,13 +4,14 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/workspace/page-header";
 import { RequestComposer } from "@/features/requests/request-composer";
+import "@/features/requests/request-page.css";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata = createPageMetadata({ path: "/", title: "New request" });
 
 export default function Home() {
   return (
-    <>
+    <div className="request-page">
       <PageHeader
         section="New request"
         title="What is your team working on next?"
@@ -20,7 +21,7 @@ export default function Home() {
         companion={
           <aside
             aria-label="Meet Wren"
-            className="mx-auto flex w-full max-w-77.5 flex-col items-center"
+            className="request-companion mx-auto flex w-full max-w-77.5 flex-col items-center"
           >
             <div className="w-full rounded-panel border border-line bg-surface-soft p-3.5 shadow-panel">
               <Image
@@ -28,7 +29,7 @@ export default function Home() {
                 width={512}
                 height={512}
                 preload
-                sizes="(min-width: 1280px) 280px, (max-width: 389px) 240px, 280px"
+                sizes="(min-width: 1280px) and (max-height: 1120px) 190px, (min-width: 1280px) 280px, (max-width: 389px) 240px, 280px"
                 alt="Wren, the team archivist, holding a stack of case folders"
                 className="block h-auto w-full rounded-card"
               />
@@ -51,6 +52,6 @@ export default function Home() {
           </aside>
         }
       />
-    </>
+    </div>
   );
 }

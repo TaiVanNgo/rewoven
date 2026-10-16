@@ -145,7 +145,7 @@ export function CaseLibrary() {
     setRevision((r) => r + 1);
   }
   return (
-    <div className="flex flex-col gap-5">
+    <div className="case-library flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <Field className="max-w-sm">
           <FieldLabel htmlFor="case-search">
@@ -198,23 +198,33 @@ export function CaseLibrary() {
         </Empty>
       ) : (
         (cases.length > 0 || searching) && (
-          <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.8fr)]">
+          <div className="case-library-grid grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.8fr)]">
             {searching ? (
               <CaseListSkeleton />
             ) : (
               <aside
                 aria-label="Case list"
                 aria-busy={loading}
-                className="flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4"
+                className="case-list flex min-w-0 flex-col gap-3 rounded-panel border border-border bg-muted p-4"
               >
                 <div className="flex items-center justify-between px-1">
-                  <h2 className="font-heading text-sm font-bold">Cases</h2>
+                  <h2
+                    id="cases-title"
+                    className="font-heading text-sm font-bold"
+                  >
+                    Cases
+                  </h2>
                   <Badge variant="outline" aria-live="polite">
                     {cases.length}
                     {query ? " found" : " total"}
                   </Badge>
                 </div>
-                <div className="flex max-h-[680px] flex-col gap-3 overflow-y-auto p-1">
+                <section
+                  aria-labelledby="cases-title"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus this independently scrollable region.
+                  tabIndex={0}
+                  className="case-list-scroll flex max-h-[680px] flex-col gap-3 overflow-y-auto p-1"
+                >
                   {cases.map((record) => (
                     <Button
                       key={record.id}
@@ -257,10 +267,16 @@ export function CaseLibrary() {
                       </span>
                     </Button>
                   ))}
-                </div>
+                </section>
               </aside>
             )}
-            <div className="flex min-w-0 flex-col gap-5">
+            <section
+              key={selectedId}
+              aria-label="Case content"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to focus this independently scrollable region.
+              tabIndex={0}
+              className="case-content flex min-w-0 flex-col gap-5"
+            >
               {detailError?.id === selectedId && (
                 <Alert
                   id={detail?.id === selectedId ? undefined : "case-detail"}
@@ -292,7 +308,7 @@ export function CaseLibrary() {
               ) : detailError?.id !== selectedId ? (
                 <CaseDetailSkeleton />
               ) : null}
-            </div>
+            </section>
           </div>
         )
       )}

@@ -44,11 +44,11 @@ export function WorkspaceSidebar() {
       animate={{ "--sidebar-width": collapsed ? "76px" : "270px" }}
       transition={reducedMotion ? { duration: 0 } : sidebarTransition}
       className={cn(
-        "flex shrink-0 flex-col justify-between rounded-workspace border border-border bg-card p-5 shadow-panel lg:w-[var(--sidebar-width)]",
+        "flex shrink-0 flex-col justify-between rounded-workspace border border-border bg-card p-5 shadow-panel lg:sticky lg:top-shell lg:h-[calc(100dvh-56px)] lg:w-[var(--sidebar-width)] lg:self-start lg:overflow-y-auto",
         collapsed && "lg:p-3",
       )}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex shrink-0 flex-col gap-6">
         <div className="flex flex-col gap-3">
           <div
             className={cn(
@@ -125,7 +125,10 @@ export function WorkspaceSidebar() {
         </nav>
       </div>
       <div
-        className={cn("mt-6 hidden flex-col gap-3", !collapsed && "lg:flex")}
+        className={cn(
+          "mt-6 hidden shrink-0 flex-col gap-3",
+          !collapsed && "lg:flex",
+        )}
       >
         <Separator />
         <Card variant="inverse" size="sm">

@@ -60,8 +60,8 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col gap-9">
-      <div className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[minmax(0,1fr)_310px]">
+    <div className="request-composer flex flex-col gap-9">
+      <div className="request-grid grid grid-cols-1 items-start gap-7 xl:grid-cols-[minmax(0,1fr)_310px]">
         <Card variant="soft" className="min-w-0">
           <form
             className="flex flex-col"
@@ -164,7 +164,7 @@ export function RequestComposer({ companion }: { companion: ReactNode }) {
       </div>
       <section
         aria-labelledby="samples-title"
-        className="flex flex-col gap-3.5"
+        className="request-samples flex flex-col gap-3.5"
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id="samples-title" className="font-heading text-sm font-bold">
