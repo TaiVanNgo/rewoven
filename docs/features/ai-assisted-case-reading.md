@@ -1,3 +1,5 @@
+> The ingestion limit is now 500,000 characters per source, while optional single-source AI reading retains its separate 50,000-character limit. Multi-file cases use manual fields until combined overview generation is implemented. See [multi-document ingestion and retrieval](semantic-retrieval.md). In the browser, use manual case fields for files above 4 MB; direct case uploads support the full 5 MB limit.
+
 # AI-assisted case reading
 
 Rewoven can read a source and suggest a case title, context, recorded outcome, and lessons. You review the suggestions before saving. Manual entry still works without an OpenAI key.

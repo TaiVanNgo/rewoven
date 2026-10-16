@@ -1,3 +1,5 @@
+> Multi-document uploads and semantic retrieval extend this original single-source guide. Follow [the current multi-document guide](semantic-retrieval.md) for the 500,000-character source limit, direct storage uploads, per-source retries, and staged indexing. The single-source API remains a compatibility adapter; case details now return metadata and source text loads through the segmented text route.
+
 # Understanding the case library and source ingestion
 
 Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. Optional [AI-assisted case reading](ai-assisted-case-reading.md) now suggests editable metadata with source evidence. Request-to-case analysis and reuse-plan generation are still future work.
