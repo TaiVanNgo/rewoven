@@ -16,7 +16,7 @@ Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
-For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
+For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. To import the ten fictional samples into production, temporarily set `SEED_SAMPLE_CASES=true` in Vercel Production and redeploy; see the deployment guide for permissions troubleshooting and the complete steps. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
 
 ## Quick start
 
@@ -98,25 +98,26 @@ The New request preview runs without database credentials. The case library requ
 
 ## Commands
 
-| Command                    | Purpose                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `bun run dev`              | Start development with Fast Refresh.                                                              |
-| `bun run devx`             | Start local Supabase, provision storage, then start Next.js with Fast Refresh.                    |
-| `bun run db:start`         | Start local Supabase and provision the declared storage bucket.                                   |
-| `bun run db:migrate`       | Apply pending local migrations without resetting data.                                            |
-| `bun run db:seed`          | Import ten fictional cases and original files locally; preserve Ready seeds.                      |
-| `bun run test`             | Run focused validation, extraction, and session unit tests.                                       |
-| `bun run test:ai:live`     | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.               |
-| `bun run test:integration` | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls. |
-| `bun run db:status`        | Show local service URLs and credentials.                                                          |
-| `bun run db:stop`          | Stop local Supabase while preserving local data.                                                  |
-| `bun run lint`             | Check Biome lint and import organization without writing fixes.                                   |
-| `bun run format`           | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.                   |
-| `bun run format:check`     | Check formatting and Tailwind class order without writing changes.                                |
-| `bun run typecheck`        | Generate Next.js route types, then check TypeScript without emitting JavaScript.                  |
-| `bun run build`            | Build the application for production.                                                             |
-| `bun run build:vercel`     | Vercel build entry point; migrate hosted Supabase only inside Vercel Production.                  |
-| `bun run start`            | Serve the production build; run `build` first.                                                    |
+| Command                      | Purpose                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `bun run dev`                | Start development with Fast Refresh.                                                              |
+| `bun run devx`               | Start local Supabase, provision storage, then start Next.js with Fast Refresh.                    |
+| `bun run db:start`           | Start local Supabase and provision the declared storage bucket.                                   |
+| `bun run db:migrate`         | Apply pending local migrations without resetting data.                                            |
+| `bun run db:seed:production` | Import samples only in Vercel Production with explicit opt-in; see the deployment guide.          |
+| `bun run db:seed`            | Import ten fictional cases and original files locally; preserve Ready seeds.                      |
+| `bun run test`               | Run focused validation, extraction, and session unit tests.                                       |
+| `bun run test:ai:live`       | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.               |
+| `bun run test:integration`   | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls. |
+| `bun run db:status`          | Show local service URLs and credentials.                                                          |
+| `bun run db:stop`            | Stop local Supabase while preserving local data.                                                  |
+| `bun run lint`               | Check Biome lint and import organization without writing fixes.                                   |
+| `bun run format`             | Apply Prettier formatting and sort Tailwind classes; review the resulting diff.                   |
+| `bun run format:check`       | Check formatting and Tailwind class order without writing changes.                                |
+| `bun run typecheck`          | Generate Next.js route types, then check TypeScript without emitting JavaScript.                  |
+| `bun run build`              | Build the application for production.                                                             |
+| `bun run build:vercel`       | Vercel build entry point; migrate hosted Supabase only inside Vercel Production.                  |
+| `bun run start`              | Serve the production build; run `build` first.                                                    |
 
 `format` formats code and sorts Tailwind classes; address remaining lint or import organization findings separately. Next.js builds do not run Biome or Prettier, so lint and formatting are separate checks.
 
@@ -172,7 +173,7 @@ tsconfig.json               TypeScript; @/* resolves to src/*
 AGENTS.md                   Agent development workflow
 .agents/skills/             Optional agent guidance
 supabase/                   Local configuration, migrations, and source fixtures
-scripts/seed-cases.ts        Idempotent local case/file import
+scripts/seed-cases.ts        Repeatable local or opted-in Vercel Production case/file import
 tests/                      Unit tests, API integration suite, and PDF fixtures
 docs/features/              Beginner-friendly implementation guides
 ```

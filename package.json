@@ -21,6 +21,7 @@
     "test": "bun test tests/*.test.ts",
     "db:migrate": "supabase migration up --local",
     "db:seed": "bun --env-file=.env.local scripts/seed-cases.ts",
+    "db:seed:production": "bun scripts/seed-cases.ts --production",
     "test:integration": "bun --env-file=.env.local test ./tests/library.integration.ts ./tests/ai-reading.integration.ts",
     "test:ai:live": "bun --env-file=.env.local test ./tests/ai-reading.live.ts"
   },

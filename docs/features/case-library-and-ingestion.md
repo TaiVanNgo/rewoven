@@ -129,7 +129,7 @@ bun run db:seed
 bun run dev
 ```
 
-`db:migrate` applies pending local migrations without resetting existing data. `db:seed` imports the original files as well as database records, and preserves existing Ready seeds on reruns. The seed script deliberately accepts only a local Supabase URL.
+`db:migrate` applies pending local migrations without resetting existing data. `db:seed` imports the original files as well as database records, and preserves existing Ready seeds on reruns. This local command deliberately accepts only a local Supabase URL. For the separate, explicitly opted-in Vercel Production import and table-permission repair, follow the [production deployment guide](ci-cd-and-production.md#import-the-fictional-samples-into-production).
 
 Open [the local library](http://localhost:3000/case-library), or use the port printed by Next.js. Try this walkthrough:
 

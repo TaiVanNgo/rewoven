@@ -15,20 +15,22 @@ When the change merges into `main`, Vercel's production build runs:
 1. Validate the production migration settings. The standard `SUPABASE_URL` must match `SUPABASE_PROJECT_REF`, and a supplied Git branch must be `main`.
 2. Run `bun run build`. A compilation failure stops before touching production Supabase.
 3. Use the pinned Supabase CLI through `npx --yes supabase@2.120.0` to link the intended project, run `db push --linked --yes`, and provision declared buckets with `seed buckets --linked --yes`.
-4. Return success so Vercel can publish the frontend and API together. A failed migration or bucket command fails the build and prevents this deployment from being published.
+4. If `SEED_SAMPLE_CASES=true`, run `bun run db:seed:production` to import the ten fictional cases and their original files. Otherwise skip sample import.
+5. Return success so Vercel can publish the frontend and API together. A failed migration, bucket, or sample import command fails the build and prevents this deployment from being published.
 
 Supabase's migration history causes already-applied migration files to be skipped on later builds. Redeploys rerun the migration check and bucket provisioning. The current build does not query application tables during prerendering; future features must preserve that boundary or revisit the ordering.
 
 ## Files and responsibilities
 
-| File                         | Purpose                                                                                                                                       |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`   | Runs checks on pull requests and pushes to `main`; supports manual checks too.                                                                |
-| `vercel.json`                | Sets the frozen install and `build:vercel` command, leaves normal Git deployments enabled, and disables automatic cancellation of Git builds. |
-| `scripts/vercel-build.ts`    | Builds the app and runs hosted migrations only when `VERCEL=1` and `VERCEL_ENV=production`.                                                   |
-| `tests/vercel-build.test.ts` | Checks environment isolation, target validation, command ordering, and stopping after a failure without contacting production.                |
-| `supabase/migrations/`       | Versioned SQL changes tracked by Supabase.                                                                                                    |
-| `supabase/config.toml`       | Declares the private `case-sources` bucket and its upload limit.                                                                              |
+| File                                              | Purpose                                                                                                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`                        | Runs checks on pull requests and pushes to `main`; supports manual checks too.                                                                |
+| `vercel.json`                                     | Sets the frozen install and `build:vercel` command, leaves normal Git deployments enabled, and disables automatic cancellation of Git builds. |
+| `scripts/vercel-build.ts`                         | Builds the app and runs hosted migrations only when `VERCEL=1` and `VERCEL_ENV=production`.                                                   |
+| `tests/vercel-build.test.ts`                      | Checks environment isolation, target validation, command ordering, and stopping after a failure without contacting production.                |
+| `scripts/seed-cases.ts`, `scripts/seed-target.ts` | Import fixture records and files, with separate local and explicitly opted-in Vercel Production targets.                                      |
+| `supabase/migrations/`                            | Versioned SQL changes tracked by Supabase.                                                                                                    |
+| `supabase/config.toml`                            | Declares the private `case-sources` bucket and its upload limit.                                                                              |
 
 Next.js Route Handlers under `src/app/api/` are the backend. They deploy with the pages. There is no separate production backend server to start after deployment. The previous GitHub production-release workflow is removed; no GitHub `production` environment, Vercel token, or Vercel project IDs are required by these workflows.
 
@@ -49,7 +51,7 @@ Keep the existing application variables in Vercel Production too:
 | Name                                           | Purpose                                                                                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SUPABASE_URL`                                 | Use the standard `https://PROJECT_REF.supabase.co` API origin for the same project. Custom API domains are not supported by the build guard. |
-| `SUPABASE_SECRET_KEY`                          | Server-only application key for that project.                                                                                                |
+| `SUPABASE_SECRET_KEY`                          | Server-only secret key (`sb_secret_...`) or legacy `service_role` key for that project; never the publishable/anon key.                      |
 | `OPENAI_API_KEY`                               | Dedicated production key if enabling AI reading; manual entry works without it.                                                              |
 | `OPENAI_CASE_MODEL`                            | Optional model override; `.env.example` lists the default.                                                                                   |
 | `AI_CASE_SESSION_LIMIT`, `AI_CASE_DAILY_LIMIT` | Optional production AI attempt limits.                                                                                                       |
@@ -63,6 +65,38 @@ Confirm that Vercel automatically exposes system environment variables to builds
 Git builds are configured to run in sequence without automatically cancelling an in-flight build. Leave Vercel's project build queue enabled, including when on-demand concurrent builds are available. Avoid starting overlapping manual production deployments or migrations: this script does not implement a cross-process database lock. If the CLI reports a concurrent migration/history conflict, let the active release finish, inspect migration history, and rerun the newest deployment.
 
 After adding the variables, merge the follow-up change and inspect the new Vercel production deployment. Build logs should show `[vercel-build] Applying production migrations and storage configuration.` followed by the completion message. A preview should instead show that hosted migrations were skipped.
+
+## Import the fictional samples into production
+
+An empty database is valid: the library should show an empty state and still allow adding a case. Samples are optional. A failed `POST /api/demo-session` must be repaired before seeding can help.
+
+After merging this change into `main`:
+
+1. In the Rewoven Vercel project's **Settings → Environment Variables**, add `SEED_SAMPLE_CASES` with value `true`, scoped to **Production only**.
+2. Redeploy the latest `main` commit using the configured `bun run build:vercel` command. The build applies pending migrations, provisions `case-sources`, then imports samples through the server key already stored in Vercel. No production credentials are needed locally or in GitHub.
+3. Check the build log for `Ready: 10 fictional sample cases. Existing ready seeds were preserved.` Open `https://rewoven.dev/case-library`, browse a sample, and open its original source.
+4. Remove `SEED_SAMPLE_CASES` or set it to `false` in Vercel Production after a successful import. Later deployments continue applying migrations without importing fixtures.
+
+`bun run db:seed:production` is a build-time command for Vercel Production. It refuses ordinary local runs, Preview, missing opt-in, non-`main` Git branches when supplied, and a URL that does not match `SUPABASE_PROJECT_REF`. The usual `bun run db:seed` remains local-only. The importer uses stable sample IDs, skips Ready samples, and refuses to overwrite a user case that occupies a sample ID. It uploads the original files as well as records and searchable chunks. It does not reset the database, remove user cases, or call OpenAI. Repeating the import can finish interrupted samples; a failed import can leave partial records/files and fails the deployment, so inspect the error and rerun after fixing it.
+
+## Repair “permission denied for table demo_sessions”
+
+This error means PostgreSQL denied access to an existing table. It is not caused by having zero cases. The original case migration enabled Row Level Security and blocked browser roles but relied on database defaults to grant the server role access. Migration `202610160001_case_library_service_role_grants.sql` explicitly grants `service_role` schema usage and CRUD access to the four original tables. It retains RLS and denies `anon` and `authenticated` direct table access.
+
+First, privately verify that Vercel Production's `SUPABASE_SECRET_KEY` is the production project's secret key (`sb_secret_...`) or legacy `service_role` key, paired with that project's `SUPABASE_URL`. Do not use a publishable or anon key, and do not paste keys into chat. Redeploy after correcting environment variables.
+
+Merge and deploy the migration to apply the permissions repair automatically. To repair access immediately before that release, run this same SQL in the **production project's Supabase SQL Editor**:
+
+```sql
+grant usage on schema public to service_role;
+revoke all on table public.demo_sessions, public.cases,
+  public.source_documents, public.source_chunks from public, anon, authenticated;
+grant select, insert, update, delete
+  on table public.demo_sessions, public.cases,
+  public.source_documents, public.source_chunks to service_role;
+```
+
+Applying these grants twice is safe. A later deployment will still record the versioned migration. Reload the library and confirm `/api/demo-session` succeeds before importing samples. Do not disable RLS or grant table access to browser roles as a workaround. Supabase's [role documentation](https://supabase.com/docs/guides/database/postgres/roles) explains object privileges and the server role's RLS bypass; bypassing RLS does not replace table privileges.
 
 ## GitHub checks and release gates
 
@@ -102,10 +136,10 @@ After a hosted release, open `https://rewoven.dev/case-library`, add a small tex
 - Missing settings, a mismatched project, or an unsuccessful application build stops before migrations.
 - A migration or bucket-provisioning failure prevents the new deployment from publishing. Earlier successful migrations can remain applied; an application rollback does not undo database changes.
 - A cancelled build or later Vercel deployment failure can also leave schema changes applied while the old app remains live. Database changes and deployment are not one atomic transaction.
-- Fixture seeding is still local-only. Provisioning buckets does not import the ten fictional sample cases into production.
+- Bucket provisioning alone does not import sample cases. Hosted sample import requires the explicit Production-only flag above.
 - Local integration tests do not reproduce Vercel's request-body limit. Full 5 MB uploads still need direct-to-storage uploads or a lower app limit.
 - The pinned CLI package is downloaded through `npx` during a production build; the build needs network access to the package registry, Supabase CLI binary download, and hosted Supabase. It does not start local Docker services on Vercel.
 
-Run `bun run format`, `bun run format:check`, `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` when editing this setup. The guard tests use injected commands, so they verify that preview builds cannot migrate and failures stop the sequence without running production commands. The integration suite verifies schema and API behavior with local Supabase. An actual Vercel production build with correctly scoped credentials is still needed to verify hosted database permissions, networking, and publication.
+Run `bun run format`, `bun run format:check`, `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build` when editing this setup. The guard tests use injected commands, so they verify that preview builds cannot migrate and failures stop the sequence without running production commands. The integration suite verifies schema and API behavior with local Supabase, including a transaction that removes implicit server table grants and checks that the repair restores access while keeping browser roles blocked. An actual Vercel production build with correctly scoped credentials is still needed to verify hosted database permissions, networking, and publication.
 
 References: [Vercel system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables), [Vercel Git build configuration](https://vercel.com/docs/project-configuration/git-configuration), and [Supabase CLI setup](https://supabase.com/docs/guides/cli/getting-started).

@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { seedTarget } from "./seed-target";
 
 const SUPABASE_CLI = "supabase@2.120.0";
 type RunCommand = (command: string, args: string[]) => void;
@@ -65,6 +66,7 @@ export function runVercelBuild({
       target.password
     )
       throw new Error("SUPABASE_URL and SUPABASE_PROJECT_REF must match.");
+    if (env.SEED_SAMPLE_CASES === "true") seedTarget(true, env);
   }
 
   // A compilation failure should leave the production schema untouched.
@@ -80,6 +82,10 @@ export function runVercelBuild({
   run("npx", ["--yes", SUPABASE_CLI, "link", "--project-ref", projectRef]);
   run("npx", ["--yes", SUPABASE_CLI, "db", "push", "--linked", "--yes"]);
   run("npx", ["--yes", SUPABASE_CLI, "seed", "buckets", "--linked", "--yes"]);
+  if (env.SEED_SAMPLE_CASES === "true") {
+    log("[vercel-build] Importing fictional sample cases and original files.");
+    run("bun", ["run", "db:seed:production"]);
+  }
   log(
     "[vercel-build] Production database and storage are ready for deployment.",
   );

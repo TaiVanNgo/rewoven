@@ -118,3 +118,26 @@ test("build, link, migration, or storage failure prevents every subsequent step"
     assert.equal(check.calls.length, failAt);
   }
 });
+
+test("sample import is opt-in, follows migrations and storage, and fails the build on error", () => {
+  const env = {
+    ...production,
+    SEED_SAMPLE_CASES: "true",
+    SUPABASE_SECRET_KEY: "test-server-key",
+  };
+  const check = harness(env);
+  check.run();
+  assert.equal(check.calls.length, 5);
+  assert.deepEqual(check.calls.at(-1), ["bun", "run", "db:seed:production"]);
+  for (const failAt of [1, 2, 3, 4, 5]) {
+    const failed = harness(env, failAt);
+    assert.throws(failed.run);
+    assert.equal(failed.calls.length, failAt);
+  }
+  const preview = harness({ ...env, VERCEL_ENV: "preview" });
+  preview.run();
+  assert.deepEqual(preview.calls, [["bun", "run", "build"]]);
+  const missingKey = harness({ ...env, SUPABASE_SECRET_KEY: undefined });
+  assert.throws(missingKey.run, /SUPABASE_SECRET_KEY/);
+  assert.equal(missingKey.calls.length, 0);
+});
