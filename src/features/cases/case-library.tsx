@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { AddCaseDialog } from "./add-case-dialog";
 import { caseApi } from "./api-client";
 import { CaseListSkeleton } from "./case-skeleton";
@@ -123,7 +124,10 @@ export function CaseLibrary() {
                 key={record.id}
                 prefetch={false}
                 href={`/case-library/${record.id}${query ? `?q=${encodeURIComponent(query)}` : ""}`}
-                className={`${buttonVariants({ variant: "case" })} h-auto! min-w-0 items-stretch! gap-3! p-6!`}
+                className={cn(
+                  buttonVariants({ variant: "case" }),
+                  "h-auto min-w-0 items-stretch gap-3 overflow-hidden p-6 whitespace-normal",
+                )}
               >
                 <span className="flex flex-wrap items-center justify-between gap-2">
                   <Badge variant="outline">
@@ -131,10 +135,10 @@ export function CaseLibrary() {
                   </Badge>
                   <CaseStatusBadge status={record.status} />
                 </span>
-                <h2 className="font-heading text-lg font-bold wrap-anywhere">
+                <h2 className="line-clamp-2 min-w-0 font-heading text-lg font-bold wrap-anywhere">
                   {record.title}
                 </h2>
-                <p className="line-clamp-3 text-sm leading-relaxed font-normal text-muted-foreground">
+                <p className="line-clamp-3 min-w-0 text-sm leading-relaxed font-normal wrap-anywhere text-muted-foreground">
                   {record.context ||
                     "Inspect the sources or prepare a project overview."}
                 </p>

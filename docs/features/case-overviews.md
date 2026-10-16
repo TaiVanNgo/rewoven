@@ -2,6 +2,8 @@
 
 Open **Case library**, search for `Harbor`, and open **Harbor Route Planning Pilot**. The first section explains the important result and its limit: route preparation improved in a two-depot pilot, observed over ten business days. **Recorded results** gives the actual measurements. **Gaps and conflicting evidence** explains what those measurements do not establish.
 
+Library cards wrap long titles and summaries within their boundaries, showing up to two title lines and three summary lines. Open a case to read the full text.
+
 Select a source button beside a finding. At desktop widths of 1280px and above, its quote appears beside the case. Smaller screens use a dialog; Escape closes it and returns focus to the citation. The inspector names the source version and physical PDF page and links to the original. A matching quote is evidence to inspect, not proof that an AI interpretation is correct.
 
 ## Set up and inspect
