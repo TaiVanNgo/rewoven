@@ -28,15 +28,25 @@ export async function GET(
     };
     if (data.original_text !== null)
       return new Response(data.original_text, { headers });
-    const file = await db.storage
+    const signed = await db.storage
       .from("case-sources")
-      .download(data.storage_path);
-    if (file.error || !file.data)
+      .createSignedUrl(
+        data.storage_path,
+        60,
+        data.format === "pdf" ? {} : { download: data.title },
+      );
+    if (signed.error || !signed.data)
       throw new ApiError(
         404,
-        "The original file is unavailable. Add the case again with the original source.",
+        "The original file is unavailable. Select the original again to resume.",
       );
-    return new Response(file.data, { headers });
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: signed.data.signedUrl,
+        "Cache-Control": "private, no-store",
+      },
+    });
   } catch (error) {
     return apiError(error);
   }

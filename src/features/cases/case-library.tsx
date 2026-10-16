@@ -26,6 +26,7 @@ import { RetryCase } from "./retry-case";
 import type { CaseDetail as CaseDetailRecord, CaseSummary } from "./types";
 
 export function CaseLibrary() {
+  const [processingError, setProcessingError] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
   const [query, setQuery] = useState("");
   const [cases, setCases] = useState<CaseSummary[]>([]);
@@ -80,7 +81,12 @@ export function CaseLibrary() {
           setSelectedId((current) =>
             data.cases.some((c) => c.id === current)
               ? current
-              : (data.cases.find((c) => c.title === "Expense Approval Portal")
+              : (data.cases.find(
+                  (c) =>
+                    c.id ===
+                    new URLSearchParams(window.location.search).get("case"),
+                )?.id ??
+                data.cases.find((c) => c.title === "Expense Approval Portal")
                   ?.id ??
                 data.cases[0]?.id ??
                 null),
@@ -134,6 +140,49 @@ export function CaseLibrary() {
     const timer = setTimeout(() => setRevision((r) => r + 1), 2000);
     return () => clearTimeout(timer);
   }, [cases, loading, detailLoading, searching, error, detailError]);
+  useEffect(() => {
+    if (!sessionReady) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function advance() {
+      try {
+        const result = await caseApi<{ cases: CaseSummary[] }>("/api/cases");
+        const next = result.cases
+          .filter((c) => !c.is_seed)
+          .flatMap((c) => c.sources)
+          .find(
+            (s) =>
+              s.status === "queued" ||
+              s.status === "extracting" ||
+              (s.status === "ready" && s.indexing_status === "pending"),
+          );
+        if (active && next) {
+          await caseApi(`/api/sources/${next.id}/process`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          if (active) setRevision((n) => n + 1);
+        }
+        if (active) {
+          setProcessingError("");
+          timer = setTimeout(advance, next ? 500 : 3000);
+        }
+      } catch (error) {
+        if (active) {
+          setProcessingError(
+            error instanceof Error ? error.message : "Processing paused.",
+          );
+          timer = setTimeout(advance, 10000);
+        }
+      }
+    }
+    void advance();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [sessionReady]);
   function onCreated(record: CaseDetailRecord) {
     setQuery("");
     setSelectedId(record.id);
@@ -165,6 +214,14 @@ export function CaseLibrary() {
         </Field>
         <AddCaseDialog disabled={!sessionReady} onCreated={onCreated} />
       </div>
+      {processingError && (
+        <Alert variant="caution">
+          <AlertTitle>Processing paused</AlertTitle>
+          <AlertDescription>
+            {processingError} We will retry while this page is open.
+          </AlertDescription>
+        </Alert>
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertTitle>Could not load the library</AlertTitle>
@@ -301,8 +358,19 @@ export function CaseLibrary() {
                 <CaseDetail
                   key={detail.id}
                   record={detail}
+                  onSourceChange={() => setRevision((n) => n + 1)}
                   actions={
-                    <RetryCase record={detail} onProcessed={onProcessed} />
+                    <div className="flex flex-wrap gap-3">
+                      <RetryCase record={detail} onProcessed={onProcessed} />
+                      {!detail.is_seed && (
+                        <AddCaseDialog
+                          caseId={detail.id}
+                          existingSources={detail.sources}
+                          disabled={!sessionReady}
+                          onCreated={onProcessed}
+                        />
+                      )}
+                    </div>
                   }
                 />
               ) : detailError?.id !== selectedId ? (

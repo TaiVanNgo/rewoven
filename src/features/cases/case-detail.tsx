@@ -18,9 +18,11 @@ import type { CaseDetail as CaseDetailRecord } from "./types";
 export function CaseDetail({
   record,
   actions,
+  onSourceChange,
 }: {
   record: CaseDetailRecord;
   actions?: ReactNode;
+  onSourceChange?: () => void;
 }) {
   return (
     <section
@@ -88,7 +90,12 @@ export function CaseDetail({
         </CardContent>
       </Card>
       {record.aiReview && <AIReadingRecord review={record.aiReview} />}
-      <SourceViewer key={record.id} sources={record.sources} />
+      <SourceViewer
+        key={record.id}
+        sources={record.sources}
+        readOnly={record.is_seed}
+        onChange={onSourceChange}
+      />
     </section>
   );
 }

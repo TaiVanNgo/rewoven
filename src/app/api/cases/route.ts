@@ -1,7 +1,13 @@
-import { apiError, checkOrigin, json } from "@/features/cases/server/http";
+import {
+  apiError,
+  boundedJson,
+  checkOrigin,
+  json,
+} from "@/features/cases/server/http";
 import { boundedFormData, createCase } from "@/features/cases/server/ingestion";
 import { listCases } from "@/features/cases/server/repository";
 import { requireSession } from "@/features/cases/server/session";
+import { createCaseShell } from "@/features/cases/server/sources";
 import { InputError } from "@/features/cases/validation";
 export async function GET(request: Request) {
   try {
@@ -20,7 +26,11 @@ export async function POST(request: Request) {
   try {
     checkOrigin(request);
     const session = await requireSession();
-    const record = await createCase(await boundedFormData(request), session.id);
+    const record = request.headers
+      .get("content-type")
+      ?.includes("application/json")
+      ? await createCaseShell(await boundedJson(request), session.id)
+      : await createCase(await boundedFormData(request), session.id);
     return json({ case: record }, 201);
   } catch (error) {
     return error instanceof InputError

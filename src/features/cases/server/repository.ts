@@ -45,7 +45,7 @@ export async function listCases(
   if (!cases.length) return [];
   const sources = await db
     .from("source_documents")
-    .select("id, case_id, title, format")
+    .select("id, case_id, title, format, status, indexing_status")
     .in(
       "case_id",
       cases.map((c) => c.id),
@@ -63,7 +63,9 @@ export async function caseDetail(
   const record = await accessibleCase(id, sessionId);
   const { data, error } = await database()
     .from("source_documents")
-    .select("id,case_id,title,format,version,extracted_text,pages,warnings")
+    .select(
+      "id,case_id,title,format,version,warnings,status,indexing_status,error_message,indexing_error,byte_size,char_count,extraction_cursor,page_count",
+    )
     .eq("case_id", record.id)
     .order("created_at");
   checkDatabase(error);
@@ -88,7 +90,11 @@ export async function caseDetail(
       : null;
   return {
     ...publicCase(record),
-    sources: (data ?? []) as SourceDocument[],
+    sources: (data ?? []).map((source) => ({
+      ...source,
+      extracted_text: null,
+      pages: [],
+    })) as SourceDocument[],
     aiReview,
   };
 }

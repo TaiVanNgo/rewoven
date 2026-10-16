@@ -80,6 +80,11 @@ for (const item of cases) {
             extracted_text: extracted.text,
             pages: extracted.pages,
             warnings: extracted.warnings,
+            status: "ready",
+            byte_size: bytes.length,
+            char_count: extracted.text.length,
+            page_count: extracted.pages.length,
+            extraction_cursor: extracted.pages.length,
           },
           { onConflict: "id" },
         )

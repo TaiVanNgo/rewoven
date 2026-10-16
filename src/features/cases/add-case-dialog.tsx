@@ -45,13 +45,22 @@ import {
   type SuggestionField,
 } from "./case-suggestions";
 import { CASE_FIELD_LABELS, SuggestionEvidence } from "./suggestion-evidence";
-import { type CaseDetail, MAX_SOURCE_CHARS } from "./types";
+import {
+  type CaseDetail,
+  MAX_AI_SOURCE_CHARS,
+  MAX_SOURCE_CHARS,
+} from "./types";
+import { type PendingUpload, uploadFiles } from "./upload-sources";
 import { validateFile, validateText } from "./validation";
 
 export function AddCaseDialog({
   disabled,
   onCreated,
+  caseId,
+  existingSources = [],
 }: {
+  caseId?: string;
+  existingSources?: CaseDetail["sources"];
   disabled: boolean;
   onCreated: (record: CaseDetail) => void;
 }) {
@@ -60,7 +69,9 @@ export function AddCaseDialog({
   const [reading, setReading] = useState(false);
   const [mode, setMode] = useState("file");
   const [draft, setDraft] = useState(emptyCaseDraft);
-  const [file, setFile] = useState<File | null>(null);
+  const [uploads, setUploads] = useState<PendingUpload[]>([]);
+  const file = uploads.length === 1 ? uploads[0].file : null;
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
   const [error, setError] = useState("");
   const [aiError, setAIError] = useState("");
@@ -74,7 +85,7 @@ export function AddCaseDialog({
   const busy = pending || reading;
   const tooLong = fields.text.length > MAX_SOURCE_CHARS;
   const sourceReady =
-    mode === "file" ? !!file : !!fields.text.trim() && !tooLong;
+    mode === "file" ? uploads.length > 0 : !!fields.text.trim() && !tooLong;
 
   function update(name: keyof typeof fields, value: string) {
     if (busyRef.current) return;
@@ -89,22 +100,48 @@ export function AddCaseDialog({
     setError("");
     requestKey.current = null;
   }
-  function chooseFile(candidate: File | undefined) {
-    if (!candidate || busyRef.current) return;
+  function chooseFiles(candidates: File[]) {
+    if (busyRef.current) return;
     invalidateAnalysis();
     setSourceError("");
-    setFile(null);
-    if (input.current) input.current.value = "";
-    try {
-      validateFile(candidate.name, candidate.size);
-      setFile(candidate);
-    } catch (error) {
-      setSourceError(
-        error instanceof Error
-          ? error.message
-          : "Choose a supported source file.",
-      );
+    const accepted: PendingUpload[] = [];
+    const errors: string[] = [];
+    for (const candidate of candidates) {
+      try {
+        validateFile(candidate.name, candidate.size);
+        accepted.push({
+          key: crypto.randomUUID(),
+          file: candidate,
+          state: "selected",
+        });
+      } catch (error) {
+        errors.push(
+          `${candidate.name}: ${error instanceof Error ? error.message : "Invalid file"}`,
+        );
+      }
     }
+    if (accepted.length + existingSources.length > 50) {
+      setSourceError("Choose at most 50 documents per case.");
+      return;
+    }
+    if (
+      accepted.reduce((n, item) => n + item.file.size, 0) +
+        existingSources.reduce((n, source) => n + (source.byte_size ?? 0), 0) >
+      100_000_000
+    ) {
+      setSourceError(
+        "Case limit: 100 MB of original material, including retained sources.",
+      );
+      return;
+    }
+    setUploads(accepted);
+    setSourceError(errors.join(" "));
+    if (input.current) input.current.value = "";
+  }
+  function updateUpload(key: string, patch: Partial<PendingUpload>) {
+    setUploads((current) =>
+      current.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    );
   }
   function sourceForm() {
     if (mode === "text") validateText(fields.text);
@@ -120,6 +157,17 @@ export function AddCaseDialog({
     if (busyRef.current) return;
     setAIError("");
     try {
+      if (mode === "text" && fields.text.length > MAX_AI_SOURCE_CHARS)
+        throw new Error(
+          "Single-source AI reading supports up to 50,000 characters. You can still upload and index the complete source.",
+        );
+      if (
+        mode === "file" &&
+        (uploads.length !== 1 || (file?.size ?? 0) > 4_000_000)
+      )
+        throw new Error(
+          "Choose one source for AI reading. Multi-document overview generation comes later.",
+        );
       const body = sourceForm();
       busyRef.current = true;
       setReading(true);
@@ -155,30 +203,84 @@ export function AddCaseDialog({
     if (busyRef.current) return;
     setError("");
     try {
-      if (!fields.title.trim()) throw new Error("Enter a case title.");
-      const body = sourceForm();
-      requestKey.current ??= crypto.randomUUID();
-      body.set("requestKey", requestKey.current);
-      for (const name of SUGGESTION_FIELDS) body.set(name, fields[name]);
-      if (analysis) body.set("analysisId", analysis.id);
+      if (!caseId && !fields.title.trim())
+        throw new Error("Enter a case title.");
+      if (
+        mode === "text" &&
+        (existingSources.length >= 50 ||
+          existingSources.reduce((n, s) => n + s.char_count, 0) +
+            fields.text.length >
+            5_000_000)
+      )
+        throw new Error(
+          "Case limit: 50 documents and 5,000,000 extracted characters.",
+        );
+      if (!sourceReady)
+        throw new Error("Choose source documents or paste text.");
       busyRef.current = true;
       setPending(true);
-      const result = await caseApi<{ case: CaseDetail }>("/api/cases", {
-        method: "POST",
-        body,
-      });
+      requestKey.current ??= crypto.randomUUID();
+      let target = caseId ?? createdId;
+      if (!target) {
+        const result = await caseApi<{ case: CaseDetail }>("/api/cases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requestKey: requestKey.current,
+            ...Object.fromEntries(
+              SUGGESTION_FIELDS.map((name) => [name, fields[name]]),
+            ),
+          }),
+        });
+        target = result.case.id;
+        setCreatedId(target);
+      }
+      let uploadFailed = false;
+      if (mode === "text") {
+        validateText(fields.text);
+        const reserved = await caseApi<{ sourceId: string }>(
+          `/api/cases/${target}/sources`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              requestKey: requestKey.current,
+              title: "Pasted source.txt",
+              text: fields.text,
+            }),
+          },
+        );
+        await caseApi(`/api/sources/${reserved.sourceId}/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ analysisId: analysis?.id }),
+        });
+      } else {
+        const batch = await uploadFiles(
+          target,
+          uploads,
+          updateUpload,
+          analysis?.id,
+        );
+        uploadFailed = batch.failed > 0;
+      }
+      const result = await caseApi<{ case: CaseDetail }>(
+        `/api/cases/${target}`,
+      );
       onCreated(result.case);
-      if (
-        result.case.status === "failed" &&
-        result.case.error_message?.startsWith("The original upload")
-      ) {
-        requestKey.current = null;
-        setError(result.case.error_message);
+      const failed = result.case.sources.some(
+        (source) => source.status === "uploading",
+      );
+      if (failed || uploadFailed) {
+        setError(
+          "Some files did not finish uploading. Retry to resume them; other documents are preserved.",
+        );
         return;
       }
       setOpen(false);
+      setCreatedId(null);
+      setUploads([]);
       setDraft(emptyCaseDraft());
-      setFile(null);
       setAnalysis(null);
       setSourceError("");
       setAIError("");
@@ -204,14 +306,14 @@ export function AddCaseDialog({
     >
       <DialogTrigger render={<Button disabled={disabled} />}>
         <PlusIcon data-icon="inline-start" aria-hidden="true" />
-        Add case
+        {caseId ? "Add documents" : "Add case"}
       </DialogTrigger>
       <DialogContent
         className="max-h-[92dvh] overflow-y-auto sm:max-w-[620px]"
         showCloseButton={!busy}
       >
         <DialogHeader>
-          <DialogTitle>Add a case</DialogTitle>
+          <DialogTitle>{caseId ? "Add documents" : "Add a case"}</DialogTitle>
           <DialogDescription>
             Start with a source. Read it with AI or enter the details yourself,
             then review before saving.
@@ -243,7 +345,7 @@ export function AddCaseDialog({
                       Paste text
                     </TabsTrigger>
                     <TabsTrigger value="file" disabled={busy}>
-                      Upload file
+                      Upload files
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -265,12 +367,13 @@ export function AddCaseDialog({
                       aria-describedby="case-source-help"
                     />
                     <FieldDescription id="case-source-help">
-                      {fields.text.length.toLocaleString()} / 50,000 characters.
-                      The original text is preserved when you confirm.
+                      {fields.text.length.toLocaleString()} / 500,000
+                      characters. The original text is preserved when you
+                      confirm.
                     </FieldDescription>
                     {tooLong && (
                       <FieldError>
-                        Source text exceeds 50,000 characters. Split it into
+                        Source text exceeds 500,000 characters. Split it into
                         smaller documents.
                       </FieldError>
                     )}
@@ -284,8 +387,11 @@ export function AddCaseDialog({
                       id="case-file"
                       hidden
                       type="file"
+                      multiple
                       accept=".txt,.md,.pdf"
-                      onChange={(e) => chooseFile(e.target.files?.[0])}
+                      onChange={(e) =>
+                        chooseFiles(Array.from(e.target.files ?? []))
+                      }
                       aria-invalid={!!sourceError}
                       aria-describedby="case-file-help"
                     />
@@ -301,30 +407,40 @@ export function AddCaseDialog({
                       onDrop={(event) => {
                         event.preventDefault();
                         if (busyRef.current) return;
-                        if (event.dataTransfer.files.length !== 1) {
-                          setSourceError("Choose one file per case.");
-                          return;
-                        }
-                        chooseFile(event.dataTransfer.files[0]);
+                        chooseFiles(Array.from(event.dataTransfer.files));
                       }}
                     >
                       <FileUpIcon data-icon="inline-start" aria-hidden="true" />
                       <span className="max-w-full truncate">
-                        {file ? file.name : "Choose a file or drag it here"}
+                        {uploads.length
+                          ? `${uploads.length} document(s) selected`
+                          : "Choose files or drag them here"}
                       </span>
                       <span className="text-xs font-normal">
                         .txt, .md, or text-based .pdf
                       </span>
                     </Button>
-                    {file && (
-                      <FieldDescription className="wrap-anywhere">
-                        Selected: {file.name} ({(file.size / 1000).toFixed(1)}{" "}
-                        KB)
-                      </FieldDescription>
+                    {uploads.length > 0 && (
+                      <ul
+                        className="flex flex-col gap-2 text-sm"
+                        aria-live="polite"
+                      >
+                        {uploads.map((item) => (
+                          <li key={item.key} className="wrap-anywhere">
+                            {item.file.name} ·{" "}
+                            {(item.file.size / 1000).toFixed(1)} KB ·{" "}
+                            {item.state}
+                            {item.error && (
+                              <p className="text-destructive">{item.error}</p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                     <FieldDescription id="case-file-help">
-                      Up to 5 MB and 50,000 extracted characters. Scanned PDFs
-                      and image interpretation are not supported.
+                      Up to 50 documents, 5 MB and 500,000 extracted characters
+                      per document. Scanned PDFs and image interpretation are
+                      not supported.
                     </FieldDescription>
                     {sourceError && <FieldError>{sourceError}</FieldError>}
                   </Field>
@@ -334,7 +450,16 @@ export function AddCaseDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={busy || !sourceReady}
+                  disabled={
+                    busy ||
+                    !sourceReady ||
+                    !!caseId ||
+                    (mode === "file" &&
+                      (uploads.length !== 1 ||
+                        (file?.size ?? 0) > 4_000_000)) ||
+                    (mode === "text" &&
+                      fields.text.length > MAX_AI_SOURCE_CHARS)
+                  }
                   onClick={readSource}
                 >
                   {reading ? (
@@ -353,9 +478,13 @@ export function AddCaseDialog({
                       : "Read with AI"}
                 </Button>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Sends source text to OpenAI to suggest the fields below. AI
-                  use is billed to the project's API account. You can also fill
-                  the fields manually.
+                  Reads one source up to 50,000 characters. For files above 4
+                  MB, enter fields manually; full 5 MB uploads remain available.
+                  Multi-file uploads use manual case fields for now. Sends
+                  source text to OpenAI. For files above 4 MB, fill the fields
+                  manually; the full 5 MB upload remains available. AI use is
+                  billed to the project's API account. You can also fill the
+                  fields manually.
                 </p>
               </div>
             </FieldGroup>
@@ -414,7 +543,7 @@ export function AddCaseDialog({
           >
             Review case details
           </h3>
-          <FieldSet disabled={busy}>
+          <FieldSet disabled={busy || !!caseId} hidden={!!caseId}>
             <FieldGroup>
               {SUGGESTION_FIELDS.map((field) => {
                 const suggestion = analysis?.suggestions[field];
@@ -506,14 +635,14 @@ export function AddCaseDialog({
           )}
           {pending && (
             <p aria-live="polite" className="text-sm text-muted-foreground">
-              Storing the original and processing its text. Keep this dialog
-              open.
+              Storing originals. Processing resumes in Case library. Keep this
+              dialog open.
             </p>
           )}
           <p className="text-xs text-muted-foreground">
             AI suggestions and quotes are kept separately from your final edits
-            when you confirm. Unfinished sources and form edits are lost on
-            refresh.
+            when you confirm. Uploaded documents survive refresh; pending local
+            files and unsaved form edits need to be supplied again.
           </p>
           <Separator />
           <div className="flex flex-wrap justify-end gap-3">
@@ -527,7 +656,9 @@ export function AddCaseDialog({
             </Button>
             <Button
               type="submit"
-              disabled={busy || !fields.title.trim() || !sourceReady}
+              disabled={
+                busy || (!caseId && !fields.title.trim()) || !sourceReady
+              }
             >
               {pending && (
                 <LoaderCircleIcon
@@ -536,7 +667,11 @@ export function AddCaseDialog({
                   aria-hidden="true"
                 />
               )}
-              {pending ? "Adding case…" : "Confirm & add case"}
+              {pending
+                ? "Uploading…"
+                : caseId
+                  ? "Add documents"
+                  : "Confirm & add case"}
             </Button>
           </div>
         </form>
