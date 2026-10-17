@@ -1,3 +1,5 @@
+import { requestDocumentContext } from "@/features/query-files/server/repository";
+import { FILE_ONLY_MESSAGE } from "@/features/query-files/types";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { checkDatabase, database } from "@/features/cases/server/db";
@@ -28,7 +30,15 @@ export async function processAssistantTurn(
   } = {},
 ) {
   const id = validId(String(input.requestKey ?? ""));
-  const message = queryText(input.message);
+  const previous = await queryDetail(conversationId, sessionId);
+  const hasPendingFiles = previous.files?.some(
+    (f) => f.enabled && !f.first_turn_id,
+  );
+  const message = queryText(
+    hasPendingFiles && !String(input.message ?? "").trim()
+      ? FILE_ONLY_MESSAGE
+      : input.message,
+  );
   if (
     !Number.isSafeInteger(input.contextRevision) ||
     Number(input.contextRevision) < 0
@@ -54,9 +64,11 @@ export async function processAssistantTurn(
   if (claim.data?.state !== "claimed")
     throw new ApiError(
       claim.data?.state === "missing" ? 404 : 409,
-      claim.data?.state === "context_changed"
-        ? "The case selection changed. Reopen this chat before sending."
-        : "Wren is already answering, or this turn cannot be retried. Reopen the chat to check progress.",
+      claim.data?.state === "files_pending"
+        ? "Finish reading the attached files, or explicitly exclude failed or incomplete files before sending."
+        : claim.data?.state === "context_changed"
+          ? "The case selection changed. Reopen this chat before sending."
+          : "Wren is already answering, or this turn cannot be retried. Reopen the chat to check progress.",
     );
   const conversation = await queryDetail(conversationId, sessionId);
   const turn = conversation.turns.find((t) => t.id === id);
@@ -84,6 +96,11 @@ export async function processAssistantTurn(
     const config = queryAIConfig();
     const model = dependencies.model ?? queryModel;
     const history = conversationContext(conversation, turn);
+    const requestDocuments = await requestDocumentContext(
+      turn.request_file_ids ?? [],
+      sessionId,
+      message,
+    );
     let catalogQuery = db
       .from("cases")
       .select("id,title,is_seed")
@@ -120,6 +137,7 @@ export async function processAssistantTurn(
     }
     const promptInput = {
       ...history,
+      requestDocuments,
       context,
       catalog,
       promptVersion: WREN_PROMPT_VERSION,
@@ -143,6 +161,7 @@ export async function processAssistantTurn(
       candidates: [],
       retrieval: { cases: [], mode: "keyword", warnings },
       evidence: [],
+      requestEvidence: requestDocuments.evidence,
     };
     if (plan.intent !== "search") {
       if (plan.intent === "clarify") work.clarification = plan.reply;
@@ -236,7 +255,7 @@ export async function processAssistantTurn(
         503,
         "Configure OPENAI_API_KEY on the server to chat with Wren. Keyword excerpts remain available below.",
       );
-    if (!evidence.length) {
+    if (!evidence.length && !requestDocuments.evidence.length) {
       await save({
         answer: {
           sections: [
@@ -263,6 +282,7 @@ export async function processAssistantTurn(
       ),
       evidence,
       true,
+      requestDocuments.evidence,
     );
     if (!(await evidenceIsCurrent(evidence, sessionId)))
       throw new ApiError(

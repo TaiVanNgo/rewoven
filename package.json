@@ -22,7 +22,7 @@
     "db:migrate": "supabase migration up --local",
     "db:seed": "bun --env-file=.env.local scripts/seed-cases.ts",
     "db:seed:production": "bun scripts/seed-cases.ts --production",
-    "test:integration": "bun --env-file=.env.local test ./tests/library.integration.ts ./tests/ai-reading.integration.ts ./tests/multi-source.integration.ts ./tests/case-reading.integration.ts ./tests/overview.integration.ts ./tests/sample-catalog.integration.ts ./tests/queries.integration.ts ./tests/assistant.integration.ts ./tests/citations.integration.ts ./tests/plans.integration.ts",
+    "test:integration": "bun --env-file=.env.local test ./tests/library.integration.ts ./tests/ai-reading.integration.ts ./tests/multi-source.integration.ts ./tests/case-reading.integration.ts ./tests/overview.integration.ts ./tests/sample-catalog.integration.ts ./tests/queries.integration.ts ./tests/assistant.integration.ts ./tests/citations.integration.ts ./tests/plans.integration.ts ./tests/query-files.integration.ts",
     "test:ai:live": "bun --env-file=.env.local test ./tests/ai-reading.live.ts",
     "db:backfill": "bun --conditions=react-server --env-file=.env.local scripts/backfill-sources.ts",
     "test:retrieval:live": "bun --conditions=react-server --env-file=.env.local scripts/evaluate-retrieval.ts --live",

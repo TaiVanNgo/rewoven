@@ -17,7 +17,7 @@ import {
   CitationMarker,
   CitationProvider,
 } from "@/features/citations/citation-marker";
-import { passageCitation } from "@/features/citations/types";
+import { passageCitation, requestCitation } from "@/features/citations/types";
 import { referencedSources, validateMarkdown } from "./content";
 import type { PlanBrief, ReusePlan } from "./types";
 import "./plans.css";
@@ -552,6 +552,25 @@ export function PlanEditor({ id }: { id: string }) {
                 </div>
               )}
               <ul className="mt-4 flex flex-col gap-4">
+                {(
+                  plan.request_evidence ??
+                  plan.snapshot.requestDocuments?.evidence ??
+                  []
+                ).map((e, i) => (
+                  <li key={e.id}>
+                    <CitationMarker
+                      reference={requestCitation(e)}
+                      number={plan.evidence.length + i + 1}
+                    />
+                    <span className="ml-2 text-sm">
+                      Request document — {e.title}
+                      {e.page ? `, page ${e.page}` : ""}
+                    </span>
+                    <blockquote className="mt-2 border-l-2 border-knowledge-ink pl-3 text-sm whitespace-pre-wrap text-muted-foreground">
+                      {e.text}
+                    </blockquote>
+                  </li>
+                ))}
                 {plan.evidence.map((e, i) => (
                   <li key={e.id}>
                     <CitationMarker

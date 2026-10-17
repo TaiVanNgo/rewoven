@@ -1,3 +1,4 @@
+import { requestDocumentContext } from "@/features/query-files/server/repository";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { checkDatabase, database } from "@/features/cases/server/db";
@@ -133,6 +134,11 @@ export async function processPlan(
           409,
           "Review the project request before generating.",
         );
+      const requestDocuments = await requestDocumentContext(
+        plan.snapshot.requestDocuments?.documents.map((d) => d.id) ?? [],
+        sessionId,
+        request.request,
+      );
       const retrieval = await (dependencies.retrieve ?? retrieveAssistant)(
         [
           [
@@ -160,11 +166,16 @@ export async function processPlan(
             ]
           : []),
       ];
-      await save({ evidence, warnings });
+      await save({
+        evidence,
+        warnings,
+        request_evidence: requestDocuments.evidence,
+      });
       const generated = evidence.length
         ? validateGenerated(
             await call("reuse_plan", {
               request,
+              requestDocuments,
               evidence,
               coverageWarnings: warnings,
             }),

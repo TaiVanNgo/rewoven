@@ -123,6 +123,10 @@ file_size_limit = "50MiB"
 public = false
 file_size_limit = "5MB"
 
+[storage.buckets.query-files]
+public = false
+file_size_limit = "5MB"
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true

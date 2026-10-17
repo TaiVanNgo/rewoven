@@ -1,4 +1,8 @@
-import { citationHref, passageCitation } from "@/features/citations/types";
+import {
+  citationHref,
+  passageCitation,
+  requestCitation,
+} from "@/features/citations/types";
 import type { Evidence } from "@/features/queries/types";
 import { requestInput } from "@/features/queries/validation";
 import {
@@ -176,6 +180,24 @@ export function exportMarkdown(plan: ReusePlan, origin: string) {
     throw new Error("Save this plan before exporting.");
   const brief = plan.confirmed_request;
   const refs = referencedSources(plan.saved_markdown, plan.evidence);
+  const requestSources = (
+    plan.request_evidence ??
+    plan.snapshot.requestDocuments?.evidence ??
+    []
+  )
+    .map(
+      (item, index) => `### R${index + 1}: ${escapeMarkdown(item.title)}
+
+Request document, version ${item.version}${item.page ? `, physical page ${item.page}` : ""}. Describes proposed work.
+
+${item.text
+  .split("\n")
+  .map((line) => `> ${escapeMarkdown(line)}`)
+  .join("\n")}
+
+[Open request document](${origin}${citationHref(requestCitation(item))})`,
+    )
+    .join("\n\n");
   return `# ${escapeMarkdown(plan.saved_title ?? plan.title)}\n\n${plan.kind === "clarification" ? "Clarification draft — no suitable precedent found." : "Reuse plan — draft for human review."}\n\nUser-edited content is not automatically reverified against its sources.\n\n## Confirmed request\n\n${escapeMarkdown(brief.request)}\n\n${(
     ["deadline", "technology", "capabilities", "questions"] as const
   )
@@ -193,5 +215,7 @@ export function exportMarkdown(plan: ReusePlan, origin: string) {
             "\n",
           )}\n\n[Open source S${number}](${origin}${citationHref(passageCitation(item))})`,
     )
-    .join("\n\n")}\n\n${sourceDefinitions(plan.evidence, origin)}\n`;
+    .join(
+      "\n\n",
+    )}\n\n${sourceDefinitions(plan.evidence, origin)}\n${requestSources ? `\n## Request document references\n\n${requestSources}\n` : ""}`;
 }

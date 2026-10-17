@@ -9,6 +9,35 @@ const config = {
   sessionLimit: 50,
   dailyLimit: 100,
 };
+test("mixed answers constrain model citations to original historical and request excerpts", async () => {
+  await queryModel(
+    "assistant_answer",
+    {
+      evidence: [{ id: "e1" }],
+      requestDocuments: {
+        documents: [{ findings: [{ evidence: ["summary-only"] }] }],
+        evidence: [{ id: "r_original" }],
+      },
+    },
+    config,
+    async (_url, init) => {
+      const payload = JSON.parse(String(init.body));
+      const refs =
+        payload.text.format.schema.properties.sections.items.properties
+          .evidence;
+      assert.deepEqual(refs.items.enum, ["e1", "r_original"]);
+      return Response.json({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: '{"sections":[]}' }],
+          },
+        ],
+      });
+    },
+  );
+});
 test("chat transport uses strict structured output and disables provider persistence", async () => {
   let payload: Record<string, unknown> = {};
   const result = await queryModel(
