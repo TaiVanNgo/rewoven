@@ -10,8 +10,12 @@ import {
   useEffect,
   useState,
 } from "react";
+import { Button } from "@/components/ui/button";
 import { caseApi } from "@/features/cases/api-client";
+import { cn } from "@/lib/utils";
 import type { QuerySummary } from "./types";
+
+const HISTORY_PAGE_SIZE = 8;
 
 const HistoryContext = createContext<{
   queries: QuerySummary[];
@@ -60,17 +64,24 @@ export function useQueryHistory() {
 }
 export function RecentQueries({ collapsed }: { collapsed: boolean }) {
   const { queries, error } = useQueryHistory();
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
   return (
     <section
       aria-label="Recent queries"
-      className={collapsed ? "hidden" : "flex flex-col gap-2"}
+      className={cn(
+        "flex min-h-0 flex-col gap-2 lg:flex-1",
+        collapsed && "hidden",
+      )}
     >
-      <h2 className="px-3 text-xs font-semibold text-muted-foreground">
+      <h2 className="shrink-0 px-3 text-xs font-semibold text-muted-foreground">
         Recent queries
       </h2>
       {queries.length ? (
-        <div className="max-h-56 overflow-y-auto">
-          {queries.map((query) => (
+        <div
+          id="recent-query-list"
+          className="max-h-80 min-h-0 overflow-y-auto lg:max-h-none lg:flex-1"
+        >
+          {queries.slice(0, visibleCount).map((query) => (
             <Link
               key={query.id}
               href={`/?query=${query.id}`}
@@ -91,6 +102,18 @@ export function RecentQueries({ collapsed }: { collapsed: boolean }) {
           {error ||
             "Your submitted queries will appear here for this demo session."}
         </p>
+      )}
+      {queries.length > visibleCount && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          aria-controls="recent-query-list"
+          onClick={() => setVisibleCount((count) => count + HISTORY_PAGE_SIZE)}
+        >
+          Load more
+        </Button>
       )}
     </section>
   );

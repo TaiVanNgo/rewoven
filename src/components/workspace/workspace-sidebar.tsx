@@ -47,12 +47,12 @@ export function WorkspaceSidebar() {
       animate={{ "--sidebar-width": collapsed ? "76px" : "270px" }}
       transition={reducedMotion ? { duration: 0 } : sidebarTransition}
       className={cn(
-        "flex shrink-0 flex-col justify-between rounded-workspace border border-border bg-card p-5 shadow-panel lg:sticky lg:top-shell lg:h-[calc(100dvh-56px)] lg:w-[var(--sidebar-width)] lg:self-start lg:overflow-y-auto",
+        "flex shrink-0 flex-col justify-between rounded-workspace border border-border bg-card p-5 shadow-panel lg:sticky lg:top-shell lg:h-[calc(100dvh-56px)] lg:w-[var(--sidebar-width)] lg:self-start lg:overflow-hidden",
         collapsed && "lg:p-3",
       )}
     >
-      <div className="flex shrink-0 flex-col gap-6">
-        <div className="flex flex-col gap-3">
+      <div className="flex min-h-0 flex-col gap-6 lg:flex-1">
+        <div className="flex shrink-0 flex-col gap-3">
           <div
             className={cn(
               "flex items-center justify-between",
@@ -100,7 +100,7 @@ export function WorkspaceSidebar() {
         <nav
           id="sidebar-navigation"
           aria-label="Main navigation"
-          className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1"
+          className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1"
         >
           {[
             { href: "/", label: "New chat", icon: FilePlus2Icon },
