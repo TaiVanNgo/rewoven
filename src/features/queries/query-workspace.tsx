@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/workspace/theme-toggle";
 import { caseApi } from "@/features/cases/api-client";
 import { useRequestDraft } from "@/features/requests/request-draft";
+import { AnswerText } from "./answer-text";
 import { CasePicker, type SelectedCase } from "./case-picker";
 import { CaseCard, Citation } from "./query-evidence";
 import { useQueryHistory } from "./query-history";
@@ -35,6 +36,7 @@ import {
   type QueryConversation,
   type QueryTurn,
 } from "./types";
+import { WrenMessage } from "./wren-message";
 
 const stages = {
   understanding: "Understanding your message…",
@@ -468,11 +470,7 @@ export function QueryWorkspace({
                     </p>
                   )}
                 </div>
-                <div className="query-wren-message">
-                  <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-knowledge-ink">
-                    <SparklesIcon className="size-3.5" aria-hidden="true" />
-                    Wren
-                  </p>
+                <WrenMessage>
                   {turn.answer?.sections.map((section, index) => (
                     <section
                       key={`${turn.id}-${index}`}
@@ -543,7 +541,7 @@ export function QueryWorkspace({
                         Retry this turn
                       </Button>
                     )}
-                </div>
+                </WrenMessage>
               </article>
             ))}
             {pending && latest?.status !== "processing" && (
@@ -553,13 +551,15 @@ export function QueryWorkspace({
                     {pendingMessage}
                   </p>
                 )}
-                <span className="flex items-center gap-2">
-                  <LoaderCircleIcon
-                    className="size-4 animate-spin motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
-                  Wren is understanding your message…
-                </span>
+                <WrenMessage>
+                  <span className="flex items-center gap-2">
+                    <LoaderCircleIcon
+                      className="size-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                    Wren is understanding your message…
+                  </span>
+                </WrenMessage>
               </div>
             )}
           </div>
@@ -752,28 +752,5 @@ export function QueryWorkspace({
         {welcome && <div className="wren-companion">{companion}</div>}
       </div>
     </div>
-  );
-}
-function AnswerText({ text }: { text: string }) {
-  const lines = text.split("\n");
-  if (
-    lines.length > 1 &&
-    lines.every((line) => !line.trim() || /^\s*(?:[-*•]|\d+[.)])\s+/.test(line))
-  )
-    return (
-      <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">
-        {lines
-          .filter((line) => line.trim())
-          .map((line, index) => (
-            <li key={`${index}-${line}`} className="wrap-anywhere">
-              {line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")}
-            </li>
-          ))}
-      </ul>
-    );
-  return (
-    <p className="text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap">
-      {text}
-    </p>
   );
 }

@@ -35,6 +35,7 @@
   --approval-ink: #4f4687;
   --knowledge: #e0ebd4;
   --knowledge-ink: #324522;
+  --wren-emphasis: var(--knowledge-ink);
 }
 
 .dark {

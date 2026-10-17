@@ -49,11 +49,48 @@
   background: var(--secondary);
   font-size: 0.875rem;
 }
-.query-wren-message {
+.query-wren-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
   min-width: 0;
-  padding: 1rem;
+}
+.query-wren-avatar {
+  flex: 0 0 2.25rem;
+  height: 2.25rem;
+  margin-top: 0.25rem;
+  padding: 0.125rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--muted);
+}
+.query-wren-message {
+  flex: 1;
+  min-width: 0;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--border);
   border-radius: 0.25rem 1rem 1rem;
   background: var(--muted);
+}
+.query-answer-text {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.query-wren-message strong {
+  color: var(--wren-emphasis);
+  font-weight: 600;
+}
+.query-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+ol.query-answer-list {
+  list-style-type: decimal;
 }
 .query-answer-section + .query-answer-section {
   margin-top: 1.125rem;
@@ -144,6 +181,19 @@
   }
   .query-user-message {
     max-width: 100%;
+  }
+  .query-wren-row {
+    gap: 0.5rem;
+  }
+  .query-wren-avatar {
+    flex-basis: 1.875rem;
+    height: 1.875rem;
+  }
+  .query-wren-message {
+    padding: 0.875rem;
+  }
+  .query-answer-text {
+    font-size: 0.875rem;
   }
   .query-intent {
     padding: 0.875rem;

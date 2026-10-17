@@ -17,6 +17,14 @@ The case picker references existing cases; it does not upload or duplicate docum
 
 **Ask Wren about this case** on a case page opens a new chat with that case attached. No answer is generated until you send a message. The first message names the saved conversation. A [brief Wren animation](wren-query-transition.md) accompanies its creation and ends when the saved chat opens, independently of answer generation. Follow-ups and reopened chats keep their normal processing indicators. Optional timeline, technology, and capability constraints can be supplied before sending. Enter sends; Shift + Enter inserts a line break. Unsubmitted drafts reset on reload.
 
+## Reply appearance and bold text
+
+Wren's portrait sits beside each reply in a softly bordered bubble, including loading and error states. Replies can highlight short phrases: for example, `Open **Case library** and attach your sources` displays **Case library** in bold with the theme's knowledge text color. Numbered steps and bullet lists support the same emphasis. User messages stay plain text.
+
+To customize just Wren's bold color, change `--wren-emphasis` in `src/app/globals.css`. It defaults to `var(--knowledge-ink)`, which already has light and dark theme values. For a different existing theme color, use `var(--approval-ink)`. This changes Wren's bold text without recoloring citations or other knowledge labels. Avoid using the bright primary fill as a text color on light surfaces.
+
+`src/features/queries/wren-message.tsx` owns the shared portrait and bubble. `query-workspace.css` controls their layout, spacing, and the `.query-wren-message strong` rule. `answer-text.tsx` turns paired `**` markers into semantic `<strong>` elements; React escapes the remaining text. It does not interpret HTML, Markdown links, code blocks, or general Markdown. The versioned assistant prompt permits selective emphasis for new responses; saved replies keep their original wording and only show emphasis if they already contain paired markers. The model chooses whether to emphasize a phrase, so not every response will contain bold text.
+
 ## Start and verify locally
 
 Preserve an existing `.env.local` and follow the README for local Supabase credentials. Use the Bun version recorded in `package.json`.
@@ -74,6 +82,8 @@ The 24-hour cookie-backed demo session isolates uploaded cases and conversations
 ## Verification and boundaries
 
 Unit tests cover selection validation, bounded plans, citation validation, conversational output, and fair evidence limits. Integration tests cover greeting without retrieval, multiple selected cases, evidence in an eighth document, more than three discovered cases, uploaded-versus-sample boundaries, ownership, context revisions, concurrency, retries, persistence, and missing-key recovery. Existing ingestion and legacy query tests remain part of the suite.
+
+Reply-rendering tests cover multiple bold phrases, older plain-text replies, unfinished markers, ordered and unordered lists, and literal HTML or links. Browser checks use mocked conversations to inspect the actual layout without paid model calls; they do not establish how often a live model will choose emphasis.
 
 Citation validation proves that an ID refers to an authorized original passage, not that every generated sentence is entailed by it. Model instruction-following and factual support still require evaluation against the originals. No complete-corpus coverage claim or calibrated confidence percentage is provided.
 
