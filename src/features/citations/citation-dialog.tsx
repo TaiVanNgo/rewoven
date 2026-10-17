@@ -46,7 +46,7 @@ export function CitationDialog({
       <DialogContent
         finalFocus={trigger}
         initialFocus={false}
-        className="max-h-[94dvh] overflow-y-auto sm:max-w-5xl"
+        className="max-h-[94dvh] [scrollbar-gutter:stable] overflow-y-auto sm:max-w-5xl"
       >
         <DialogHeader>
           <DialogTitle>

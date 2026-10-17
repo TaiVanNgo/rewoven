@@ -78,6 +78,8 @@ export default function PdfPage({
       void task?.destroy();
     };
   }, [url, revision]);
+  // Fit-to-width observes this viewport. Its scrollbar gutter must stay reserved
+  // while the loading placeholder replaces the taller PDF canvas below.
   useEffect(() => {
     if (!container.current) return;
     const observer = new ResizeObserver(([entry]) =>
@@ -237,7 +239,7 @@ export default function PdfPage({
       )}
       <div
         ref={container}
-        className="max-h-[60dvh] min-h-48 overflow-auto rounded-lg border border-border bg-muted"
+        className="max-h-[60dvh] min-h-48 [scrollbar-gutter:stable] overflow-auto rounded-lg border border-border bg-muted"
         aria-busy={!error && loading}
       >
         {!error && loading && (

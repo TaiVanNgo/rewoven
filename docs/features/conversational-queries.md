@@ -35,6 +35,18 @@ Markers are numbered by first appearance within each answer. Repeated evidence r
 
 A missing or changed version leaves the saved quote visible and explains why the document cannot be shown. Older references without a recorded version are explicitly unverified. If PDF rendering fails, the app refreshes temporary access once; extracted text and **Open original** remain available. PDF rendering opens the physical page but does not highlight coordinates inside the PDF; highlighting applies only to extracted text. It does not add OCR, reinterpret images, or prove that a quote entails Wren's answer.
 
+The PDF viewport and surrounding modal reserve space for their scrollbars while loading. This matters when scrollbars take up layout space: replacing a tall PDF with a short loading placeholder used to change the measured width, retrigger fit-to-width rendering, and repeat the loading cycle. The reserved gutters keep the available width stable.
+
+The browser regression in `tests/citations.browser.js` checks that a rendered page stays visible in Wren chat, including after page navigation, zoom, fit-to-width, mobile resizing, and reloading and reopening the chat citation. It also checks a case citation across a page reload. The chat response is mocked; source text and PDF bytes come from the real fictional sample. The test emulates classic scrollbar gutters so the loop is also detectable on Macs using overlay scrollbars. After starting the app and seeding the local samples with the commands below, run this optional check with Playwright CLI:
+
+```bash
+bunx @playwright/cli --session citation-regression open http://localhost:3000/case-library
+bunx @playwright/cli --session citation-regression run-code --filename tests/citations.browser.js
+bunx @playwright/cli --session citation-regression close
+```
+
+The first command opens a separate test browser; the second runs the regression against that browser's app origin; the third closes it. Use your server's port if it differs from 3000. Playwright CLI is fetched as a development tool and does not add a project dependency. The test opens existing fictional sources and makes no AI requests.
+
 ## Start and verify locally
 
 Preserve an existing `.env.local` and follow the README for local Supabase credentials. Use the Bun version recorded in `package.json`.
