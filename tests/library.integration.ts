@@ -169,6 +169,25 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
       (c: { title: string }) => c.title === "Harbor Route Planning Pilot",
     );
     assert.ok(seed);
+    for (const query of ["Har", "hArBoR route", "  Harbor  "]) {
+      const response = await api(
+        a,
+        `/api/cases?q=${encodeURIComponent(query)}`,
+      );
+      assert.equal(response.status, 200);
+      const matches = (await response.json()).cases;
+      assert.ok(
+        matches.some((c: { id: string }) => c.id === seed.id),
+        `Title search should match ${JSON.stringify(query)}`,
+      );
+    }
+    for (const query of ["Har%", "Har_or"]) {
+      const response = await api(
+        a,
+        `/api/cases?q=${encodeURIComponent(query)}`,
+      );
+      assert.equal((await response.json()).cases.length, 0);
+    }
     assert.equal(
       (await api(a, `/api/cases/${seed.id}/retry`, { method: "POST" })).status,
       403,
@@ -230,6 +249,12 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
       .cases;
     assert.ok(aMatches.some((c: { id: string }) => c.id === key));
     assert.equal(bMatches.length, 0);
+    const partialMatches = (await (await api(a, "/api/cases?q=narw")).json())
+      .cases;
+    assert.ok(partialMatches.some((c: { id: string }) => c.id === key));
+    const privateMatches = (await (await api(b, "/api/cases?q=narw")).json())
+      .cases;
+    assert.equal(privateMatches.length, 0);
     assert.equal((await create(a, { text: " " })).status, 400);
     assert.equal((await create(a, { text: "x".repeat(500_001) })).status, 400);
     for (const file of [

@@ -20,6 +20,14 @@ A blank outcome stays **Outcome not recorded**. The application does not invent 
 
 For the loading placeholders and request transitions, see [Understanding loading states and skeletons](loading-states.md).
 
+### Search by part of a title or source text
+
+Type `Har` into **Search cases and source text** to find **Harbor Route Planning Pilot**. After a short typing delay, the browser puts the query in `/case-library?q=Har` and requests `/api/cases?q=Har`. The server calls the database's `search_cases` function and returns matching cases.
+
+Search combines case-insensitive literal fragments with English keyword matching across case titles, overview text, and Ready source chunks. Leading and trailing spaces are ignored. For example, `narw` can find a source containing `narwhal`. Punctuation such as `%` and `_` is literal text, not a wildcard. Search still respects demo-session ownership and sample visibility. Non-empty searches include only Ready cases; clearing the search restores all accessible cases, including processing or failed additions.
+
+Apply migration `202610170007_case_library_partial_search.sql` with `bun run db:migrate` when updating an existing local database. Restarting the development server alone does not update database functions. Run `bun --env-file=.env.local test ./tests/library.integration.ts` with the app and local Supabase running to check partial titles, source fragments, and session isolation. This is keyword and fragment search; it does not correct typos or provide semantic matching in the library.
+
 ## How the pieces work together
 
 The **browser** handles typing, selection, the dialog, and progress feedback. The **Next.js server** validates requests, checks ownership, and processes documents. **Supabase** supplies two different services: a database for structured records and Storage for uploaded files.
