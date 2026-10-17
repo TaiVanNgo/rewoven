@@ -1,23 +1,22 @@
 "use client";
-import { ArrowUpRightIcon, FileTextIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { CitationDialog } from "@/features/citations/citation-dialog";
+import { CitationMarker } from "@/features/citations/citation-marker";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  type CitationReference,
+  citationKey,
+  citationNumbers,
+  findingCitation,
+} from "@/features/citations/types";
 import { AIReadingRecord } from "./ai-reading-record";
 import {
   OVERVIEW_KEYS,
   OVERVIEW_SECTIONS,
-  type OverviewEvidence,
   overviewStale,
 } from "./case-overview";
 import { CaseStatusBadge } from "./case-status";
@@ -35,8 +34,7 @@ export function CaseDetail({
 }) {
   const params = useSearchParams();
   const router = useRouter();
-  const [desktop, setDesktop] = useState(false);
-  const trigger = useRef<HTMLButtonElement | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
   const overview = record.overview;
   const selectedFinding = overview
     ? OVERVIEW_KEYS.flatMap((key) => overview.sections[key]).find(
@@ -44,18 +42,38 @@ export function CaseDetail({
       )
     : undefined;
   const selected = selectedFinding?.evidence[Number(params.get("ref") ?? 0)];
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 1280px)");
-    const update = () => setDesktop(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-  useEffect(() => {
-    if (params.get("source") && !params.get("finding"))
-      document.getElementById("original-sources")?.scrollIntoView();
-  }, [params]);
-  function inspect(id: string, index: number, button: HTMLButtonElement) {
+  const numbers = citationNumbers(
+    overview
+      ? OVERVIEW_KEYS.flatMap((key) =>
+          overview.sections[key].flatMap((finding) =>
+            finding.evidence.map((evidence) =>
+              findingCitation(evidence, record),
+            ),
+          ),
+        )
+      : [],
+  );
+  const linkedSource = record.sources.find(
+    (source) => source.id === params.get("source"),
+  );
+  const linked: CitationReference | null = linkedSource
+    ? {
+        caseId: record.id,
+        caseTitle: record.title,
+        sourceId: linkedSource.id,
+        sourceTitle: linkedSource.title,
+        version: params.has("version") ? Number(params.get("version")) : null,
+        page:
+          linkedSource.format === "pdf"
+            ? Number(params.get("page") ?? 1)
+            : null,
+        start: params.has("start") ? Number(params.get("start")) : undefined,
+        end: params.has("end") ? Number(params.get("end")) : undefined,
+        quote: params.get("quote") ?? "",
+      }
+    : null;
+  const activeReference = selected ? findingCitation(selected, record) : linked;
+  function inspect(id: string, index: number, button: HTMLElement) {
     trigger.current = button;
     const next = new URLSearchParams(params);
     next.set("finding", id);
@@ -66,6 +84,8 @@ export function CaseDetail({
     const next = new URLSearchParams(params);
     next.delete("finding");
     next.delete("ref");
+    for (const key of ["source", "page", "start", "end", "quote", "version"])
+      next.delete(key);
     router.replace(next.size ? `?${next}` : `/case-library/${record.id}`, {
       scroll: false,
     });
@@ -200,40 +220,31 @@ export function CaseDetail({
                             </span>
                           )}
                           <p className="leading-relaxed wrap-anywhere whitespace-pre-wrap">
-                            {finding.text}
+                            {finding.text}{" "}
+                            {!!finding.evidence.length && (
+                              <span className="inline-flex flex-wrap gap-1 align-middle">
+                                {finding.evidence.map((ref, index) => {
+                                  const reference = findingCitation(
+                                    ref,
+                                    record,
+                                  );
+                                  return (
+                                    <CitationMarker
+                                      key={`${ref.sourceId}-${index}`}
+                                      reference={reference}
+                                      number={
+                                        numbers.get(citationKey(reference)) ?? 1
+                                      }
+                                      href={`/case-library/${record.id}?finding=${finding.id}&ref=${index}`}
+                                      onOpen={(_reference, element) =>
+                                        inspect(finding.id, index, element)
+                                      }
+                                    />
+                                  );
+                                })}
+                              </span>
+                            )}
                           </p>
-                          {!!finding.evidence.length && (
-                            <div className="flex flex-wrap gap-2">
-                              {finding.evidence.map((ref, index) => (
-                                <Button
-                                  key={`${ref.sourceId}-${index}`}
-                                  variant="outline"
-                                  size="sm"
-                                  aria-label={`Inspect evidence ${index + 1} for ${finding.text.slice(0, 65)}`}
-                                  aria-pressed={
-                                    selectedFinding?.id === finding.id &&
-                                    Number(params.get("ref") ?? 0) === index
-                                  }
-                                  onClick={(e) =>
-                                    inspect(finding.id, index, e.currentTarget)
-                                  }
-                                >
-                                  <FileTextIcon
-                                    aria-hidden="true"
-                                    className="size-3.5"
-                                  />
-                                  <span className="max-w-48 truncate">
-                                    {ref.sourceTitle ?? "Source"}
-                                  </span>
-                                  {ref.page !== null && (
-                                    <span className="shrink-0">
-                                      p. {ref.page}
-                                    </span>
-                                  )}
-                                </Button>
-                              ))}
-                            </div>
-                          )}
                         </li>
                       ))}
                     </ul>
@@ -247,55 +258,12 @@ export function CaseDetail({
                 </section>
               ))}
             </div>
-            {desktop && selected && (
-              <aside
-                className="case-evidence-panel rounded-panel border border-border bg-muted p-5"
-                aria-label="Supporting source"
-              >
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <h2 className="font-heading font-bold">Supporting source</h2>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={close}
-                    aria-label="Close supporting source"
-                  >
-                    <XIcon aria-hidden="true" />
-                  </Button>
-                </div>
-                <EvidenceContent
-                  evidence={selected}
-                  record={record}
-                  claim={selectedFinding?.text ?? ""}
-                />
-              </aside>
-            )}
           </div>
-          <Dialog
-            open={!desktop && !!selected}
-            onOpenChange={(open) => {
-              if (!open) close();
-            }}
-          >
-            <DialogContent
-              className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
-              finalFocus={trigger}
-            >
-              <DialogHeader>
-                <DialogTitle>Supporting source</DialogTitle>
-                <DialogDescription>
-                  Check the original passage behind this finding.
-                </DialogDescription>
-              </DialogHeader>
-              {selected && (
-                <EvidenceContent
-                  evidence={selected}
-                  record={record}
-                  claim={selectedFinding?.text ?? ""}
-                />
-              )}
-            </DialogContent>
-          </Dialog>
+          <CitationDialog
+            reference={activeReference}
+            onClose={close}
+            trigger={trigger}
+          />
         </>
       ) : (
         <section
@@ -345,58 +313,14 @@ export function CaseDetail({
           />
         </div>
       </details>
+      {!overview && (
+        <CitationDialog
+          reference={activeReference}
+          onClose={close}
+          trigger={trigger}
+        />
+      )}
       {record.aiReview && <AIReadingRecord review={record.aiReview} />}
-    </div>
-  );
-}
-function EvidenceContent({
-  evidence,
-  record,
-  claim,
-}: {
-  evidence: OverviewEvidence;
-  record: CaseDetailRecord;
-  claim: string;
-}) {
-  const source = record.sources.find((s) => s.id === evidence.sourceId);
-  if (
-    !source ||
-    (evidence.sourceVersion !== undefined &&
-      source.version !== evidence.sourceVersion)
-  )
-    return (
-      <output>
-        This source version is unavailable. The reference has not been replaced.
-      </output>
-    );
-  return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <p className="text-sm text-muted-foreground">Finding: {claim}</p>
-      <h3 className="font-heading font-semibold wrap-anywhere">
-        {source.title}
-      </h3>
-      <p className="text-xs text-muted-foreground">
-        Version {source.version}
-        {evidence.page !== null
-          ? ` · Physical page ${evidence.page}`
-          : " · Text excerpt"}
-      </p>
-      <blockquote className="rounded-card border-l-4 border-primary bg-card p-4 leading-relaxed wrap-anywhere whitespace-pre-wrap">
-        “{evidence.quote}”
-      </blockquote>
-      <a
-        className={buttonVariants({ variant: "outline" })}
-        href={`/api/sources/${source.id}/original${evidence.page === null ? "" : `#page=${evidence.page}`}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open original{evidence.page === null ? "" : ` · Page ${evidence.page}`}
-        <ArrowUpRightIcon aria-hidden="true" className="size-4" />
-      </a>
-      <p className="text-xs text-muted-foreground">
-        The quote matches the source text. Check whether it supports the finding
-        and its scope.
-      </p>
     </div>
   );
 }

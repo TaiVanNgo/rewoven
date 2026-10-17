@@ -25,6 +25,16 @@ To customize just Wren's bold color, change `--wren-emphasis` in `src/app/global
 
 `src/features/queries/wren-message.tsx` owns the shared portrait and bubble. `query-workspace.css` controls their layout, spacing, and the `.query-wren-message strong` rule. `answer-text.tsx` turns paired `**` markers into semantic `<strong>` elements; React escapes the remaining text. It does not interpret HTML, Markdown links, code blocks, or general Markdown. The versioned assistant prompt permits selective emphasis for new responses; saved replies keep their original wording and only show emphasis if they already contain paired markers. The model chooses whether to emphasize a phrase, so not every response will contain bold text.
 
+## Inspect an inline citation
+
+For example, ask Wren about Harbor's pilot, then hover a numbered marker such as **[1]**. The preview shows the case, document, saved version, physical PDF page, and the original quote. Focusing the marker with the keyboard shows the same preview. Hovering reads evidence already loaded with the answer; it does not fetch a document or call AI.
+
+Click or press Enter to open the source modal without leaving the conversation. PDFs open at the cited physical page. Use **Previous page**, **Next page**, the page input (Enter or blur applies it), zoom, and **Fit to width** to inspect the document. **Extracted text** shows a bounded passage of surrounding text with the citation highlighted. Text and Markdown sources open that text view directly. The saved quote remains above the viewer. **Open original** opens the retained file in a new tab; Escape closes the modal and returns focus to the citation.
+
+Markers are numbered by first appearance within each answer. Repeated evidence reuses its number; additional passages in **Cases and evidence** continue that answer's numbering. Citations support the existing answer section or list as a whole, rather than establishing separate evidence for each sentence or list item. Restored conversations derive the same numbers from their saved evidence.
+
+A missing or changed version leaves the saved quote visible and explains why the document cannot be shown. Older references without a recorded version are explicitly unverified. If PDF rendering fails, the app refreshes temporary access once; extracted text and **Open original** remain available. PDF rendering opens the physical page but does not highlight coordinates inside the PDF; highlighting applies only to extracted text. It does not add OCR, reinterpret images, or prove that a quote entails Wren's answer.
+
 ## Start and verify locally
 
 Preserve an existing `.env.local` and follow the README for local Supabase credentials. Use the Bun version recorded in `package.json`.
@@ -56,6 +66,10 @@ Build first: the production server serves the generated build rather than compil
 
 The homepage remains a Next.js Server Component. Its Client Component chat owns typing, modal selection, and interaction. A Suspense boundary contains URL-based chat restoration. The browser sends message text and a context revision; the server loads the trusted session, conversation history, selection, and source passages itself.
 
+- `src/features/citations/types.ts` adapts saved passages and case findings into one reference shape and assigns stable display numbers. Persisted evidence and AI output stay unchanged.
+- `src/features/citations/citation-marker.tsx` handles accessible previews and opening one shared modal. `citation-dialog.tsx` requests source context only after opening. These small interactive components are Client Components; the homepage stays a Server Component.
+- `src/features/citations/server/preview.ts` checks session access and the saved source version, locates the quote, and returns bounded text plus a 60-second signed PDF URL through `GET /api/sources/[id]/preview`. PDF bytes load directly from private Supabase storage, avoiding a server response containing the complete file. An expired session cannot obtain another URL; an already issued URL remains usable until it expires.
+- `scripts/prepare-pdf-assets.ts` copies the installed PDF.js worker, fonts, character maps, and decoding assets into ignored, versioned `public/pdfjs/` files before `bun run dev` or `bun run build`. The renderer is imported only when the PDF view opens and renders one page at a time. No external PDF viewer or worker CDN is used.
 - `src/features/queries/server/assistant-prompt.ts` holds the versioned, built-in Wren role and output schemas. Greetings and clarification can be uncited. Facts, interpretations, and recommendations must reference server-supplied evidence IDs.
 - `src/features/queries/server/process-assistant.ts` claims a turn, reserves its generation budget, classifies intent, retrieves evidence when needed, checks for missing evidence, validates the answer, and saves it. Status reflects actual understanding, review, and answer stages. Replies appear complete after validation.
 - `src/features/queries/server/assistant-retrieval.ts` searches authorized original chunks across all Ready source documents. Separate selected-case searches and an interleaved evidence budget prevent one large case from crowding out a comparison. Case overviews and previous answers do not substitute for original evidence.
@@ -84,6 +98,8 @@ The 24-hour cookie-backed demo session isolates uploaded cases and conversations
 Unit tests cover selection validation, bounded plans, citation validation, conversational output, and fair evidence limits. Integration tests cover greeting without retrieval, multiple selected cases, evidence in an eighth document, more than three discovered cases, uploaded-versus-sample boundaries, ownership, context revisions, concurrency, retries, persistence, and missing-key recovery. Existing ingestion and legacy query tests remain part of the suite.
 
 Reply-rendering tests cover multiple bold phrases, older plain-text replies, unfinished markers, ordered and unordered lists, and literal HTML or links. Browser checks use mocked conversations to inspect the actual layout without paid model calls; they do not establish how often a live model will choose emphasis.
+
+The inline-citation update passed 81 unit tests, all 13 local API/database integration tests, lint, formatting, type checking, and a production build. Production-browser checks covered numbered and repeated references in saved chats, supporting excerpts, hover/focus previews, keyboard activation and focus restoration, preserved chat scroll, PDF page entry/navigation and zoom, a single access refresh, rendering failure with readable text, stale versions, and touch interaction at 390px in light/dark themes. These checks used real sample documents and a mocked saved chat, without paid AI calls.
 
 Citation validation proves that an ID refers to an authorized original passage, not that every generated sentence is entailed by it. Model instruction-following and factual support still require evaluation against the originals. No complete-corpus coverage claim or calibrated confidence percentage is provided.
 

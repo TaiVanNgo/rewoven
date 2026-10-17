@@ -42,3 +42,16 @@ test("model HTML and links remain inert text, including inside emphasis", () => 
   assert.match(html, /&lt;script&gt;/);
   assert.ok(html.includes("[link](javascript:alert(1))"));
 });
+
+test("section citations stay inside their paragraph or at the end of a complete list", () => {
+  const citations = createElement("a", { href: "/case-library/test" }, "[1]");
+  const paragraph = renderToStaticMarkup(
+    createElement(AnswerText, { text: "A supported finding.", citations }),
+  );
+  assert.match(paragraph, /A supported finding\. <a[^>]+>\[1\]<\/a><\/p>/);
+  const list = renderToStaticMarkup(
+    createElement(AnswerText, { text: "- First\n- Second", citations }),
+  );
+  assert.match(list, /<li>First<\/li><li>Second <a[^>]+>\[1\]<\/a><\/li>/);
+  assert.equal(list.match(/\[1\]/g)?.length, 1);
+});

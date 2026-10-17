@@ -14,6 +14,8 @@ To inspect the interface without Supabase, run `bun install --frozen-lockfile`, 
 
 Read the [Wren conversational assistant guide](docs/features/conversational-queries.md) for examples, the case picker, retrieval, system prompt, persistence, limits, and recovery.
 
+Citations use numbered markers: hover or keyboard-focus for source details, then open a modal at the cited PDF page or highlighted extracted text. The PDF renderer loads on demand. Development and builds prepare matching PDF.js assets locally. See the [citation walkthrough](docs/features/conversational-queries.md#inspect-an-inline-citation) for controls, source-version checks, and limitations.
+
 Read the [case overview guide](docs/features/case-overviews.md) for the dedicated case page, structured AI review, manual corrections, and safe sample replacement.
 
 Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases and submitted conversations persist in a cookie-backed demo session for 24 hours; unsubmitted drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.

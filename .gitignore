@@ -15,3 +15,6 @@ SRS.md
 # Local browser verification artifacts
 .playwright-cli/
 output/playwright/
+
+# Generated from the installed PDF.js version before dev/build.
+public/pdfjs/

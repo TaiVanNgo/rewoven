@@ -1,35 +1,36 @@
 "use client";
 
-import { BookOpenIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { CitationMarker } from "@/features/citations/citation-marker";
+import {
+  citationKey,
+  citationNumbers,
+  passageCitation,
+} from "@/features/citations/types";
 import type { RetrievalResult } from "@/features/retrieval/types";
-import { type Evidence, evidenceHref } from "./types";
+import type { Evidence, QueryTurn } from "./types";
 
-export function Citation({ evidence }: { evidence: Evidence }) {
-  if (evidence.stale)
-    return (
-      <Link
-        href={`/case-library/${evidence.case_id}`}
-        className="query-citation"
-      >
-        {evidence.source_title} · saved v{evidence.version} · inspect current
-        case
-      </Link>
-    );
+export function answerCitationNumbers(turn: QueryTurn) {
+  const evidence = turn.work?.evidence ?? [];
+  const ordered =
+    turn.answer?.sections.flatMap((section) =>
+      section.evidence.flatMap((id) =>
+        evidence.filter((item) => item.id === id),
+      ),
+    ) ?? [];
+  return citationNumbers([...ordered, ...evidence].map(passageCitation));
+}
+
+export function Citation({
+  evidence,
+  number,
+}: {
+  evidence: Evidence;
+  number: number;
+}) {
   return (
-    <Link
-      href={evidenceHref(evidence)}
-      className="query-citation"
-      title={evidence.text}
-    >
-      <BookOpenIcon className="size-3 shrink-0" aria-hidden="true" />
-      <span className="wrap-anywhere">
-        {evidence.source_title}
-        {evidence.page_number ? ` · p. ${evidence.page_number}` : ""} · v
-        {evidence.version}
-      </span>
-    </Link>
+    <CitationMarker reference={passageCitation(evidence)} number={number} />
   );
 }
 export function CaseCard({
@@ -40,6 +41,7 @@ export function CaseCard({
   reason,
   onFocus,
   onRelated,
+  numbers,
 }: {
   record: RetrievalResult["cases"][number];
   rank: number;
@@ -48,6 +50,7 @@ export function CaseCard({
   reason?: string;
   onFocus: () => void;
   onRelated: () => void;
+  numbers: Map<string, number>;
 }) {
   return (
     <article className="query-case-card" data-focused={focused}>
@@ -75,13 +78,18 @@ export function CaseCard({
               <p className="max-h-44 overflow-y-auto text-xs leading-relaxed wrap-anywhere whitespace-pre-wrap">
                 {passage.text}
               </p>
-              <Link
-                href={evidenceHref(passage)}
-                className="mt-2 block text-xs font-semibold text-knowledge-ink underline underline-offset-4"
-              >
-                {passage.source_title} · v{passage.version}
-                {passage.page_number ? ` · p. ${passage.page_number}` : ""}
-              </Link>
+              <div className="mt-2 flex items-center gap-2">
+                <CitationMarker
+                  reference={passageCitation(passage)}
+                  number={
+                    numbers.get(citationKey(passageCitation(passage))) ?? 1
+                  }
+                />
+                <span className="text-xs text-muted-foreground">
+                  {passage.source_title}
+                  {passage.page_number ? ` · p. ${passage.page_number}` : ""}
+                </span>
+              </div>
             </blockquote>
           ))}
         </div>

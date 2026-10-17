@@ -25,10 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/workspace/theme-toggle";
 import { caseApi } from "@/features/cases/api-client";
+import { CitationProvider } from "@/features/citations/citation-marker";
+import { citationKey, passageCitation } from "@/features/citations/types";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { AnswerText } from "./answer-text";
 import { CasePicker, type SelectedCase } from "./case-picker";
-import { CaseCard, Citation } from "./query-evidence";
+import { answerCitationNumbers, CaseCard, Citation } from "./query-evidence";
 import { useQueryHistory } from "./query-history";
 import {
   type ChatContext,
@@ -43,7 +45,17 @@ const stages = {
   reviewing: "Reviewing case evidence…",
   answering: "Preparing your reply…",
 };
-export function QueryWorkspace({
+export function QueryWorkspace(
+  props: Parameters<typeof QueryWorkspaceContent>[0],
+) {
+  return (
+    <CitationProvider>
+      <QueryWorkspaceContent {...props} />
+    </CitationProvider>
+  );
+}
+
+function QueryWorkspaceContent({
   id,
   initialCaseId,
   companion,
@@ -453,97 +465,116 @@ export function QueryWorkspace({
                 </div>
               </div>
             )}
-            {conversation?.turns.map((turn) => (
-              <article key={turn.id} className="flex flex-col gap-4">
-                <div className="query-user-message">
-                  <p className="mb-1 text-xs font-semibold text-muted-foreground">
-                    You
-                  </p>
-                  <p className="wrap-anywhere whitespace-pre-wrap">
-                    {turn.message}
-                  </p>
-                  {turn.context_snapshot && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {turn.context_snapshot.mode === "selected"
-                        ? `${turn.context_snapshot.caseIds.length} attached case(s)`
-                        : "My uploaded cases"}
+            {conversation?.turns.map((turn) => {
+              const numbers = answerCitationNumbers(turn);
+              return (
+                <article key={turn.id} className="flex flex-col gap-4">
+                  <div className="query-user-message">
+                    <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                      You
                     </p>
-                  )}
-                </div>
-                <WrenMessage>
-                  {turn.answer?.sections.map((section, index) => (
-                    <section
-                      key={`${turn.id}-${index}`}
-                      className="query-answer-section"
-                      data-kind={section.kind}
-                    >
-                      {section.heading && (
-                        <h3 className="mb-1 text-sm font-semibold">
-                          {section.heading}
-                        </h3>
-                      )}
-                      {section.kind === "recommendation" && (
-                        <p className="mb-1 text-xs text-knowledge-ink">
-                          Suggested application
-                        </p>
-                      )}
-                      {section.kind === "inference" && (
-                        <p className="mb-1 text-xs text-muted-foreground">
-                          Wren’s interpretation
-                        </p>
-                      )}
-                      <AnswerText text={section.text} />
-                      {!!section.evidence.length && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {section.evidence.map((evidenceId) => {
-                            const evidence = turn.work?.evidence.find(
-                              (e) => e.id === evidenceId,
-                            );
-                            return evidence ? (
-                              <Citation key={evidenceId} evidence={evidence} />
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-                    </section>
-                  ))}
-                  {turn.work?.evidence.some((e) => e.stale) && (
-                    <p className="mt-3 text-xs text-caution-foreground">
-                      Some sources have changed. Inspect the current case before
-                      reusing this saved answer.
+                    <p className="wrap-anywhere whitespace-pre-wrap">
+                      {turn.message}
                     </p>
-                  )}
-                  {turn.error_message && (
-                    <Alert variant="caution">
-                      <AlertDescription>{turn.error_message}</AlertDescription>
-                    </Alert>
-                  )}
-                  {turn.status === "processing" && (
-                    <output className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <LoaderCircleIcon
-                        aria-hidden="true"
-                        className="size-4 animate-spin motion-reduce:animate-none"
-                      />
-                      {processing
-                        ? stages[turn.phase ?? "understanding"]
-                        : "This turn was interrupted. Retry to resume."}
-                    </output>
-                  )}
-                  {turn.id === latest?.id &&
-                    turn.status !== "ready" &&
-                    !busy && (
-                      <Button
-                        className="mt-3"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void send(turn.message, turn)}
-                      >
-                        Retry this turn
-                      </Button>
+                    {turn.context_snapshot && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {turn.context_snapshot.mode === "selected"
+                          ? `${turn.context_snapshot.caseIds.length} attached case(s)`
+                          : "My uploaded cases"}
+                      </p>
                     )}
-                </WrenMessage>
-              </article>
-            ))}
+                  </div>
+                  <WrenMessage>
+                    {turn.answer?.sections.map((section, index) => (
+                      <section
+                        key={`${turn.id}-${index}`}
+                        className="query-answer-section"
+                        data-kind={section.kind}
+                      >
+                        {section.heading && (
+                          <h3 className="mb-1 text-sm font-semibold">
+                            {section.heading}
+                          </h3>
+                        )}
+                        {section.kind === "recommendation" && (
+                          <p className="mb-1 text-xs text-knowledge-ink">
+                            Suggested application
+                          </p>
+                        )}
+                        {section.kind === "inference" && (
+                          <p className="mb-1 text-xs text-muted-foreground">
+                            Wren’s interpretation
+                          </p>
+                        )}
+                        <AnswerText
+                          text={section.text}
+                          citations={
+                            !!section.evidence.length && (
+                              <span className="inline-flex flex-wrap gap-1 align-middle">
+                                {section.evidence.map((evidenceId) => {
+                                  const evidence = turn.work?.evidence.find(
+                                    (e) => e.id === evidenceId,
+                                  );
+                                  return evidence ? (
+                                    <Citation
+                                      key={evidenceId}
+                                      evidence={evidence}
+                                      number={
+                                        numbers.get(
+                                          citationKey(
+                                            passageCitation(evidence),
+                                          ),
+                                        ) ?? 1
+                                      }
+                                    />
+                                  ) : null;
+                                })}
+                              </span>
+                            )
+                          }
+                        />
+                      </section>
+                    ))}
+                    {turn.work?.evidence.some((e) => e.stale) && (
+                      <p className="mt-3 text-xs text-caution-foreground">
+                        Some sources have changed. Inspect the current case
+                        before reusing this saved answer.
+                      </p>
+                    )}
+                    {turn.error_message && (
+                      <Alert variant="caution">
+                        <AlertDescription>
+                          {turn.error_message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {turn.status === "processing" && (
+                      <output className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <LoaderCircleIcon
+                          aria-hidden="true"
+                          className="size-4 animate-spin motion-reduce:animate-none"
+                        />
+                        {processing
+                          ? stages[turn.phase ?? "understanding"]
+                          : "This turn was interrupted. Retry to resume."}
+                      </output>
+                    )}
+                    {turn.id === latest?.id &&
+                      turn.status !== "ready" &&
+                      !busy && (
+                        <Button
+                          className="mt-3"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void send(turn.message, turn)}
+                        >
+                          Retry this turn
+                        </Button>
+                      )}
+                  </WrenMessage>
+                </article>
+              );
+            })}
             {pending && latest?.status !== "processing" && (
               <div aria-live="polite" className="text-sm text-muted-foreground">
                 {pendingMessage && pendingMessage !== latest?.message && (
@@ -724,6 +755,7 @@ export function QueryWorkspace({
             {work?.retrieval.cases.map((record, index) => (
               <CaseCard
                 key={record.id}
+                numbers={latest ? answerCitationNumbers(latest) : new Map()}
                 record={record}
                 rank={index + 1}
                 focused={context.caseIds.includes(record.id)}

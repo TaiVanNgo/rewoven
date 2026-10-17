@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 function InlineText({ text }: { text: string }) {
   return text
     .split(/(\*\*[^*\n]+\*\*)/g)
@@ -11,7 +13,13 @@ function InlineText({ text }: { text: string }) {
 }
 
 // Support only inline emphasis; React keeps all other model output as text.
-export function AnswerText({ text }: { text: string }) {
+export function AnswerText({
+  text,
+  citations,
+}: {
+  text: string;
+  citations?: ReactNode;
+}) {
   const lines = text.split("\n").filter((line) => line.trim());
   if (
     lines.length > 0 &&
@@ -25,6 +33,7 @@ export function AnswerText({ text }: { text: string }) {
         {lines.map((line, index) => (
           <li key={`${index}-${line}`}>
             <InlineText text={line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")} />
+            {index === lines.length - 1 && citations && <> {citations}</>}
           </li>
         ))}
       </List>
@@ -33,6 +42,7 @@ export function AnswerText({ text }: { text: string }) {
   return (
     <p className="query-answer-text whitespace-pre-wrap">
       <InlineText text={text} />
+      {citations && <> {citations}</>}
     </p>
   );
 }

@@ -18,14 +18,3 @@
 .case-narrative section {
   scroll-margin-top: 1.5rem;
 }
-@media (min-width: 80rem) {
-  .case-folio:has(.case-evidence-panel) {
-    grid-template-columns: minmax(0, 1fr) 320px;
-  }
-  .case-evidence-panel {
-    position: sticky;
-    top: 1.5rem;
-    max-height: calc(100dvh - 3rem);
-    overflow-y: auto;
-  }
-}

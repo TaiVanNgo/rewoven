@@ -4,7 +4,7 @@ Open **Case library**, search for `Harbor`, and open **Harbor Route Planning Pil
 
 Library cards wrap long titles and summaries within their boundaries, showing up to two title lines and three summary lines. Open a case to read the full text.
 
-Select a source button beside a finding. At desktop widths of 1280px and above, its quote appears beside the case. Smaller screens use a dialog; Escape closes it and returns focus to the citation. The inspector names the source version and physical PDF page and links to the original. A matching quote is evidence to inspect, not proof that an AI interpretation is correct.
+Hover or focus a numbered citation beside a finding for a source preview. Click or press Enter to inspect the cited PDF page or highlighted extracted text in a modal. Escape closes it and returns focus to the citation. A matching quote is evidence to inspect, not proof that an AI interpretation is correct.
 
 ## Set up and inspect
 
@@ -53,12 +53,26 @@ The flow is: original documents → page-aware extracted text → staged AI find
 | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | [case-overview.ts](../../src/features/cases/case-overview.ts)                         | Shared overview shape, section limits, review provenance, projections, and refresh detection. |
 | [server/case-reading.ts](../../src/features/cases/server/case-reading.ts)             | Saved reading stages, original-source synthesis, review, and atomic persistence.              |
-| [case-detail.tsx](../../src/features/cases/case-detail.tsx)                           | Case narrative, section links, evidence panel/dialog, and Sources.                            |
+| [case-detail.tsx](../../src/features/cases/case-detail.tsx)                           | Case narrative, section links, numbered citations, shared source modal, and Sources.          |
 | [case-workspace.tsx](../../src/features/cases/case-workspace.tsx)                     | One session and processing worker shared across library/detail navigation.                    |
 | [case_overviews migration](../../supabase/migrations/202610160004_case_overviews.sql) | Additive overview columns, optimistic locking, and sample activation.                         |
 | [sample-catalog.ts](../../scripts/sample-catalog.ts)                                  | Checksum and citation validation for the prepared samples.                                    |
 
 Search is stored in `?q=` and returned by **Back to case library**. Original links using `?case=...` forward to the dedicated route with their source, page, and character range. Source references inside overviews use `?finding=...&ref=...`, so reload and browser history can restore an inspector.
+
+## Inspect finding citations
+
+Hover or keyboard-focus **[1]** after a finding to see the case, source document, saved version, physical page, and supporting quote. Numbers follow first appearance across the overview; the same reference reuses its number. Click or press Enter to open the shared source modal on desktop or mobile. Escape closes it and restores focus.
+
+For example, open a Harbor finding and check its pilot result against the cited PDF page. PDFs open the original physical page, with page navigation, zoom, and fit controls. The **Extracted text** tab highlights the source quote within surrounding text. Markdown and text documents open extracted text directly. The saved quote stays visible above the viewer; **Open original** opens the retained file separately.
+
+Finding quotes do not always contain character offsets. The preview endpoint locates them using the same whitespace normalization used by evidence validation and maps the match back to original text positions. A quote that cannot be located stays visible separately, without highlighting unrelated text. Text context is bounded rather than loading an entire large document into the page.
+
+The viewer checks the finding's saved source version, falling back to the overview's source-version snapshot for older findings. An unknown version is labelled unverified; a mismatch never silently opens another version. Missing originals or PDF-rendering failures retain the extracted-text option when available. The PDF canvas preserves the original page colors in both themes. It opens the cited page but does not highlight the quote inside the PDF or add OCR.
+
+Existing `?finding=...&ref=...` and `?source=...&page=...&start=...&end=...` links remain usable and now open the modal. The **Sources** section still provides the existing ingestion status and source-text controls. Upload-review dialogs and the historical AI reading record retain their existing behavior.
+
+The shared components and authenticated preview API are explained in the [conversation guide](conversational-queries.md#how-the-feature-works). `bun run test` checks numbering, version adapters, exact locations, normalized quotes, blank pages, long quotes, and invalid locations. `bun run test:integration` includes source access, version guards, and private signed-file checks. Start the app with the [README's commands](../../README.md#quick-start) and inspect a sample case; no live AI request is needed to open its citations.
 
 ## Replacing the sample catalog
 
