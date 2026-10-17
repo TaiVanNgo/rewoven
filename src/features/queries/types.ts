@@ -1,3 +1,4 @@
+import type { QueryFile, RequestEvidence } from "@/features/query-files/types";
 import type { RequestDraft } from "@/features/requests/request-draft";
 import type { Passage, RetrievalResult } from "@/features/retrieval/types";
 
@@ -19,6 +20,7 @@ export type AnswerSection = {
 };
 export type QueryAnswer = { sections: AnswerSection[] };
 export type QueryWork = {
+  requestEvidence?: RequestEvidence[];
   searchQuery: string;
   focusTitle: string | null;
   retrieval: RetrievalResult;
@@ -28,6 +30,8 @@ export type QueryWork = {
   candidates: { id: string; title: string }[];
 };
 export type QueryTurn = {
+  request_file_ids?: string[] | null;
+  new_file_ids?: string[] | null;
   id: string;
   ordinal: number;
   message: string;
@@ -42,6 +46,7 @@ export type QueryTurn = {
   phase?: "understanding" | "reviewing" | "answering" | null;
 };
 export type QueryConversation = QuerySummary & {
+  files?: QueryFile[];
   assistant?: boolean;
   chat_context?: ChatContext;
   context_revision?: number;

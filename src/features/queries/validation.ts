@@ -75,6 +75,7 @@ export function validateAnswer(
   value: unknown,
   evidence: Evidence[],
   conversational = false,
+  requestEvidence: { id: string }[] = [],
 ): QueryAnswer {
   if (
     !value ||
@@ -87,7 +88,7 @@ export function validateAnswer(
     throw new QueryInputError(
       "Wren returned an invalid answer. Retry this turn.",
     );
-  const ids = new Set(evidence.map((item) => item.id));
+  const ids = new Set([...evidence, ...requestEvidence].map((item) => item.id));
   const sections = value.sections.map((section: unknown) => {
     if (!section || typeof section !== "object")
       throw new QueryInputError("Invalid answer section.");

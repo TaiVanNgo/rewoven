@@ -1,8 +1,13 @@
 import type { ChatContext, Evidence } from "@/features/queries/types";
+import type {
+  RequestDocumentContext,
+  RequestEvidence,
+} from "@/features/query-files/types";
 import type { RequestDraft } from "@/features/requests/request-draft";
 
 export type PlanBrief = RequestDraft & { title: string; questions: string };
 export type PlanSnapshot = {
+  requestDocuments?: RequestDocumentContext;
   context: ChatContext;
   originalRequest: RequestDraft;
   messages: string[];
@@ -29,6 +34,7 @@ export type GeneratedPlan = {
   }[];
 };
 export type ReusePlan = {
+  request_evidence?: RequestEvidence[];
   id: string;
   conversation_id: string;
   title: string;

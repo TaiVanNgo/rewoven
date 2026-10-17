@@ -2,9 +2,11 @@ import type {
   CaseOverview,
   OverviewEvidence,
 } from "@/features/cases/case-overview";
+import type { RequestEvidence } from "@/features/query-files/types";
 import type { Passage } from "@/features/retrieval/types";
 
 export type CitationReference = {
+  requestDocument?: boolean;
   caseId: string;
   caseTitle: string;
   sourceId: string;
@@ -70,6 +72,7 @@ export function findingCitation(
 
 export function citationKey(reference: CitationReference) {
   return JSON.stringify([
+    ...(reference.requestDocument ? ["request"] : []),
     reference.sourceId,
     reference.version,
     reference.page,
@@ -88,7 +91,24 @@ export function citationNumbers(references: CitationReference[]) {
   return numbers;
 }
 
+export function requestCitation(evidence: RequestEvidence): CitationReference {
+  return {
+    requestDocument: true,
+    caseId: evidence.conversationId,
+    caseTitle: "Request document",
+    sourceId: evidence.documentId,
+    sourceTitle: evidence.title,
+    version: evidence.version,
+    page: evidence.page,
+    start: evidence.start,
+    end: evidence.end > evidence.start ? evidence.end : undefined,
+    quote: evidence.text,
+  };
+}
 export function citationHref(reference: CitationReference) {
+  if (reference.requestDocument)
+    return `/api/query-files/${reference.sourceId}/original?version=${reference.version ?? 1}${reference.page ? `#page=${reference.page}` : ""}`;
+
   const query = new URLSearchParams({
     source: reference.sourceId,
     page: String(reference.page ?? 1),

@@ -1,3 +1,4 @@
+import { requestDocumentContext } from "@/features/query-files/server/repository";
 import "server-only";
 import { checkDatabase, database } from "@/features/cases/server/db";
 import { ApiError, validId } from "@/features/cases/server/http";
@@ -6,7 +7,7 @@ import { validateMarkdown } from "../content";
 import type { PlanSnapshot, PlanSummary, ReusePlan } from "../types";
 
 const fields =
-  "id,conversation_id,title,status,failed_stage,error_message,snapshot,brief,confirmed_request,kind,evidence,warnings,generated,generated_markdown,saved_markdown,saved_title,revision,saved_at,created_at,started_at";
+  "id,conversation_id,title,status,failed_stage,error_message,snapshot,request_evidence,brief,confirmed_request,kind,evidence,warnings,generated,generated_markdown,saved_markdown,saved_title,revision,saved_at,created_at,started_at";
 export async function activePlanSession(sessionId: string) {
   const result = await database()
     .from("demo_sessions")
@@ -100,7 +101,20 @@ export async function createPlan(
     messages.unshift(turn.message);
     count += turn.message.length;
   }
+  const enabledFiles = conversation.files?.filter((file) => file.enabled) ?? [];
+  if (
+    enabledFiles.some((file) => file.status !== "ready" || file.warnings.length)
+  )
+    throw new ApiError(
+      409,
+      "Finish reading or exclude incomplete request documents before drafting a plan.",
+    );
   const snapshot: PlanSnapshot = {
+    requestDocuments: await requestDocumentContext(
+      enabledFiles.map((f) => f.id),
+      sessionId,
+      messages.at(-1) ?? conversation.request.request,
+    ),
     context:
       conversation.chat_context ??
       (conversation.focused_case_id

@@ -1,3 +1,9 @@
+import { fileManifest } from "@/features/query-files/content";
+import {
+  documentError,
+  listQueryFiles,
+} from "@/features/query-files/server/repository";
+import { FILE_ONLY_MESSAGE } from "@/features/query-files/types";
 import "server-only";
 import { checkDatabase, database } from "@/features/cases/server/db";
 import { ApiError, validId } from "@/features/cases/server/http";
@@ -12,7 +18,7 @@ import type {
 import { requestInput } from "../validation";
 
 const turnFields =
-  "id,ordinal,message,scope,focused_case_id,status,work,answer,error_message,started_at,context_snapshot,phase";
+  "id,ordinal,message,scope,focused_case_id,status,work,answer,error_message,started_at,context_snapshot,phase,request_file_ids,new_file_ids";
 async function activeSession(sessionId: string) {
   const result = await database()
     .from("demo_sessions")
@@ -101,6 +107,7 @@ export async function queryDetail(
   return {
     ...result.data,
     turns: records,
+    files: await listQueryFiles(id, sessionId),
     selected_cases: selected.data ?? [],
   };
 }
@@ -110,7 +117,19 @@ export async function createQuery(
 ) {
   await activeSession(sessionId);
   const id = validId(String(input.requestKey ?? ""));
-  const draft = requestInput(input);
+  let files: ReturnType<typeof fileManifest>;
+  try {
+    files = fileManifest(input.files ?? []);
+  } catch (error) {
+    throw new ApiError(400, (error as Error).message);
+  }
+  const draft = requestInput({
+    ...input,
+    request:
+      files.length && !String(input.request ?? "").trim()
+        ? FILE_ONLY_MESSAGE
+        : input.request,
+  });
   const caseId = input.caseId == null ? null : validId(String(input.caseId));
   if (caseId) await accessibleCase(caseId, sessionId);
   const context =
@@ -120,6 +139,17 @@ export async function createQuery(
         ? { mode: "selected" as const, caseIds: [caseId] }
         : { mode: "library" as const, caseIds: [] };
   if (input.assistant === true) await validateChatCases(context, sessionId);
+  if (files.length) {
+    const created = await database().rpc("create_query_file_chat", {
+      p_session: sessionId,
+      p_id: id,
+      p_request: draft,
+      p_context: context,
+      p_files: files,
+    });
+    documentError(created.error);
+    return queryDetail(id, sessionId);
+  }
   const result = await database()
     .from("query_conversations")
     .upsert(
