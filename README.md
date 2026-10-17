@@ -177,7 +177,7 @@ src/features/cases/          Library, source viewer, form, types, validation, ex
   server/                   Supabase access, ownership, ingestion, sessions
 src/app/api/                Session, case, retry, and authorized original-file routes
 src/features/queries/          Saved chat, case focus, evidence, comparison, server workflow
-src/features/plans/            Request review, evidence-backed plans, Markdown editor and export
+src/features/plans/            Request review, evidence-backed plans, visual/Markdown editor and export
 src/features/requests/
   request-composer.tsx       Form interactions and sample loading
   request-draft.tsx          Draft type, provider, and access hook

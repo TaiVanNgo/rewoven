@@ -26,6 +26,10 @@ const Preview = dynamic(
   () => import("./plan-preview").then((m) => m.PlanPreview),
   { loading: () => <p>Preparing preview…</p> },
 );
+const FormattedEditor = dynamic(
+  () => import("./formatted-plan-editor").then((m) => m.FormattedPlanEditor),
+  { ssr: false, loading: () => <output>Preparing editor…</output> },
+);
 const jsonHeaders = { "Content-Type": "application/json" };
 export function PlanEditor({ id }: { id: string }) {
   const [plan, setPlan] = useState<ReusePlan | null>(null);
@@ -489,7 +493,7 @@ export function PlanEditor({ id }: { id: string }) {
                 onClick={() => setTab("edit")}
                 aria-pressed={tab === "edit"}
               >
-                Edit Markdown
+                Edit plan
               </Button>
               <Button
                 variant={tab === "preview" ? "default" : "outline"}
@@ -503,19 +507,11 @@ export function PlanEditor({ id }: { id: string }) {
               <section
                 className={`${tab === "edit" ? "block" : "hidden"} min-w-0 lg:block`}
               >
-                <label
-                  htmlFor="plan-markdown"
-                  className="mb-3 block font-heading font-bold"
-                >
-                  Edit Markdown
-                </label>
-                <Textarea
-                  id="plan-markdown"
-                  className="min-h-[560px] resize-y bg-card font-mono text-sm leading-relaxed"
-                  maxLength={50000}
-                  disabled={busy}
-                  value={markdown}
-                  onChange={(e) => setMarkdown(e.target.value)}
+                <h2 className="mb-3 font-heading font-bold">Edit plan</h2>
+                <FormattedEditor
+                  markdown={markdown}
+                  editable={!busy}
+                  onChange={setMarkdown}
                 />
               </section>
               <section

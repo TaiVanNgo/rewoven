@@ -155,3 +155,30 @@
     animation-duration: 0s;
   }
 }
+
+.plan-visual-content {
+  min-height: 560px;
+  padding: 1.25rem;
+  white-space: pre-wrap;
+}
+
+.plan-visual-content:focus-visible {
+  outline-offset: -3px;
+  border-radius: var(--radius-control);
+}
+
+.plan-visual-content p:empty::after {
+  content: "\200b";
+}
+
+.plan-citation {
+  border-radius: 0.25rem;
+  background: var(--secondary);
+  color: var(--knowledge-ink);
+  padding: 0.1em 0.25em;
+  font-weight: 600;
+}
+
+.plan-visual-content .ProseMirror-selectednode {
+  outline: 2px solid var(--ring);
+}
