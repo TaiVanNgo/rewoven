@@ -2,7 +2,7 @@
 
 # Understanding the case library and source ingestion
 
-Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. Optional [AI-assisted case reading](ai-assisted-case-reading.md) now suggests editable metadata with source evidence. Request-to-case analysis and reuse-plan generation are still future work.
+Rewoven can now store past projects, let you inspect their original documents, and accept new cases. This guide explains that implementation using a small example. Optional [AI-assisted case reading](ai-assisted-case-reading.md) now suggests editable metadata with source evidence. [Conversational queries](conversational-queries.md) now support request comparisons, and [reuse plans](reuse-plans.md) add reviewed requests, editable Markdown, explicit saves, and export.
 
 ## Start with a concrete example
 

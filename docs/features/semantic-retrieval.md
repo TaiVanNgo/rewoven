@@ -2,7 +2,7 @@
 
 Imagine one historical project with `SRS.pdf`, `meeting-minutes.md`, and `retrospective.txt`. Add them to one case. Rewoven keeps each original separately, extracts its text, and makes source passages searchable. Later, describe a new project on **New request** and choose **Find past cases**. Results contain up to three cases with original excerpts and links that open the matching document location.
 
-Retrieval returns original evidence. [AI-assisted case entry](ai-assisted-case-reading.md) now combines metadata from multiple documents in saved stages. [Conversational queries](conversational-queries.md) add cited answers, request comparisons, and related-case discovery on top of retrieval. [Case overviews](case-overviews.md) provide structured project narratives. Reuse-plan generation/persistence and client request attachments remain future work.
+Retrieval returns original evidence. [AI-assisted case entry](ai-assisted-case-reading.md) now combines metadata from multiple documents in saved stages. [Conversational queries](conversational-queries.md) add cited answers, request comparisons, and related-case discovery on top of retrieval. [Case overviews](case-overviews.md) provide structured project narratives. [Reuse plans](reuse-plans.md) add confirmed requests, evidence-backed drafting, Markdown editing, explicit saves, and export. Client request attachments remain future work.
 
 ## Run it locally
 

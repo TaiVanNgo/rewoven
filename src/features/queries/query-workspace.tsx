@@ -27,6 +27,7 @@ import { ThemeToggle } from "@/components/workspace/theme-toggle";
 import { caseApi } from "@/features/cases/api-client";
 import { CitationProvider } from "@/features/citations/citation-marker";
 import { citationKey, passageCitation } from "@/features/citations/types";
+import { ChatPlans } from "@/features/plans/chat-plans";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { AnswerText } from "./answer-text";
 import { CasePicker, type SelectedCase } from "./case-picker";
@@ -381,6 +382,14 @@ function QueryWorkspaceContent({
         <output className="text-sm text-muted-foreground">
           Opening your chat…
         </output>
+      )}
+      {conversation && (
+        <ChatPlans
+          key={conversation.id}
+          conversationId={conversation.id}
+          contextRevision={conversation.context_revision ?? 0}
+          disabled={busy}
+        />
       )}
       <div className="query-panels">
         <section className="query-chat" aria-label="Chat with Wren">

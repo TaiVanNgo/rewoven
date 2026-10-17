@@ -115,4 +115,4 @@ The inline-citation update passed 81 unit tests, all 13 local API/database integ
 
 Citation validation proves that an ID refers to an authorized original passage, not that every generated sentence is entailed by it. Model instruction-following and factual support still require evaluation against the originals. No complete-corpus coverage claim or calibrated confidence percentage is provided.
 
-Direct chat uploads, case creation by Wren, web search, editable system prompts, streaming, shared conversations, and saved reuse plans remain outside this iteration.
+Direct chat uploads, case creation by Wren, web search, editable system prompts, streaming, and shared conversations remain outside this iteration. [Reuse plans](reuse-plans.md) are now available through the Draft reuse plan action, with reviewed requests, Markdown editing, explicit saves, and export.
