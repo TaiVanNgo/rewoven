@@ -74,6 +74,7 @@ export const answerSchema = {
 export function validateAnswer(
   value: unknown,
   evidence: Evidence[],
+  conversational = false,
 ): QueryAnswer {
   if (
     !value ||
@@ -92,11 +93,15 @@ export function validateAnswer(
       throw new QueryInputError("Invalid answer section.");
     const item = section as Record<string, unknown>;
     if (
-      !["fact", "inference", "recommendation", "unknown"].includes(
-        String(item.kind),
-      ) ||
+      ![
+        "fact",
+        "inference",
+        "recommendation",
+        "unknown",
+        ...(conversational ? ["conversation"] : []),
+      ].includes(String(item.kind)) ||
       typeof item.heading !== "string" ||
-      !item.heading.trim() ||
+      (!conversational && !item.heading.trim()) ||
       item.heading.length > 120 ||
       typeof item.text !== "string" ||
       !item.text.trim() ||
@@ -104,7 +109,8 @@ export function validateAnswer(
       !Array.isArray(item.evidence) ||
       item.evidence.length > 6 ||
       item.evidence.some((id) => typeof id !== "string" || !ids.has(id)) ||
-      (item.kind !== "unknown" && !item.evidence.length)
+      (!["unknown", "conversation"].includes(String(item.kind)) &&
+        !item.evidence.length)
     )
       throw new QueryInputError(
         "Wren's answer contains missing or invalid evidence. Retry this turn.",

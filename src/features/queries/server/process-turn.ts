@@ -14,7 +14,7 @@ import {
 import type { QueryFocus } from "../types";
 import { focusInput, queryText, validateAnswer } from "../validation";
 import { evidenceIsCurrent, gatherEvidence } from "./evidence";
-import { queryAIConfig, queryModel } from "./openai";
+import { type QueryAIConfig, queryAIConfig, queryModel } from "./openai";
 import { queryDetail } from "./repository";
 
 export async function processQueryTurn(
@@ -22,7 +22,11 @@ export async function processQueryTurn(
   input: Record<string, unknown>,
   sessionId: string,
   dependencies: {
-    model?: typeof queryModel;
+    model?: (
+      kind: "plan" | "answer",
+      input: unknown,
+      config: QueryAIConfig,
+    ) => Promise<unknown>;
     embedder?: typeof embedTexts;
   } = {},
 ) {

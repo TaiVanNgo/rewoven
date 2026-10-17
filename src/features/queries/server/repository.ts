@@ -2,11 +2,17 @@ import "server-only";
 import { checkDatabase, database } from "@/features/cases/server/db";
 import { ApiError, validId } from "@/features/cases/server/http";
 import { accessibleCase } from "@/features/cases/server/repository";
-import type { QueryConversation, QuerySummary, QueryTurn } from "../types";
+import { chatContextInput } from "../assistant";
+import type {
+  ChatContext,
+  QueryConversation,
+  QuerySummary,
+  QueryTurn,
+} from "../types";
 import { requestInput } from "../validation";
 
 const turnFields =
-  "id,ordinal,message,scope,focused_case_id,status,work,answer,error_message,started_at";
+  "id,ordinal,message,scope,focused_case_id,status,work,answer,error_message,started_at,context_snapshot,phase";
 async function activeSession(sessionId: string) {
   const result = await database()
     .from("demo_sessions")
@@ -39,7 +45,9 @@ export async function queryDetail(
   const db = database();
   const result = await db
     .from("query_conversations")
-    .select("id,title,request,focused_case_id,updated_at")
+    .select(
+      "id,title,request,focused_case_id,updated_at,assistant,chat_context,context_revision",
+    )
     .eq("id", validId(id))
     .eq("session_id", sessionId)
     .maybeSingle();
@@ -81,7 +89,20 @@ export async function queryDetail(
           );
       }
   }
-  return { ...result.data, turns: records };
+  const context = result.data.chat_context as ChatContext;
+  const selected = context.caseIds.length
+    ? await db
+        .from("cases")
+        .select("id,title,is_seed")
+        .in("id", context.caseIds)
+        .or(`is_seed.eq.true,session_id.eq.${sessionId}`)
+    : { data: [], error: null };
+  checkDatabase(selected.error);
+  return {
+    ...result.data,
+    turns: records,
+    selected_cases: selected.data ?? [],
+  };
 }
 export async function createQuery(
   input: Record<string, unknown>,
@@ -92,6 +113,13 @@ export async function createQuery(
   const draft = requestInput(input);
   const caseId = input.caseId == null ? null : validId(String(input.caseId));
   if (caseId) await accessibleCase(caseId, sessionId);
+  const context =
+    input.assistant === true
+      ? chatContextInput(input.chatContext ?? { mode: "library", caseIds: [] })
+      : caseId
+        ? { mode: "selected" as const, caseIds: [caseId] }
+        : { mode: "library" as const, caseIds: [] };
+  if (input.assistant === true) await validateChatCases(context, sessionId);
   const result = await database()
     .from("query_conversations")
     .upsert(
@@ -101,6 +129,8 @@ export async function createQuery(
         title: draft.request.slice(0, 120),
         request: draft,
         focused_case_id: caseId,
+        assistant: input.assistant === true,
+        chat_context: context,
       },
       { onConflict: "id", ignoreDuplicates: true },
     );
@@ -111,11 +141,62 @@ export async function createQuery(
     record.request.deadline !== draft.deadline ||
     record.request.technology !== draft.technology ||
     record.request.capabilities !== draft.capabilities ||
-    record.focused_case_id !== caseId
+    record.focused_case_id !== caseId ||
+    record.assistant !== (input.assistant === true)
   )
     throw new ApiError(
       409,
       "This query identifier is already in use. Start a new query.",
     );
   return record;
+}
+
+export async function validateChatCases(
+  context: ChatContext,
+  sessionId: string,
+) {
+  await Promise.all(
+    context.caseIds.map(async (id) => {
+      await accessibleCase(id, sessionId);
+      const ready = await database()
+        .from("source_chunks")
+        .select("id,source_documents!inner(status,case_id)")
+        .eq("source_documents.case_id", id)
+        .eq("source_documents.status", "ready")
+        .limit(1);
+      checkDatabase(ready.error);
+      if (!ready.data?.length)
+        throw new ApiError(
+          409,
+          "This case has no readable sources yet. Finish processing it in Case library first.",
+        );
+    }),
+  );
+}
+export async function updateChatContext(
+  id: string,
+  input: Record<string, unknown>,
+  sessionId: string,
+) {
+  await queryDetail(id, sessionId);
+  const context = chatContextInput(input.chatContext);
+  if (
+    !Number.isSafeInteger(input.contextRevision) ||
+    Number(input.contextRevision) < 0
+  )
+    throw new ApiError(400, "A context revision is required.");
+  await validateChatCases(context, sessionId);
+  const result = await database().rpc("update_query_context", {
+    p_session: sessionId,
+    p_conversation: id,
+    p_revision: input.contextRevision,
+    p_context: context,
+  });
+  checkDatabase(result.error);
+  if (!result.data)
+    throw new ApiError(
+      409,
+      "The case selection changed or Wren is answering. Reopen the chat and try again.",
+    );
+  return queryDetail(id, sessionId);
 }

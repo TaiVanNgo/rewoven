@@ -9,8 +9,10 @@ export type QuerySummary = {
   updated_at: string;
 };
 export type Evidence = Passage & { id: string; stale?: boolean };
+export type ChatContext = { mode: "library" | "selected"; caseIds: string[] };
+export const EMPTY_CHAT_CONTEXT: ChatContext = { mode: "library", caseIds: [] };
 export type AnswerSection = {
-  kind: "fact" | "inference" | "recommendation" | "unknown";
+  kind: "fact" | "inference" | "recommendation" | "unknown" | "conversation";
   heading: string;
   text: string;
   evidence: string[];
@@ -36,8 +38,14 @@ export type QueryTurn = {
   answer: QueryAnswer | null;
   error_message: string | null;
   started_at: string;
+  context_snapshot?: ChatContext | null;
+  phase?: "understanding" | "reviewing" | "answering" | null;
 };
 export type QueryConversation = QuerySummary & {
+  assistant?: boolean;
+  chat_context?: ChatContext;
+  context_revision?: number;
+  selected_cases?: { id: string; title: string; is_seed: boolean }[];
   request: RequestDraft;
   focused_case_id: string | null;
   turns: QueryTurn[];

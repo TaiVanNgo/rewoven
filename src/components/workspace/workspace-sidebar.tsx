@@ -103,7 +103,7 @@ export function WorkspaceSidebar() {
           className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1"
         >
           {[
-            { href: "/", label: "New request", icon: FilePlus2Icon },
+            { href: "/", label: "New chat", icon: FilePlus2Icon },
             { href: "/case-library", label: "Case library", icon: ArchiveIcon },
             { href: "/saved-plans", label: "Saved plans", icon: BookmarkIcon },
           ].map(({ href, label, icon: NavigationIcon }) => (

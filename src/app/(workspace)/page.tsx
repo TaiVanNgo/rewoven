@@ -9,7 +9,7 @@ import "@/features/queries/query-workspace.css";
 import "@/features/requests/request-page.css";
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata = createPageMetadata({ path: "/", title: "New request" });
+export const metadata = createPageMetadata({ path: "/", title: "Ask Wren" });
 
 export default function Home() {
   return (
@@ -36,7 +36,7 @@ export default function Home() {
                 Wren, the team archivist
               </h2>
               <p className="mt-1 text-[13px] text-ink-muted">
-                Find past work. Follow the evidence.
+                Ask a question. Work through it together.
               </p>
               <Link
                 href="/case-library"

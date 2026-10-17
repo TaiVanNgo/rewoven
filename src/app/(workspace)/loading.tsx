@@ -4,7 +4,7 @@ import { RequestSkeleton } from "@/features/requests/request-skeleton";
 
 export default function Loading() {
   return (
-    <SkeletonGroup label="Loading new request…" className="flex flex-col gap-7">
+    <SkeletonGroup label="Loading Wren chat…" className="flex flex-col gap-7">
       <PageHeaderSkeleton />
       <RequestSkeleton />
     </SkeletonGroup>

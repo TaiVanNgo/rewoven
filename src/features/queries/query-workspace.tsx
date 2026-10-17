@@ -1,45 +1,74 @@
 "use client";
 
 import {
-  ArrowLeftIcon,
   ArrowUpIcon,
   BookOpenIcon,
-  CornerDownRightIcon,
   LoaderCircleIcon,
-  MessageSquareIcon,
   PlusIcon,
-  SearchIcon,
   SparklesIcon,
+  XIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/workspace/theme-toggle";
 import { caseApi } from "@/features/cases/api-client";
 import { useRequestDraft } from "@/features/requests/request-draft";
+import { CasePicker, type SelectedCase } from "./case-picker";
 import { CaseCard, Citation } from "./query-evidence";
 import { useQueryHistory } from "./query-history";
-import type { QueryConversation, QueryFocus, QueryTurn } from "./types";
+import {
+  type ChatContext,
+  EMPTY_CHAT_CONTEXT,
+  type QueryConversation,
+  type QueryTurn,
+} from "./types";
 
-export function QueryWorkspace({ id }: { id: string }) {
+const stages = {
+  understanding: "Understanding your message…",
+  reviewing: "Reviewing case evidence…",
+  answering: "Preparing your reply…",
+};
+export function QueryWorkspace({
+  id,
+  initialCaseId,
+  companion,
+}: {
+  id: string | null;
+  initialCaseId?: string | null;
+  companion?: ReactNode;
+}) {
   const router = useRouter();
-  const { updateDraft } = useRequestDraft();
+  const { draft: requestDraft, updateDraft } = useRequestDraft();
   const { refresh } = useQueryHistory();
   const [conversation, setConversation] = useState<QueryConversation | null>(
     null,
   );
+  const [context, setContext] = useState<ChatContext>(EMPTY_CHAT_CONTEXT);
+  const [selected, setSelected] = useState<SelectedCase[]>([]);
+  const [localDraft, setLocalDraft] = useState("");
+  const draft = id ? localDraft : requestDraft.request;
+  function setDraft(value: string) {
+    if (id) setLocalDraft(value);
+    else updateDraft({ request: value });
+  }
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [focus, setFocus] = useState<QueryFocus>({
-    scope: "library",
-    caseId: null,
-  });
+  const [pendingMessage, setPendingMessage] = useState("");
+  const [loaded, setLoaded] = useState(!id && !initialCaseId);
+  const [showEvidence, setShowEvidence] = useState(true);
   const input = useRef<HTMLTextAreaElement>(null);
   const thread = useRef<HTMLDivElement>(null);
   const followBottom = useRef(true);
@@ -51,265 +80,268 @@ export function QueryWorkspace({ id }: { id: string }) {
     latest?.status === "processing" &&
     Date.now() - new Date(latest.started_at).getTime() < 300000;
   const busy = pending || processing;
-  const latestWork = [...(conversation?.turns ?? [])]
-    .reverse()
-    .find((turn) => turn.work)?.work;
-  const result = latestWork?.retrieval;
-  const focusCase = result?.cases.find((record) => record.id === focus.caseId);
-  const focusTitle =
-    focusCase?.title ??
-    (latestWork?.focus.caseId === focus.caseId
-      ? latestWork.focusTitle
-      : null) ??
-    (focus.caseId === conversation?.focused_case_id
-      ? "Selected case"
-      : "Focused case");
+  const work = latest?.work;
+  const hasEvidence = !!work?.evidence.length;
+  const restore = useCallback((query: QueryConversation) => {
+    setConversation(query);
+    setContext(query.chat_context ?? EMPTY_CHAT_CONTEXT);
+    setSelected(query.selected_cases ?? []);
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
     async function load() {
       try {
-        await caseApi("/api/demo-session", { method: "POST" });
-        const { query } = await caseApi<{ query: QueryConversation }>(
-          `/api/queries/${id}`,
-        );
-        if (!active) return;
-        setConversation(query);
-        const last = query.turns.at(-1);
-        const initialFocus: QueryFocus =
-          last?.work?.focus ??
-          (last
-            ? { scope: last.scope, caseId: last.focused_case_id }
-            : {
-                scope: query.focused_case_id ? "case" : "library",
-                caseId: query.focused_case_id,
-              });
-        setFocus(initialFocus);
-        setError("");
-        if (!query.turns.length) {
-          setPending(true);
-          const response = await caseApi<{ query: QueryConversation }>(
-            `/api/queries/${id}/turns`,
-            {
+        if (!id && !initialCaseId) return;
+        await caseApi("/api/demo-session", {
+          method: "POST",
+          signal: controller.signal,
+        });
+        if (id) {
+          const { query } = await caseApi<{ query: QueryConversation }>(
+            `/api/queries/${id}`,
+            { signal: controller.signal },
+          );
+          if (controller.signal.aborted) return;
+          restore(query);
+          setLoaded(true);
+          if (!query.turns.length) {
+            setPending(true);
+            const { query: answered } = await caseApi<{
+              query: QueryConversation;
+            }>(`/api/queries/${id}/turns`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 requestKey: id,
                 message: query.request.request,
-                ...initialFocus,
+                contextRevision: query.context_revision ?? 0,
+                scope: query.focused_case_id ? "case" : "library",
+                caseId: query.focused_case_id,
               }),
-            },
+            });
+            if (!controller.signal.aborted) {
+              restore(answered);
+              void refresh();
+            }
+          }
+        } else if (initialCaseId) {
+          const { case: record } = await caseApi<{ case: SelectedCase }>(
+            `/api/cases/${initialCaseId}`,
+            { signal: controller.signal },
           );
-          if (active) {
-            setConversation(response.query);
-            setFocus(response.query.turns.at(-1)?.work?.focus ?? initialFocus);
-            void refresh();
+          if (!controller.signal.aborted) {
+            setSelected([record]);
+            setContext({ mode: "selected", caseIds: [record.id] });
           }
         }
-      } catch (error) {
-        if (active)
+      } catch (e) {
+        // A remount may race the first submission; resume its saved processing turn.
+        if (id && !controller.signal.aborted) {
+          try {
+            const { query } = await caseApi<{ query: QueryConversation }>(
+              `/api/queries/${id}`,
+              { signal: controller.signal },
+            );
+            if (query.turns.at(-1)?.status === "processing") {
+              restore(query);
+              return;
+            }
+          } catch {}
+        }
+        if (!controller.signal.aborted)
           setError(
-            error instanceof Error
-              ? error.message
-              : "Could not open this query.",
+            e instanceof Error ? e.message : "Could not open this chat.",
           );
       } finally {
-        if (active) setPending(false);
+        if (!controller.signal.aborted) {
+          setLoaded(true);
+          setPending(false);
+        }
       }
     }
     void load();
-    return () => {
-      active = false;
-    };
-  }, [id, refresh]);
-
+    return () => controller.abort();
+  }, [id, initialCaseId, refresh, restore]);
   useEffect(() => {
-    if (!processing && !pending) return;
+    if (!id || (!processing && !pending)) return;
     const controller = new AbortController();
     const timer = setInterval(() => {
       caseApi<{ query: QueryConversation }>(`/api/queries/${id}`, {
         signal: controller.signal,
       })
         .then(({ query }) => {
-          if (!controller.signal.aborted) {
-            setConversation(query);
-            if (
-              query.turns.at(-1)?.status === "ready" &&
-              query.turns.at(-1)?.work
-            )
-              setFocus(
-                query.turns.at(-1)?.work?.focus ?? {
-                  scope: "library",
-                  caseId: null,
-                },
-              );
-          }
+          if (!controller.signal.aborted) restore(query);
         })
         .catch(() => {});
-    }, 3000);
+    }, 1500);
     return () => {
       clearInterval(timer);
       controller.abort();
     };
-  }, [processing, pending, id]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll after new messages or pending indicators render.
-  useEffect(() => {
+  }, [id, processing, pending, restore]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll before paint when messages grow and the reader follows the bottom.
+  useLayoutEffect(() => {
     if (followBottom.current && thread.current)
       thread.current.scrollTop = thread.current.scrollHeight;
   }, [conversation, pending]);
 
-  async function send(
-    message: string,
-    target: QueryFocus = focus,
-    retry?: QueryTurn,
-  ) {
-    if (busy || !message.trim()) return;
-    const key = JSON.stringify({ message, focus: target });
+  async function applyCases(cases: SelectedCase[]) {
+    const next: ChatContext = cases.length
+      ? { mode: "selected", caseIds: cases.map((c) => c.id) }
+      : EMPTY_CHAT_CONTEXT;
+    if (id && conversation) {
+      const { query } = await caseApi<{ query: QueryConversation }>(
+        `/api/queries/${id}/context`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chatContext: next,
+            contextRevision: conversation.context_revision ?? 0,
+          }),
+        },
+      );
+      restore(query);
+    } else {
+      setContext(next);
+      setSelected(cases);
+    }
+    input.current?.focus();
+  }
+  async function send(message: string, retry?: QueryTurn) {
+    if (busy || !loaded || !message.trim()) return;
+    const key = JSON.stringify({ message, context, id });
     if (submission.current?.key !== key)
       submission.current = { key, id: crypto.randomUUID() };
-    const requestKey = retry?.id ?? submission.current.id;
     setPending(true);
+    setPendingMessage(message);
     setError("");
     followBottom.current = true;
     const sentDraft = draftRef.current;
     try {
-      const { query } = await caseApi<{ query: QueryConversation }>(
-        `/api/queries/${id}/turns`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ requestKey, message, ...target }),
-        },
-      );
-      setConversation(query);
-      setFocus(query.turns.at(-1)?.work?.focus ?? target);
+      await caseApi("/api/demo-session", { method: "POST" });
+      if (!id) {
+        const { query } = await caseApi<{ query: QueryConversation }>(
+          "/api/queries",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...requestDraft,
+              request: message,
+              requestKey: submission.current.id,
+              assistant: true,
+              chatContext: context,
+            }),
+          },
+        );
+        updateDraft({ ...requestDraft, request: "" });
+        void refresh();
+        router.push(`/?query=${query.id}`);
+      } else {
+        let active = conversation;
+        if (!active?.assistant && !retry) {
+          const response = await caseApi<{ query: QueryConversation }>(
+            `/api/queries/${id}/context`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chatContext: context,
+                contextRevision: active?.context_revision ?? 0,
+              }),
+            },
+          );
+          active = response.query;
+          restore(active);
+        }
+        const { query } = await caseApi<{ query: QueryConversation }>(
+          `/api/queries/${id}/turns`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              requestKey: retry?.id ?? submission.current.id,
+              message,
+              contextRevision: active?.context_revision ?? 0,
+              ...(retry && !retry.context_snapshot
+                ? { scope: retry.scope, caseId: retry.focused_case_id }
+                : {}),
+            }),
+          },
+        );
+        restore(query);
+        void refresh();
+      }
       if (message === sentDraft && draftRef.current === sentDraft) setDraft("");
       submission.current = null;
-      void refresh();
-    } catch (error) {
+    } catch (e) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Could not submit this question. Your draft is preserved.",
+        e instanceof Error
+          ? e.message
+          : "Could not send your message. Your draft is preserved.",
       );
-      try {
-        setConversation(
-          (await caseApi<{ query: QueryConversation }>(`/api/queries/${id}`))
-            .query,
-        );
-      } catch {}
+      if (id)
+        try {
+          restore(
+            (await caseApi<{ query: QueryConversation }>(`/api/queries/${id}`))
+              .query,
+          );
+        } catch {}
     } finally {
       setPending(false);
+      setPendingMessage("");
     }
   }
-  function selectCase(caseId: string) {
-    setFocus({ scope: "case", caseId });
-    input.current?.focus();
+  function newChat() {
+    updateDraft({
+      request: "",
+      deadline: "",
+      technology: "",
+      capabilities: "",
+    });
+    setDraft("");
+    setContext(EMPTY_CHAT_CONTEXT);
+    setSelected([]);
+    setError("");
+    router.push("/");
   }
-  function newQuery(edit = false) {
-    updateDraft(
-      edit && conversation
-        ? conversation.request
-        : { request: "", deadline: "", technology: "", capabilities: "" },
-    );
-    router.push(
-      edit && conversation?.focused_case_id
-        ? `/?case=${conversation.focused_case_id}&edit=${id}`
-        : "/",
-    );
-  }
-  if (!conversation)
-    return (
-      <div
-        className="flex min-h-80 flex-col justify-center gap-4"
-        aria-live="polite"
-      >
-        {error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Could not open query</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : (
-          <p className="flex items-center gap-2 text-muted-foreground">
-            <LoaderCircleIcon
-              className="size-4 animate-spin"
-              aria-hidden="true"
-            />
-            Opening your query…
-          </p>
-        )}
-        <Link href="/" className={buttonVariants({ variant: "outline" })}>
-          Start a new request
-        </Link>
-      </div>
-    );
+  const welcome = !id;
   return (
-    <div className="query-workspace">
+    <div
+      className="query-workspace"
+      data-evidence={hasEvidence && showEvidence}
+    >
       <header className="query-toolbar">
-        <div className="flex items-center gap-2 text-sm">
-          <MessageSquareIcon
-            className="size-4 text-knowledge-ink"
-            aria-hidden="true"
-          />
-          <h1 className="font-semibold">Query workspace</h1>
-          <span className="hidden text-muted-foreground sm:inline">
-            / Ask Wren
-          </span>
+        <div>
+          <h1 className="font-heading text-lg font-bold">Ask Wren</h1>
+          <p className="text-xs text-muted-foreground">
+            Your past work, ready for a conversation
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-muted-foreground md:inline">
-            Saved for this demo session
-          </span>
           <ThemeToggle />
-          <Button variant="outline" size="sm" onClick={() => newQuery()}>
+          <Button variant="outline" size="sm" onClick={newChat}>
             <PlusIcon aria-hidden="true" />
-            New request
+            New chat
           </Button>
         </div>
       </header>
-      <section className="query-intent" aria-label="Submitted request">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold text-muted-foreground">
-            Submitted request
-          </span>
-          <Button variant="ghost" size="sm" onClick={() => newQuery(true)}>
-            Edit query
-          </Button>
-        </div>
-        <p className="mt-1 font-heading text-lg leading-relaxed font-bold wrap-anywhere">
-          {conversation.request.request}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {(
-            [
-              ["technology", "Technology"],
-              ["capabilities", "Capabilities"],
-              ["deadline", "Timeline"],
-            ] as const
-          ).map(
-            ([key, label]) =>
-              conversation.request[key] && (
-                <Badge
-                  key={key}
-                  variant="outline"
-                  className="max-w-full whitespace-normal"
-                >
-                  {label}: {conversation.request[key]}
-                </Badge>
-              ),
-          )}
-        </div>
-      </section>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      {!loaded && (
+        <output className="text-sm text-muted-foreground">
+          Opening your chat…
+        </output>
+      )}
       <div className="query-panels">
-        <section className="query-chat" aria-labelledby="wren-title">
-          <header className="flex items-center gap-3 border-b border-border p-4 md:p-5">
-            <div className="relative size-11 overflow-hidden rounded-control border border-border bg-secondary">
+        <section className="query-chat" aria-label="Chat with Wren">
+          <header className="flex items-center gap-3 border-b border-border p-4">
+            <div className="relative size-11 overflow-hidden rounded-control bg-secondary">
               <Image
                 src="/images/wren.png"
                 alt=""
@@ -319,38 +351,77 @@ export function QueryWorkspace({ id }: { id: string }) {
               />
             </div>
             <div>
-              <h2 id="wren-title" className="font-heading font-bold">
-                Wren, your team archivist
+              <h2 className="font-heading font-bold">
+                Wren, your case advisor
               </h2>
               <p className="text-xs text-muted-foreground">
-                Past work, with evidence you can inspect
+                Discuss decisions. Learn from your cases.
               </p>
             </div>
-            <SparklesIcon
-              className="ml-auto size-4 text-knowledge-ink"
-              aria-hidden="true"
-            />
+            {hasEvidence && (
+              <Button
+                className="ml-auto"
+                variant="ghost"
+                size="sm"
+                aria-expanded={showEvidence}
+                onClick={() => setShowEvidence((v) => !v)}
+              >
+                <BookOpenIcon aria-hidden="true" />
+                Sources
+              </Button>
+            )}
           </header>
           <div
-            className="query-thread"
             ref={thread}
+            className="query-thread"
+            role="log"
+            aria-label="Conversation with Wren"
+            aria-live="polite"
+            aria-relevant="additions text"
             onScroll={() => {
               const node = thread.current;
               if (node)
                 followBottom.current =
                   node.scrollHeight - node.scrollTop - node.clientHeight < 80;
             }}
-            role="log"
-            aria-label="Conversation with Wren"
-            aria-live="polite"
-            aria-relevant="additions text"
           >
-            {!conversation.turns.length && (
-              <p className="text-sm text-muted-foreground">
-                Finding relevant past work for your request…
-              </p>
+            {welcome && (
+              <div className="wren-welcome">
+                <SparklesIcon
+                  aria-hidden="true"
+                  className="size-7 text-knowledge-ink"
+                />
+                <h2 className="font-heading text-2xl font-bold">
+                  What would you like to work through?
+                </h2>
+                <p>
+                  I’m Wren. Ask me about your past projects, explore what
+                  happened, or work through a decision using their lessons. Add
+                  cases for a closer look.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "What can I learn from my past projects?",
+                    "Help me compare the risks in these cases",
+                    "What should we do differently next time?",
+                  ].map((text) => (
+                    <Button
+                      key={text}
+                      variant="outline"
+                      className="h-auto whitespace-normal"
+                      onClick={() => {
+                        setDraft(text);
+                        updateDraft({ ...requestDraft, request: text });
+                        input.current?.focus();
+                      }}
+                    >
+                      {text}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             )}
-            {conversation.turns.map((turn) => (
+            {conversation?.turns.map((turn) => (
               <article key={turn.id} className="flex flex-col gap-4">
                 <div className="query-user-message">
                   <p className="mb-1 text-xs font-semibold text-muted-foreground">
@@ -359,6 +430,13 @@ export function QueryWorkspace({ id }: { id: string }) {
                   <p className="wrap-anywhere whitespace-pre-wrap">
                     {turn.message}
                   </p>
+                  {turn.context_snapshot && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {turn.context_snapshot.mode === "selected"
+                        ? `${turn.context_snapshot.caseIds.length} attached case(s)`
+                        : "My uploaded cases"}
+                    </p>
+                  )}
                 </div>
                 <div className="query-wren-message">
                   <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-knowledge-ink">
@@ -371,29 +449,27 @@ export function QueryWorkspace({ id }: { id: string }) {
                       className="query-answer-section"
                       data-kind={section.kind}
                     >
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-semibold">
+                      {section.heading && (
+                        <h3 className="mb-1 text-sm font-semibold">
                           {section.heading}
                         </h3>
-                        <span className="text-[11px] text-muted-foreground">
-                          {
-                            {
-                              fact: "Recorded fact",
-                              inference: "Inference",
-                              recommendation: "Recommendation",
-                              unknown: "Missing information",
-                            }[section.kind]
-                          }
-                        </span>
-                      </div>
-                      <p className="text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap">
-                        {section.text}
-                      </p>
+                      )}
+                      {section.kind === "recommendation" && (
+                        <p className="mb-1 text-xs text-knowledge-ink">
+                          Suggested application
+                        </p>
+                      )}
+                      {section.kind === "inference" && (
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          Wren’s interpretation
+                        </p>
+                      )}
+                      <AnswerText text={section.text} />
                       {!!section.evidence.length && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {section.evidence.map((evidenceId) => {
                             const evidence = turn.work?.evidence.find(
-                              (item) => item.id === evidenceId,
+                              (e) => e.id === evidenceId,
                             );
                             return evidence ? (
                               <Citation key={evidenceId} evidence={evidence} />
@@ -403,70 +479,36 @@ export function QueryWorkspace({ id }: { id: string }) {
                       )}
                     </section>
                   ))}
-                  {turn.work?.clarification && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {turn.work.candidates.map((record) => (
-                        <Button
-                          key={record.id}
-                          variant="outline"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => {
-                            selectCase(record.id);
-                            void send(turn.message, {
-                              scope: "case",
-                              caseId: record.id,
-                            });
-                          }}
-                        >
-                          {record.title}
-                          <span className="text-muted-foreground">
-                            {record.id.slice(0, 6)}
-                          </span>
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                  {turn.work?.evidence.some((item) => item.stale) && (
-                    <Alert variant="caution">
-                      <AlertDescription>
-                        Some original sources have changed. This saved answer
-                        shows the excerpts used at the time; inspect the current
-                        case before reusing it.
-                      </AlertDescription>
-                    </Alert>
+                  {turn.work?.evidence.some((e) => e.stale) && (
+                    <p className="mt-3 text-xs text-caution-foreground">
+                      Some sources have changed. Inspect the current case before
+                      reusing this saved answer.
+                    </p>
                   )}
                   {turn.error_message && (
                     <Alert variant="caution">
-                      <AlertTitle>Answer paused</AlertTitle>
                       <AlertDescription>{turn.error_message}</AlertDescription>
                     </Alert>
                   )}
                   {turn.status === "processing" && (
-                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <output className="flex items-center gap-2 text-sm text-muted-foreground">
                       <LoaderCircleIcon
-                        className="size-4 animate-spin motion-reduce:animate-none"
                         aria-hidden="true"
+                        className="size-4 animate-spin motion-reduce:animate-none"
                       />
                       {processing
-                        ? "Finding evidence and checking the answer…"
+                        ? stages[turn.phase ?? "understanding"]
                         : "This turn was interrupted. Retry to resume."}
-                    </p>
+                    </output>
                   )}
                   {turn.id === latest?.id &&
                     turn.status !== "ready" &&
                     !busy && (
                       <Button
+                        className="mt-3"
                         variant="outline"
                         size="sm"
-                        className="mt-3"
-                        onClick={() =>
-                          void send(
-                            turn.message,
-                            { scope: turn.scope, caseId: turn.focused_case_id },
-                            turn,
-                          )
-                        }
+                        onClick={() => void send(turn.message, turn)}
                       >
                         Retry this turn
                       </Button>
@@ -475,163 +517,233 @@ export function QueryWorkspace({ id }: { id: string }) {
               </article>
             ))}
             {pending && latest?.status !== "processing" && (
-              <output className="flex items-center gap-2 text-sm text-muted-foreground">
-                <LoaderCircleIcon
-                  className="size-4 animate-spin motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-                Wren is finding evidence and checking the answer…
-              </output>
+              <div aria-live="polite" className="text-sm text-muted-foreground">
+                {pendingMessage && pendingMessage !== latest?.message && (
+                  <p className="query-user-message mb-3 whitespace-pre-wrap">
+                    {pendingMessage}
+                  </p>
+                )}
+                <span className="flex items-center gap-2">
+                  <LoaderCircleIcon
+                    className="size-4 animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                  Wren is understanding your message…
+                </span>
+              </div>
             )}
           </div>
           <form
             className="query-chat-form"
-            onSubmit={(event) => {
-              event.preventDefault();
+            onSubmit={(e) => {
+              e.preventDefault();
               void send(draft);
             }}
           >
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <BookOpenIcon className="size-3.5" aria-hidden="true" />
-                {focus.scope === "library"
-                  ? "Searching all cases"
-                  : `${focus.scope === "related" ? "Related to" : "Focused on"}: ${focusTitle}`}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <CasePicker
+                selected={selected}
+                disabled={busy || !loaded}
+                onApply={applyCases}
+              />
+              <span className="text-xs text-muted-foreground">
+                {context.mode === "library"
+                  ? "Using my uploaded cases"
+                  : "Using only attached cases"}
               </span>
-              {focus.scope !== "library" && (
+              {context.mode === "selected" && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-xs"
                   disabled={busy}
-                  onClick={() => {
-                    setFocus({ scope: "library", caseId: null });
-                    input.current?.focus();
-                  }}
+                  onClick={() =>
+                    void applyCases([]).catch((e) => setError(e.message))
+                  }
                 >
-                  Search all cases
+                  Use my library
                 </Button>
               )}
             </div>
+            {!!selected.length && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selected.map((record) => (
+                  <span
+                    key={record.id}
+                    className="inline-flex max-w-full items-center gap-1 rounded-control bg-knowledge px-2 py-1 text-xs text-knowledge-ink"
+                  >
+                    <span className="wrap-anywhere">
+                      {record.title}
+                      {record.is_seed ? " (fictional sample)" : ""}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${record.title}`}
+                      disabled={busy}
+                      onClick={() =>
+                        void applyCases(
+                          selected.filter((c) => c.id !== record.id),
+                        ).catch((e) => setError(e.message))
+                      }
+                    >
+                      <XIcon aria-hidden="true" />
+                    </Button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="query-input-row">
-              <label htmlFor="follow-up" className="sr-only">
-                Ask Wren a follow-up question
+              <label htmlFor="wren-message" className="sr-only">
+                Message Wren
               </label>
               <Textarea
-                id="follow-up"
+                id="wren-message"
                 ref={input}
-                rows={2}
-                maxLength={10000}
                 value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder="Ask about a case, its caveats, or what changes this time…"
-                onKeyDown={(event) => {
+                maxLength={10000}
+                placeholder="Ask a question, explore a lesson, or describe a decision…"
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  if (!id)
+                    updateDraft({ ...requestDraft, request: e.target.value });
+                }}
+                onKeyDown={(e) => {
                   if (
-                    event.key === "Enter" &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !e.nativeEvent.isComposing
                   ) {
-                    event.preventDefault();
-                    if (!busy && draft.trim()) void send(draft);
+                    e.preventDefault();
+                    void send(draft);
                   }
                 }}
               />
               <Button
                 type="submit"
-                size="icon-lg"
-                aria-label="Send question"
-                disabled={busy || !draft.trim()}
+                size="icon"
+                disabled={busy || !loaded || !draft.trim()}
+                aria-label="Send message"
               >
                 <ArrowUpIcon aria-hidden="true" />
               </Button>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Enter to send · Shift+Enter for a new line ·{" "}
-              {draft.length.toLocaleString("en-US")} / 10,000
-            </p>
+            {!id && (
+              <details className="mt-3 text-xs text-muted-foreground">
+                <summary className="cursor-pointer">
+                  Optional project constraints
+                </summary>
+                <div className="mt-3 grid gap-3">
+                  {(
+                    [
+                      ["deadline", "Timeline"],
+                      ["technology", "Technology"],
+                      ["capabilities", "Capabilities"],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <label key={field} htmlFor={`constraint-${field}`}>
+                      {label}
+                      <Input
+                        id={`constraint-${field}`}
+                        className="mt-1"
+                        value={requestDraft[field]}
+                        maxLength={1000}
+                        onChange={(e) =>
+                          updateDraft({
+                            ...requestDraft,
+                            [field]: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              </details>
+            )}
+            <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+              <span>
+                {id
+                  ? "Saved for this 24-hour demo session"
+                  : "Enter to send · Shift + Enter for a new line"}
+              </span>
+              <Link href="/case-library" className="underline">
+                Create a case
+              </Link>
+            </div>
           </form>
         </section>
-        <aside className="query-cases" aria-label="Relevant cases and evidence">
-          <details open className="query-case-results">
-            <summary className="cursor-pointer p-5 font-heading font-bold">
-              Relevant cases ({result?.cases.length ?? 0})
-            </summary>
-            <div className="flex flex-col gap-4 px-4 pb-5 md:px-5">
-              {result && (
-                <Badge variant="outline" className="self-start">
-                  {result.mode === "hybrid"
-                    ? "Semantic + keyword search"
-                    : "Keyword search only"}
-                </Badge>
-              )}
-              {result?.warnings.map((warning) => (
-                <Alert key={warning} variant="caution">
-                  <AlertDescription>{warning}</AlertDescription>
-                </Alert>
-              ))}
-              {!result?.cases.length && (
-                <div className="py-8 text-center text-sm text-muted-foreground">
-                  <SearchIcon
-                    className="mx-auto mb-3 size-6"
-                    aria-hidden="true"
-                  />
-                  {busy
-                    ? "Looking for supporting cases…"
-                    : latestWork?.clarification
-                      ? "Choose a case to continue."
-                      : "No supporting cases yet. Try a specific capability or select a case from the library."}
-                </div>
-              )}
-              {result?.cases.map((record, index) => (
-                <CaseCard
-                  key={record.id}
-                  record={record}
-                  rank={index + 1}
-                  focused={record.id === focus.caseId}
-                  disabled={busy}
-                  reason={
-                    latest?.answer?.sections.find(
-                      (section) =>
-                        section.kind === "inference" &&
-                        section.evidence.some((id) =>
-                          latest.work?.evidence.some(
-                            (item) =>
-                              item.id === id && item.case_id === record.id,
-                          ),
-                        ),
-                    )?.text
-                  }
-                  onFocus={() => selectCase(record.id)}
-                  onRelated={() => {
-                    setFocus({ scope: "related", caseId: record.id });
-                    void send(
-                      `Find other cases related to ${record.title}, and explain the relevant similarities and differences.`,
-                      { scope: "related", caseId: record.id },
-                    );
-                  }}
-                />
+        {hasEvidence && showEvidence && (
+          <aside
+            className="query-cases"
+            aria-label="Sources for the latest answer"
+          >
+            <div className="query-case-results p-4">
+              <h2 className="font-heading font-bold">Cases and evidence</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Original passages used for the latest reply
+              </p>
+              {work?.retrieval.warnings.map((warning) => (
+                <p
+                  key={warning}
+                  className="mt-3 text-xs leading-relaxed text-caution-foreground"
+                >
+                  {warning}
+                </p>
               ))}
             </div>
-          </details>
-          <div className="rounded-panel border border-border bg-secondary p-5 text-sm leading-relaxed">
-            <p className="mb-2 flex items-center gap-2 font-semibold">
-              <CornerDownRightIcon className="size-4" aria-hidden="true" />
-              Keep asking, follow the evidence
-            </p>
-            <p className="text-muted-foreground">
-              Answers use selected source excerpts. Open citations to check the
-              context, then ask what changes for your request.
-            </p>
-            <Link
-              href="/case-library"
-              className="mt-3 inline-flex items-center gap-2 font-semibold underline underline-offset-4"
-            >
-              <ArrowLeftIcon className="size-3.5" aria-hidden="true" />
-              Browse the case library
-            </Link>
-          </div>
-        </aside>
+            {work?.retrieval.cases.map((record, index) => (
+              <CaseCard
+                key={record.id}
+                record={record}
+                rank={index + 1}
+                focused={context.caseIds.includes(record.id)}
+                disabled={busy}
+                onFocus={() =>
+                  void applyCases([
+                    {
+                      id: record.id,
+                      title: record.title,
+                      is_seed: selected.some(
+                        (c) => c.id === record.id && c.is_seed,
+                      ),
+                    },
+                  ]).catch((e) => setError(e.message))
+                }
+                onRelated={() => {
+                  setDraft(
+                    `Which other cases in my current selection are related to ${record.title}, and why?`,
+                  );
+                  input.current?.focus();
+                }}
+              />
+            ))}
+          </aside>
+        )}
+        {welcome && <div className="wren-companion">{companion}</div>}
       </div>
     </div>
+  );
+}
+function AnswerText({ text }: { text: string }) {
+  const lines = text.split("\n");
+  if (
+    lines.length > 1 &&
+    lines.every((line) => !line.trim() || /^\s*(?:[-*•]|\d+[.)])\s+/.test(line))
+  )
+    return (
+      <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">
+        {lines
+          .filter((line) => line.trim())
+          .map((line, index) => (
+            <li key={`${index}-${line}`} className="wrap-anywhere">
+              {line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "")}
+            </li>
+          ))}
+      </ul>
+    );
+  return (
+    <p className="text-sm leading-relaxed wrap-anywhere whitespace-pre-wrap">
+      {text}
+    </p>
   );
 }
