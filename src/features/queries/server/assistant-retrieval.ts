@@ -22,7 +22,12 @@ export async function retrieveAssistant(
         ]),
       }),
     ),
-) {
+  options: { includeOpenings?: boolean } = {},
+): Promise<{
+  passages: Passage[];
+  mode: RetrievalResult["mode"];
+  warnings: string[];
+}> {
   const db = database();
   const warnings: string[] = [];
   const caseIds = context.mode === "selected" ? context.caseIds : narrowed;
@@ -85,7 +90,7 @@ export async function retrieveAssistant(
   const passages: Passage[] = matches.flat();
   // Original opening passages support broad summaries without relying on editable metadata.
   // All documents remain eligible for ranked retrieval; this fallback is only for attached cases.
-  if (context.mode === "selected") {
+  if (context.mode === "selected" && options.includeOpenings !== false) {
     const openings = await Promise.all(
       (sources.data ?? [])
         .filter((s) => s.status === "ready")
