@@ -115,4 +115,8 @@ The inline-citation update passed 81 unit tests, all 13 local API/database integ
 
 Citation validation proves that an ID refers to an authorized original passage, not that every generated sentence is entailed by it. Model instruction-following and factual support still require evaluation against the originals. No complete-corpus coverage claim or calibrated confidence percentage is provided.
 
-Direct chat uploads, case creation by Wren, web search, editable system prompts, streaming, and shared conversations remain outside this iteration. [Reuse plans](reuse-plans.md) are now available through the Draft reuse plan action, with reviewed requests, Markdown editing, explicit saves, and export.
+Case creation by Wren, web search, editable system prompts, streaming, and shared conversations remain outside this iteration. [Reuse plans](reuse-plans.md) are now available through the Draft reuse plan action, with reviewed requests, Markdown editing, explicit saves, and export.
+
+## Upload a problem document
+
+Use **Upload files** or drop PDF, TXT, or MD files onto the composer. Send files alone or alongside your question. Wren reads the documents in resumable stages and compares their requirements with the allowed past cases. **Add cases** continues to select historical precedent. See [query file uploads](query-file-uploads.md) for file context, recovery, limits, and plan references.

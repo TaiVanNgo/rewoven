@@ -25,9 +25,32 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ThemeToggle } from "@/components/workspace/theme-toggle";
 import { caseApi } from "@/features/cases/api-client";
-import { CitationProvider } from "@/features/citations/citation-marker";
-import { citationKey, passageCitation } from "@/features/citations/types";
+import { validateFile } from "@/features/cases/validation";
+import {
+  CitationMarker,
+  CitationProvider,
+} from "@/features/citations/citation-marker";
+import {
+  citationKey,
+  passageCitation,
+  requestCitation,
+} from "@/features/citations/types";
 import { ChatPlans } from "@/features/plans/chat-plans";
+import {
+  type PendingQueryUpload,
+  prepareQueryFile,
+  uploadQueryFile,
+} from "@/features/query-files/client";
+import {
+  FileContext,
+  MessageFiles,
+  PendingFiles,
+  UploadFilesButton,
+} from "@/features/query-files/file-controls";
+import {
+  FILE_ONLY_MESSAGE,
+  type QueryFile,
+} from "@/features/query-files/types";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { AnswerText } from "./answer-text";
 import { CasePicker, type SelectedCase } from "./case-picker";
@@ -91,6 +114,7 @@ function QueryWorkspaceContent({
   }
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [uploads, setUploads] = useState<PendingQueryUpload[]>([]);
   const [pendingMessage, setPendingMessage] = useState("");
   const [loaded, setLoaded] = useState(!id && !initialCaseId);
   const [showEvidence, setShowEvidence] = useState(true);
@@ -99,6 +123,11 @@ function QueryWorkspaceContent({
   const followBottom = useRef(true);
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  const fileOperation = useRef(new AbortController());
+  useEffect(() => {
+    fileOperation.current = new AbortController();
+    return () => fileOperation.current.abort();
+  }, []);
   const submission = useRef<{ key: string; id: string } | null>(null);
   const latest = conversation?.turns.at(-1);
   const processing =
@@ -114,6 +143,86 @@ function QueryWorkspaceContent({
   useEffect(() => {
     if (id && !opened && error) onLoadError?.(id);
   }, [id, opened, error, onLoadError]);
+  function addFiles(files: File[]) {
+    if (busy) return;
+    try {
+      if (uploads.length + files.length > 5)
+        throw new Error("Choose up to five files per message.");
+      for (const file of files) {
+        if (file.name.length > 200)
+          throw new Error("Use a filename of at most 200 characters.");
+        validateFile(file.name, file.size);
+      }
+      setUploads((previous) => [
+        ...previous,
+        ...files.map((file) => ({
+          id: crypto.randomUUID(),
+          file,
+          state: "Ready to upload",
+        })),
+      ]);
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  const updateFile = useCallback((file: QueryFile) => {
+    setConversation((previous) =>
+      previous
+        ? {
+            ...previous,
+            files: (previous.files ?? []).map((f) =>
+              f.id === file.id ? file : f,
+            ),
+          }
+        : previous,
+    );
+  }, []);
+  async function retryFile(file: QueryFile) {
+    setPending(true);
+    setError("");
+    try {
+      await prepareQueryFile(file, updateFile, fileOperation.current.signal);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      try {
+        if (conversation)
+          restore(
+            (
+              await caseApi<{ query: QueryConversation }>(
+                `/api/queries/${conversation.id}`,
+              )
+            ).query,
+          );
+      } catch {
+        /* A failed refresh must not leave the composer disabled. */
+      }
+      setPending(false);
+    }
+  }
+  async function toggleFile(file: QueryFile) {
+    setPending(true);
+    setError("");
+    try {
+      const result = await caseApi<{ query: QueryConversation }>(
+        `/api/query-files/${file.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enabled: !file.enabled,
+            contextRevision: conversation?.context_revision ?? 0,
+          }),
+        },
+      );
+      restore(result.query);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  }
   const restore = useCallback((query: QueryConversation) => {
     setConversation(query);
     setContext(query.chat_context ?? EMPTY_CHAT_CONTEXT);
@@ -138,6 +247,11 @@ function QueryWorkspaceContent({
           restore(query);
           setLoaded(true);
           if (!query.turns.length) {
+            setPending(true);
+            setLocalDraft(query.request.request);
+            for (const file of query.files ?? [])
+              if (file.enabled)
+                await prepareQueryFile(file, updateFile, controller.signal);
             setPending(true);
             const { query: answered } = await caseApi<{
               query: QueryConversation;
@@ -194,7 +308,7 @@ function QueryWorkspaceContent({
     }
     void load();
     return () => controller.abort();
-  }, [id, initialCaseId, refresh, restore]);
+  }, [id, initialCaseId, refresh, restore, updateFile]);
   useEffect(() => {
     if (!id || (!processing && !pending)) return;
     const controller = new AbortController();
@@ -239,11 +353,23 @@ function QueryWorkspaceContent({
       setContext(next);
       setSelected(cases);
     }
-    input.current?.focus();
   }
   async function send(message: string, retry?: QueryTurn) {
-    if (busy || !loaded || !message.trim()) return;
-    const key = JSON.stringify({ message, context, id });
+    if (
+      busy ||
+      !loaded ||
+      (!message.trim() &&
+        !uploads.length &&
+        !conversation?.files?.some((f) => f.enabled && !f.first_turn_id))
+    )
+      return;
+    if (!message.trim()) message = FILE_ONLY_MESSAGE;
+    const key = JSON.stringify({
+      message,
+      context,
+      id,
+      files: uploads.map((f) => f.id),
+    });
     if (submission.current?.key !== key)
       submission.current = { key, id: crypto.randomUUID() };
     setPending(true);
@@ -251,7 +377,8 @@ function QueryWorkspaceContent({
     setError("");
     followBottom.current = true;
     const sentDraft = draftRef.current;
-    const signal = !id ? onCreateStart?.() : undefined;
+    let signal: AbortSignal | undefined;
+    let activeConversationId = id ?? conversation?.id;
     try {
       await caseApi("/api/demo-session", { method: "POST", signal });
       if (signal?.aborted) return;
@@ -268,16 +395,49 @@ function QueryWorkspaceContent({
               requestKey: submission.current.id,
               assistant: true,
               chatContext: context,
+              files: uploads.map((f) => ({
+                id: f.id,
+                title: f.file.name,
+                size: f.file.size,
+              })),
             }),
           },
         );
+        activeConversationId = query.id;
+        restore(query);
+        void refresh();
+        await prepareUploads(query.id);
+        signal = onCreateStart?.();
         if (signal?.aborted) return;
+        setUploads([]);
         updateDraft({ ...requestDraft, request: "" });
         void refresh();
         onCreated?.(query.id);
         router.push(`/?query=${query.id}`);
       } else {
         let active = conversation;
+        if (!retry && uploads.length) {
+          const reserved = await caseApi<{ query: QueryConversation }>(
+            `/api/queries/${id}/files`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                files: uploads.map((f) => ({
+                  id: f.id,
+                  title: f.file.name,
+                  size: f.file.size,
+                })),
+              }),
+            },
+          );
+          restore(reserved.query);
+          await prepareUploads(id);
+          active = (
+            await caseApi<{ query: QueryConversation }>(`/api/queries/${id}`)
+          ).query;
+          restore(active);
+        }
         if (!active?.assistant && !retry) {
           const response = await caseApi<{ query: QueryConversation }>(
             `/api/queries/${id}/context`,
@@ -309,29 +469,66 @@ function QueryWorkspaceContent({
           },
         );
         restore(query);
+        setUploads([]);
         void refresh();
       }
       if (message === sentDraft && draftRef.current === sentDraft) setDraft("");
       submission.current = null;
     } catch (e) {
       if (signal?.aborted) return;
-      if (!id) onCreateError?.();
+      if (!id && signal) onCreateError?.();
       setError(
         e instanceof Error
           ? e.message
           : "Could not send your message. Your draft is preserved.",
       );
-      if (id)
+      if (activeConversationId)
         try {
           restore(
-            (await caseApi<{ query: QueryConversation }>(`/api/queries/${id}`))
-              .query,
+            (
+              await caseApi<{ query: QueryConversation }>(
+                `/api/queries/${activeConversationId}`,
+              )
+            ).query,
           );
         } catch {}
     } finally {
       setPending(false);
       setPendingMessage("");
     }
+  }
+  async function prepareUploads(conversationId: string) {
+    const failures: string[] = [];
+    for (const item of uploads) {
+      try {
+        await uploadQueryFile(
+          item,
+          (state) =>
+            setUploads((previous) =>
+              previous.map((f) =>
+                f.id === item.id ? { ...f, state, error: undefined } : f,
+              ),
+            ),
+          updateFile,
+          fileOperation.current.signal,
+        );
+      } catch (e) {
+        setUploads((previous) =>
+          previous.map((f) =>
+            f.id === item.id ? { ...f, error: (e as Error).message } : f,
+          ),
+        );
+        if (fileOperation.current.signal.aborted) throw e;
+        failures.push((e as Error).message);
+      }
+    }
+    const current = (
+      await caseApi<{ query: QueryConversation }>(
+        `/api/queries/${conversationId}`,
+      )
+    ).query;
+    restore(current);
+    if (failures.length) throw new Error(failures.join(" "));
   }
   function newChat() {
     updateDraft({
@@ -344,6 +541,8 @@ function QueryWorkspaceContent({
     setContext(EMPTY_CHAT_CONTEXT);
     setSelected([]);
     setError("");
+    setUploads([]);
+    setConversation(null);
     router.push("/");
   }
   const welcome = !id;
@@ -367,7 +566,7 @@ function QueryWorkspaceContent({
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Button variant="outline" size="sm" onClick={newChat}>
+          <Button variant="outline" size="sm" onClick={newChat} disabled={busy}>
             <PlusIcon aria-hidden="true" />
             New chat
           </Button>
@@ -450,7 +649,8 @@ function QueryWorkspaceContent({
                 <p>
                   I’m Wren. Ask me about your past projects, explore what
                   happened, or work through a decision using their lessons. Add
-                  cases for a closer look.
+                  cases for a closer look. Upload a brief or requirements file
+                  to compare your current problem with past work.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -485,6 +685,10 @@ function QueryWorkspaceContent({
                     <p className="wrap-anywhere whitespace-pre-wrap">
                       {turn.message}
                     </p>
+                    <MessageFiles
+                      files={conversation.files ?? []}
+                      ids={turn.new_file_ids ?? []}
+                    />
                     {turn.context_snapshot && (
                       <p className="mt-2 text-xs text-muted-foreground">
                         {turn.context_snapshot.mode === "selected"
@@ -536,7 +740,27 @@ function QueryWorkspaceContent({
                                         ) ?? 1
                                       }
                                     />
-                                  ) : null;
+                                  ) : (
+                                    (() => {
+                                      const request =
+                                        turn.work?.requestEvidence?.find(
+                                          (e) => e.id === evidenceId,
+                                        );
+                                      return request ? (
+                                        <CitationMarker
+                                          key={evidenceId}
+                                          reference={requestCitation(request)}
+                                          number={
+                                            numbers.get(
+                                              citationKey(
+                                                requestCitation(request),
+                                              ),
+                                            ) ?? 1
+                                          }
+                                        />
+                                      ) : null;
+                                    })()
+                                  );
                                 })}
                               </span>
                             )
@@ -605,12 +829,44 @@ function QueryWorkspaceContent({
           </div>
           <form
             className="query-chat-form"
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+            }}
+            onDrop={(e) => {
+              if (e.dataTransfer.files.length) {
+                e.preventDefault();
+                addFiles(Array.from(e.dataTransfer.files));
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault();
               void send(draft);
             }}
           >
+            <FileContext
+              files={conversation?.files ?? []}
+              disabled={busy}
+              onToggle={(file) => void toggleFile(file)}
+              onRetry={(file) => void retryFile(file)}
+            />
+            <PendingFiles
+              files={uploads}
+              disabled={busy}
+              onRemove={(fileId) => {
+                const stored = conversation?.files?.find(
+                  (f) => f.id === fileId,
+                );
+                if (stored?.enabled) void toggleFile(stored);
+                setUploads((previous) =>
+                  previous.filter((f) => f.id !== fileId),
+                );
+              }}
+            />
             <div className="mb-3 flex flex-wrap items-center gap-2">
+              <UploadFilesButton
+                disabled={busy || !loaded}
+                onFiles={addFiles}
+              />
               <CasePicker
                 selected={selected}
                 disabled={busy || !loaded}
@@ -672,7 +928,7 @@ function QueryWorkspaceContent({
                 ref={input}
                 value={draft}
                 maxLength={10000}
-                placeholder="Ask a question, explore a lesson, or describe a decision…"
+                placeholder="Describe a problem, ask a question, or upload files…"
                 onChange={(e) => {
                   setDraft(e.target.value);
                   if (!id)
@@ -692,7 +948,15 @@ function QueryWorkspaceContent({
               <Button
                 type="submit"
                 size="icon"
-                disabled={busy || !loaded || !draft.trim()}
+                disabled={
+                  busy ||
+                  !loaded ||
+                  (!draft.trim() &&
+                    !uploads.length &&
+                    !conversation?.files?.some(
+                      (f) => f.enabled && !f.first_turn_id,
+                    ))
+                }
                 aria-label="Send message"
               >
                 <ArrowUpIcon aria-hidden="true" />
@@ -734,7 +998,7 @@ function QueryWorkspaceContent({
               <span>
                 {id
                   ? "Saved for this 24-hour demo session"
-                  : "Enter to send · Shift + Enter for a new line"}
+                  : "Drop PDF, TXT or MD · 5 MB each · Enter to send"}
               </span>
               <Link href="/case-library" className="underline">
                 Create a case

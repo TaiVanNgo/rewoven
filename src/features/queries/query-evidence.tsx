@@ -7,6 +7,7 @@ import {
   citationKey,
   citationNumbers,
   passageCitation,
+  requestCitation,
 } from "@/features/citations/types";
 import type { RetrievalResult } from "@/features/retrieval/types";
 import type { Evidence, QueryTurn } from "./types";
@@ -19,7 +20,19 @@ export function answerCitationNumbers(turn: QueryTurn) {
         evidence.filter((item) => item.id === id),
       ),
     ) ?? [];
-  return citationNumbers([...ordered, ...evidence].map(passageCitation));
+  const request = turn.work?.requestEvidence ?? [];
+  const all = [...ordered, ...evidence].map(passageCitation);
+  const requestReferences = request.map(requestCitation);
+  const orderedReferences =
+    turn.answer?.sections.flatMap((section) =>
+      section.evidence.flatMap((id) => {
+        const item = request.find((e) => e.id === id);
+        return item
+          ? [requestCitation(item)]
+          : evidence.filter((e) => e.id === id).map(passageCitation);
+      }),
+    ) ?? [];
+  return citationNumbers([...orderedReferences, ...all, ...requestReferences]);
 }
 
 export function Citation({

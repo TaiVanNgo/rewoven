@@ -73,12 +73,15 @@ function SourceContent({ reference }: { reference: CitationReference }) {
   const [refreshing, setRefreshing] = useState(false);
   const query = previewQuery(reference, page).toString();
   const sourceId = reference.sourceId;
+  const prefix = reference.requestDocument
+    ? "/api/query-files"
+    : "/api/sources";
   // Page-local context is replaced atomically; late replies never replace another page.
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision explicitly retries the same source location.
   useEffect(() => {
     const controller = new AbortController();
     setError("");
-    caseApi<SourcePreview>(`/api/sources/${sourceId}/preview?${query}`, {
+    caseApi<SourcePreview>(`${prefix}/${sourceId}/preview?${query}`, {
       signal: controller.signal,
     })
       .then((data) => {
@@ -92,13 +95,13 @@ function SourceContent({ reference }: { reference: CitationReference }) {
         if (!controller.signal.aborted) setError(reason.message);
       });
     return () => controller.abort();
-  }, [sourceId, query, revision]);
+  }, [sourceId, query, revision, prefix]);
 
   async function refreshPdf() {
     setRefreshing(true);
     try {
       const data = await caseApi<SourcePreview>(
-        `/api/sources/${reference.sourceId}/preview?${previewQuery(reference, page)}`,
+        `${prefix}/${reference.sourceId}/preview?${previewQuery(reference, page)}`,
       );
       return data.pdfUrl;
     } finally {
@@ -108,7 +111,7 @@ function SourceContent({ reference }: { reference: CitationReference }) {
   const pdf = preview?.source.format === "pdf";
   const activeTab = tab ?? (pdf ? "pdf" : "text");
   const version = reference.version ?? preview?.source.version;
-  const original = `/api/sources/${reference.sourceId}/original${version ? `?version=${version}` : ""}${pdf ? `#page=${page}` : ""}`;
+  const original = `${prefix}/${reference.sourceId}/original${version ? `?version=${version}` : ""}${pdf ? `#page=${page}` : ""}`;
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <p className="text-xs text-muted-foreground">
@@ -267,9 +270,13 @@ function SourceContent({ reference }: { reference: CitationReference }) {
       )}
       <Link
         className="self-start text-xs font-semibold text-knowledge-ink underline underline-offset-4"
-        href={`/case-library/${reference.caseId}`}
+        href={
+          reference.requestDocument
+            ? `/?query=${reference.caseId}`
+            : `/case-library/${reference.caseId}`
+        }
       >
-        Inspect case
+        {reference.requestDocument ? "Return to chat" : "Inspect case"}
       </Link>
     </div>
   );

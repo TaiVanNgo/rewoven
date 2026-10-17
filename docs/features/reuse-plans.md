@@ -21,12 +21,12 @@ bun run dev
 Open the printed URL, usually `http://localhost:3000`:
 
 1. Start a Wren chat and describe the new work. Use **Add cases** to attach a relevant fictional sample, such as Summit Course Registration Engineering Journal. Library mode searches your uploads; samples need explicit selection.
-2. Choose **Draft reuse plan** after Wren finishes answering. Request preparation uses the original constraints and at most eight recent user messages / 24,000 characters. It does not use earlier AI answers as evidence. A notice identifies omitted older context; add any important missing details.
+2. Choose **Draft reuse plan** after Wren finishes answering. Request preparation uses the original constraints and at most eight recent user messages / 24,000 characters. Active request documents and their source-linked findings are captured separately from historical cases. It does not use earlier AI answers as evidence. A notice identifies omitted older context; add any important missing details.
 3. Correct the title, requirements, deadline, technology, capabilities, and questions. Choose **Confirm request and generate plan**. If preparation fails or the key is absent, a manual review form remains available.
 4. Read the preview and open numbered citations. Their source list retains the original excerpts, document versions, and locations. The request describes proposed work and remains separate from historical evidence.
 5. Edit the title and Markdown. On mobile, switch between **Edit Markdown** and **Preview**. Keep stable markers such as `[S1]` next to supported claims. Separate consecutive markers with a comma: `[S1], [S2]`. Rewoven manages their reference definitions separately.
 6. Choose **Save**. Generation stores a recovery draft automatically, but it does not add a plan to Saved plans until you explicitly save it. Saved plans survive refresh within the same 24-hour demo session.
-7. Choose **Export Markdown**. This downloads the latest saved version, including the confirmed request, plan, warnings, source excerpts, and absolute source links. Save pending edits first.
+7. Choose **Export Markdown**. This downloads the latest saved version, including the confirmed request, plan, warnings, historical source excerpts, request-document references, and absolute source links. Save pending edits first.
 
 Stop Next.js with Ctrl+C. Supabase keeps running; stop it with `bun run db:stop` to preserve local data. For production testing, run `bun run build` before `bun run start`: the production server requires the compiled application. Production deployment uses the existing Vercel migration workflow; Preview builds do not apply hosted migrations.
 
