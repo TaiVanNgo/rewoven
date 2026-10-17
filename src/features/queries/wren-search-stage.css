@@ -18,6 +18,9 @@
   position: relative;
   width: 100%;
   height: 100%;
+  border-radius: var(--radius);
+  background-size: contain;
+  background-repeat: no-repeat;
   animation: wren-breathe 3s ease-in-out infinite;
   transform-origin: center bottom;
 }

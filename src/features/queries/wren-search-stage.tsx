@@ -71,6 +71,12 @@ export function WrenSearchStage({
 }) {
   const reducedMotion = useReducedMotion();
   const [target, setTarget] = useState(measureStage);
+  // Keep the already-decoded portrait visible while the larger image downloads.
+  const [preview] = useState(
+    () =>
+      document.querySelector<HTMLImageElement>(".request-companion img")
+        ?.currentSrc,
+  );
   const [origin] = useState(() => {
     const { source } = transition;
     return source &&
@@ -153,13 +159,18 @@ export function WrenSearchStage({
           opacity: { duration: reducedMotion ? 0 : wrenTiming.exit },
         }}
       >
-        <div className="wren-search-character" aria-hidden="true">
+        <div
+          className="wren-search-character"
+          aria-hidden="true"
+          style={preview ? { backgroundImage: `url("${preview}")` } : undefined}
+        >
           <Image
             src="/images/wren.png"
             alt=""
             width={1024}
             height={1024}
             sizes="440px"
+            loading="eager"
             className="wren-search-image"
           />
           <SearchDocuments />

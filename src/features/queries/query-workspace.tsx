@@ -26,7 +26,15 @@ import { CaseCard, Citation } from "./query-evidence";
 import { useQueryHistory } from "./query-history";
 import type { QueryConversation, QueryFocus, QueryTurn } from "./types";
 
-export function QueryWorkspace({ id }: { id: string }) {
+export function QueryWorkspace({
+  id,
+  onReady,
+  onLoadError,
+}: {
+  id: string;
+  onReady?: (id: string) => void;
+  onLoadError?: (id: string) => void;
+}) {
   const router = useRouter();
   const { updateDraft } = useRequestDraft();
   const { refresh } = useQueryHistory();
@@ -51,6 +59,13 @@ export function QueryWorkspace({ id }: { id: string }) {
     latest?.status === "processing" &&
     Date.now() - new Date(latest.started_at).getTime() < 300000;
   const busy = pending || processing;
+  const opened = conversation !== null;
+  useEffect(() => {
+    if (opened) onReady?.(id);
+  }, [opened, id, onReady]);
+  useEffect(() => {
+    if (!opened && error) onLoadError?.(id);
+  }, [opened, error, id, onLoadError]);
   const latestWork = [...(conversation?.turns ?? [])]
     .reverse()
     .find((turn) => turn.work)?.work;
@@ -226,7 +241,7 @@ export function QueryWorkspace({ id }: { id: string }) {
         aria-live="polite"
       >
         {error ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" data-query-open-error tabIndex={-1}>
             <AlertTitle>Could not open query</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -252,7 +267,13 @@ export function QueryWorkspace({ id }: { id: string }) {
             className="size-4 text-knowledge-ink"
             aria-hidden="true"
           />
-          <h1 className="font-semibold">Query workspace</h1>
+          <h1
+            id="query-workspace-title"
+            tabIndex={-1}
+            className="font-semibold"
+          >
+            Query workspace
+          </h1>
           <span className="hidden text-muted-foreground sm:inline">
             / Ask Wren
           </span>

@@ -46,7 +46,7 @@ The production server serves the generated build, so `build` must finish before 
 
 ## What the files do
 
-- `src/features/queries/query-entry.tsx` opens the request form or a saved query, and `query-workspace.tsx` owns interactive chat state. The homepage stays a Server Component and supplies Wren's existing illustration; a Suspense boundary contains the client component that reads URL search parameters. The shared workspace layout keeps recent-query navigation mounted.
+- `src/features/queries/query-entry.tsx` opens the request form or a saved query, and `query-workspace.tsx` owns interactive chat state. The homepage stays a Server Component; a small client companion supplies Wren's existing illustration and its position for the [first-query transition](wren-query-transition.md). A Suspense boundary contains the client component that reads URL search parameters. The shared workspace layout keeps recent-query navigation mounted.
 - `src/features/queries/server/process-turn.ts` orchestrates interpretation, authorized retrieval, evidence collection, answer validation, and saving. `server/openai.ts` calls OpenAI only from the server with provider response storage disabled. No chat SDK was added.
 - `src/features/queries/server/repository.ts` stores and restores conversations. `server/evidence.ts` adds context and caveat excerpts from Ready sources, checks evidence before generation completes, and preserves source locations.
 - `src/features/queries/validation.ts` validates input and structured answers. The model selects evidence IDs; the server supplies their original text, pages, and links. Response text is rendered as React text, without interpreting generated HTML or links.
