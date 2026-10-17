@@ -6,9 +6,9 @@ The project uses Next.js, TypeScript, Tailwind CSS, Motion, Supabase, and Bun. T
 
 The homepage at `/` opens **New chat**, with a message composer, optional project constraints, and **Add cases**. Wren can greet users and clarify questions without searching; substantive answers and recommendations use retrieved case sources with clickable citations. By default, it searches only your uploads. The case picker lets you attach up to five existing cases, including explicitly selected fictional samples; attached cases become the exclusive context until you choose **Use my library**. Full replies appear after validation, with actual processing stages while Wren works.
 
-**Case library** at `/case-library` provides uploads, nine read-only fictional samples, and dedicated case pages at `/case-library/[id]`. **Ask Wren about this case** opens chat with that case attached. **Create a case** in chat links to the existing library workflow; Wren does not create cases or upload documents. **Saved plans** at `/saved-plans` remains a preview.
+**Case library** at `/case-library` provides uploads, nine read-only fictional samples, and dedicated case pages at `/case-library/[id]`. **Ask Wren about this case** opens chat with that case attached. **Create a case** in chat links to the existing library workflow; Wren does not create cases or upload documents. **Draft reuse plan** prepares a reviewable request from a saved chat, then generates a cited draft. Users edit Markdown, explicitly save it, and export it. **Saved plans** at `/saved-plans` lists plans saved during the current demo session. See the [reuse-plan guide](docs/features/reuse-plans.md) for the workflow, recovery, export, and limits.
 
-**Recent queries** restores saved chats, case selections, and evidence during the same 24-hour demo session. Messages are limited to 10,000 characters. Unsubmitted drafts remain local and reset on reload. Submitted text and retrieved excerpts are sent to OpenAI when configured. Missing AI configuration preserves keyword excerpts with a visible paused-answer message. Every Ready document is eligible for retrieval, but answers use a bounded selection of passages rather than reading every document on every turn.
+**Recent queries** restores saved chats, case selections, and evidence during the same 24-hour demo session. Messages are limited to 10,000 characters. Unsubmitted chat drafts remain local and reset on reload. Ready-plan edits have a tab-local recovery buffer until explicitly saved. Submitted text and retrieved excerpts are sent to OpenAI when configured. Missing AI configuration preserves keyword excerpts with a visible paused-answer message. Every Ready document is eligible for retrieval, but answers use a bounded selection of passages rather than reading every document on every turn.
 
 To inspect the interface without Supabase, run `bun install --frozen-lockfile`, then `bun run dev` and open the printed URL. Saving chats and selecting cases require the local database setup below. Stop the server with Ctrl+C.
 
@@ -104,7 +104,8 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Read large and multiple documents with AI, resume saved progress, and review combined case metadata.
 - [x] Implement dedicated case pages and editable evidence-backed project overviews.
 - [x] Implement session-saved query conversations, cited case Q&A, related-case discovery, and request comparison.
-- [ ] Implement client request attachments and reuse-plan generation/persistence.
+- [x] Implement reuse-plan generation, request review, Markdown editing, explicit saves, and export.
+- [ ] Implement client request attachments.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
@@ -160,7 +161,7 @@ src/app/
     page.tsx                Ask Wren chat (/)
     case-library/page.tsx   Searchable case library (/case-library)
     case-library/[id]/      Dedicated case overview, evidence, and source management
-    saved-plans/page.tsx    Saved plans (/saved-plans)
+    saved-plans/            Saved plan list and individual editor (/saved-plans/[id])
   globals.css               Tailwind, light/dark tokens, focus and motion policy
   icon.png                  Portrait favicon
   robots.ts                 Crawler instructions
@@ -174,6 +175,7 @@ src/features/cases/          Library, source viewer, form, types, validation, ex
   server/                   Supabase access, ownership, ingestion, sessions
 src/app/api/                Session, case, retry, and authorized original-file routes
 src/features/queries/          Saved chat, case focus, evidence, comparison, server workflow
+src/features/plans/            Request review, evidence-backed plans, Markdown editor and export
 src/features/requests/
   request-composer.tsx       Form interactions and sample loading
   request-draft.tsx          Draft type, provider, and access hook
