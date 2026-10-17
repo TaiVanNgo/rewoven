@@ -1,21 +1,23 @@
-# Ask Wren about past work
+# Talk through past projects with Wren
 
-The request form now opens a saved conversation. Wren can answer questions about a specific case, find related cases, and compare past work with the request. Answers distinguish recorded facts, inferences, recommendations, and missing information, with links back to original source passages.
+Wren is a conversational case advisor. You can greet it, ask about a project, compare past decisions, or ask what lessons apply to your next decision. Its substantive answers and advice use case sources; it does not supply general-purpose advice from outside knowledge.
 
-## Try a concrete example
+## Try a conversation
 
-1. Open **New request**, choose **Review delivery runs**, and select **Find past cases**.
-2. The submitted request appears above a conversation, alongside up to three ranked case candidates. Ask: “What happened in Harbor Route Planning Pilot, and what changes if every depot needs it?”
-3. Wren should explain only what the available source excerpts support. For the fictional Harbor case, the recorded improvement covers two pilot depots and ten observed business days. Wren should preserve that limit rather than claim company-wide results. Treat suggestions for a broader rollout as recommendations or inferences.
-4. Select a citation to open the library at its source, PDF page where available, and character range. The exact excerpt is retained with the conversation.
-5. Select **Ask Wren** on a result to focus the next question on that case. **Find related**, or asking for similar cases while focused, searches for other cases, excluding the reference case from results. Its original excerpts still support the comparison. **Search all cases** removes the explicit case filter; name a case or describe a new capability in your next question to change topics.
-6. Return through **Recent queries**, or reload the query URL. Messages, submitted constraints, evidence, and the latest submitted focus remain available during the same demo session.
+1. Open **New chat** and say “Hi Wren, what can you help me with?” A greeting needs no case search.
+2. Select **Add cases**. The **My cases** tab contains your uploads. To try fictional data, explicitly choose **Sample cases**, select **Harbor Route Planning Pilot**, and apply the selection.
+3. Ask “What happened during the pilot, and what limits should I keep in mind?” Wren searches the attached case’s original documents and links its answer to source passages. The fictional Harbor results cover a limited pilot; proposed expansion is not a measured company-wide outcome.
+4. Follow up with “Based on those limits, what should we check before expanding?” Wren can suggest an application of recorded lessons and identify missing evidence. Suggestions are not historical facts.
+5. Add another case to compare them. Up to five cases can be attached. Wren searches only those cases until you select **Use my library**, which returns to your uploaded cases. Samples never enter automatic library discovery.
+6. Open a citation to inspect the original source and page. Use **Sources** to hide or reopen the evidence panel. **Recent queries** restores the chat, case selection, messages, and original evidence during the same demo session.
 
-**Ask Wren about this case** in library details opens a focused request form. It does not generate an answer until you submit. **Edit query** copies the original request into the form and creates a separate conversation on submission. **New request** opens a blank form. Unsubmitted drafts are not stored in the database and reset on reload.
+The case picker references existing cases; it does not upload or duplicate documents. Cases with no readable sources cannot be attached. Partially indexed sources have a coverage warning. **Create a case** opens the existing Case library flow; create and process the case there, then attach it in chat. Wren does not create records or invent historical cases for you.
 
-## Run it locally
+**Ask Wren about this case** on a case page opens a new chat with that case attached. No answer is generated until you send a message. The first message names the saved conversation. Optional timeline, technology, and capability constraints can be supplied before sending. Enter sends; Shift + Enter inserts a line break. Unsubmitted drafts reset on reload.
 
-Use the Bun and Node versions specified in the README and `package.json`. Preserve an existing `.env.local`.
+## Start and verify locally
+
+Preserve an existing `.env.local` and follow the README for local Supabase credentials. Use the Bun version recorded in `package.json`.
 
 ```bash
 bun install --frozen-lockfile
@@ -25,13 +27,9 @@ bun run db:seed
 bun run devx
 ```
 
-`db:start` starts local Supabase and provisions its storage bucket. `db:migrate` applies new database tables and functions without resetting cases. `db:seed` imports the fictional examples. `devx` checks local Supabase before starting Next.js; use `bun run dev` when Supabase is already running. Open the URL printed in the terminal and stop Next.js with Ctrl+C. Supabase continues in the background until `bun run db:stop`.
+`db:migrate` adds the assistant context fields and retrieval functions without resetting cases. `db:seed` loads the fictional examples. `devx` starts the local database and development server; use `bun run dev` if Supabase is already running. Open the URL printed by Next.js. Stop Next.js with Ctrl+C, and stop the background database with `bun run db:stop` when finished.
 
-Configure the local database values described in the README. For generated answers, set `OPENAI_API_KEY` in the ignored `.env.local`. `OPENAI_CHAT_MODEL` optionally selects the chat model; otherwise chat uses `OPENAI_CASE_MODEL`, then the existing pinned `gpt-4.1-mini-2025-04-14` fallback. Restart Next.js after environment changes. Live interpretation, answer, and embedding calls are billable even with a local database.
-
-Without an AI key, case-name matching and keyword retrieval still show original passages, with a visible warning. After adding the key, retry the latest paused turn. If generation fails after retrieval, the cases and excerpts remain saved. A provider or interpretation failure before retrieval preserves the question, but may have no results yet.
-
-For production verification:
+Set `OPENAI_API_KEY` in ignored `.env.local` for chat. The optional `OPENAI_CHAT_MODEL` falls back to `OPENAI_CASE_MODEL`, then `gpt-4.1-mini-2025-04-14`. Restart Next.js after environment changes. Live model and embedding calls are billable. Without the key, keyword excerpts remain available with a paused-answer message; retry after configuring it.
 
 ```bash
 bun run test
@@ -42,32 +40,38 @@ bun run build
 bun run start --port 3001
 ```
 
-The production server serves the generated build, so `build` must finish before `start`. With the production server running, run `TEST_BASE_URL=http://localhost:3001 bun run test:integration` in a second terminal. The integration suite uses local Supabase and mocked models for query generation; it creates and cleans up its own sessions and cases.
+Build first: the production server serves the generated build rather than compiling edits. In another terminal, run `TEST_BASE_URL=http://localhost:3001 bun run test:integration`. Integration tests use local Supabase and mocked model responses, and clean up their own sessions and cases. Browser checks with a configured key exercise the actual model separately.
 
-## What the files do
+## How the feature works
 
-- `src/features/queries/query-entry.tsx` opens the request form or a saved query, and `query-workspace.tsx` owns interactive chat state. The homepage stays a Server Component and supplies Wren's existing illustration; a Suspense boundary contains the client component that reads URL search parameters. The shared workspace layout keeps recent-query navigation mounted.
-- `src/features/queries/server/process-turn.ts` orchestrates interpretation, authorized retrieval, evidence collection, answer validation, and saving. `server/openai.ts` calls OpenAI only from the server with provider response storage disabled. No chat SDK was added.
-- `src/features/queries/server/repository.ts` stores and restores conversations. `server/evidence.ts` adds context and caveat excerpts from Ready sources, checks evidence before generation completes, and preserves source locations.
-- `src/features/queries/validation.ts` validates input and structured answers. The model selects evidence IDs; the server supplies their original text, pages, and links. Response text is rendered as React text, without interpreting generated HTML or links.
-- `supabase/migrations/202610160005_conversational_queries.sql` adds session-owned conversations, ordered turns, attempt accounting, atomic turn claims, and a chat retrieval function. Existing `/api/retrieval` callers keep their previous behavior. Chat keyword candidates are independent of the semantic cutoff, and focused searches rank passages within the selected case.
+The homepage remains a Next.js Server Component. Its Client Component chat owns typing, modal selection, and interaction. A Suspense boundary contains URL-based chat restoration. The browser sends message text and a context revision; the server loads the trusted session, conversation history, selection, and source passages itself.
 
-The HTTP interfaces are `GET/POST /api/queries`, `GET /api/queries/[id]`, and `POST /api/queries/[id]/turns`. Creating a query sends a request UUID, request text, constraints, and optional focused case ID. Submitting a turn sends its own UUID, message, scope (`library`, `case`, or `related`), and optional case ID. The browser never supplies trusted history, citations, or the session ID; the server loads those after checking the demo-session cookie. Responses are private and uncached.
+- `src/features/queries/server/assistant-prompt.ts` holds the versioned, built-in Wren role and output schemas. Greetings and clarification can be uncited. Facts, interpretations, and recommendations must reference server-supplied evidence IDs.
+- `src/features/queries/server/process-assistant.ts` claims a turn, reserves its generation budget, classifies intent, retrieves evidence when needed, checks for missing evidence, validates the answer, and saves it. Status reflects actual understanding, review, and answer stages. Replies appear complete after validation.
+- `src/features/queries/server/assistant-retrieval.ts` searches authorized original chunks across all Ready source documents. Separate selected-case searches and an interleaved evidence budget prevent one large case from crowding out a comparison. Case overviews and previous answers do not substitute for original evidence.
 
-## Persistence, recovery, and limits
+Conversation creation accepts `assistant: true` and `chatContext: { mode: "library", caseIds: [] }` or selected mode with up to five case IDs. `PATCH /api/queries/[id]/context` saves a selection with `contextRevision`. `POST /api/queries/[id]/turns` submits the message, request key, and current revision. The server rejects stale selection updates and changes during an active turn. Each turn stores its own context snapshot, so retries use the original selection even after a later context change.
 
-Conversations belong to the existing 24-hour cookie-backed demo session. Another session cannot list, reopen, or generate against them, or retrieve that session's private cases. Expiry ends access; it does not promise automatic deletion. There is no cross-device account history.
+Migration `202610170006_wren_assistant.sql` adds conversation context, revision, per-turn snapshots, processing phases, and authorized retrieval. Existing chats and citations remain readable; legacy single-case focus becomes a selected case. The legacy query processor remains for older clients and saved-turn retries. A new message in the updated UI promotes an old chat to the assistant workflow.
 
-Each turn uses an idempotent request ID and one processing claim per conversation. A duplicate completed submission returns its saved answer. A live duplicate does not launch another model run. An interrupted processing lease can be resumed after five minutes. Only the latest failed turn can be retried; older questions can be asked again as new turns. Completed retrieval is reused on retry if its evidence is still current. A source change triggers fresh retrieval; older saved answers retain their original excerpts and warn when their sources changed or are no longer Ready.
+## Evidence, recovery, and limits
 
-`AI_CHAT_SESSION_LIMIT` defaults to 50 generation attempts per session and `AI_CHAT_DAILY_LIMIT` to 100 per UTC day across the database. These are separate from AI-reading attempts and embedding token budgets. Development disables chat attempt limits; production, including a local production server, enforces them. Zero pauses new generation attempts. A turn reserves one attempt before its model work, with at most an interpretation call and an answer call. Failed or uncertain attempts retain their reservation; an explicit retry reserves another. Each provider call has a 60-second timeout.
+“Full RAG” means every Ready document in the allowed cases is eligible for search. It does **not** mean every document is loaded or read on each turn. There are up to two initial search queries and one additional targeted search, across two retrieval rounds. The final evidence bundle contains at most 30 original passages or 60,000 characters. Coverage and indexing limits are visible. Ask a narrower follow-up when important details are missing.
 
-Input remains limited to 10,000 characters per message and 1,000 per optional constraint. Model history includes up to eight previous turns within 24,000 serialized characters, plus the original request and current question. Excluded older context produces a warning. Case-name interpretation uses the first 200 authorized catalog entries; choosing a case in the library also includes that explicitly selected case. Evidence is bounded to up to three result cases plus the reference case for related searches, nine excerpts per case, and context/caveat sampling from up to six Ready documents per case. These are selected passages, not a claim that Wren read every document in full.
+Messages remain limited to 10,000 characters; optional constraints to 1,000 each. Recent conversational context includes up to eight earlier turns within 24,000 serialized characters, plus the original request. Older excluded history produces a warning. Case-name interpretation uses the first 200 uploaded catalog entries; the picker can explicitly select another case.
 
-## Verification and remaining limitations
+A search turn can use three model calls: intent planning, an evidence sufficiency check, and answer generation. A conversational turn uses only the planner. Planner and evidence-check timeouts are 30 seconds; the answer timeout is 60 seconds. Assistant embedding calls time out after 15 seconds and fall back to keywords. The model provider does not store responses (`store: false`).
 
-Focused unit tests cover input limits, scope validation, fabricated citations, unsupported answer sections, bounded history, and provider refusals/malformed output. The query integration suite verifies persistence, isolation, duplicate and concurrent claims, case filters, related-case exclusion, recovery, and atomic usage limits. Browser verification covers the real form-to-chat journey, source inspection, restoring recent queries, responsive layouts, keyboard input, and themes.
+`AI_CHAT_SESSION_LIMIT` defaults to 50 attempts per session; `AI_CHAT_DAILY_LIMIT` defaults to 100 per UTC day across the database. These are turn-attempt limits, not individual model-call counts; an explicit retry reserves another attempt. Development disables chat attempt limits, while production servers enforce them. Embedding budgets remain separate.
 
-Citation validation establishes that a reference identifies a supplied, authorized excerpt. It cannot automatically prove that every sentence follows from that excerpt. Inspect the originals and evaluate answer support manually, especially for missing outcomes, conflicting documents, and recommendations. Retrieval rankings are candidates, not calibrated confidence percentages. Incomplete indexing remains visible and can omit relevant work.
+One live processing claim is allowed per chat. Duplicate completed submissions return the saved answer; interrupted turns can be retried after five minutes, and only the latest failed turn is retryable. Assistant retries retrieve fresh evidence using the saved selection. Already retrieved excerpts remain visible if later generation fails. Older saved answers retain original excerpts and warn when sources change.
 
-Request attachments, shared snapshots, decision graphs, full reuse-plan generation, and plan saving/export remain outside this feature. The screenshot's controls for those features are intentionally absent.
+The 24-hour cookie-backed demo session isolates uploaded cases and conversations. Expiry ends access; it does not automatically delete stored data. There is no cross-device account history.
+
+## Verification and boundaries
+
+Unit tests cover selection validation, bounded plans, citation validation, conversational output, and fair evidence limits. Integration tests cover greeting without retrieval, multiple selected cases, evidence in an eighth document, more than three discovered cases, uploaded-versus-sample boundaries, ownership, context revisions, concurrency, retries, persistence, and missing-key recovery. Existing ingestion and legacy query tests remain part of the suite.
+
+Citation validation proves that an ID refers to an authorized original passage, not that every generated sentence is entailed by it. Model instruction-following and factual support still require evaluation against the originals. No complete-corpus coverage claim or calibrated confidence percentage is provided.
+
+Direct chat uploads, case creation by Wren, web search, editable system prompts, streaming, shared conversations, and saved reuse plans remain outside this iteration.

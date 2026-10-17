@@ -2,15 +2,17 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and prepares an editable, source-linked project overview; no title is required before reading. Dedicated case pages organize the problem, approach, results, lessons, and gaps. New requests open session-saved conversations with up to three case candidates, cited answers, request comparisons, and follow-up questions. Client request attachments and reuse-plan generation/persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project uses Next.js, TypeScript, Tailwind CSS, Motion, Supabase, and Bun. The case library supports multi-document text/Markdown/PDF ingestion, source-linked overviews, dedicated case pages, and hybrid keyword/semantic retrieval. Wren is a conversational case advisor: ask questions, compare projects, and discuss decisions using original case evidence.
 
-The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing nine read-only fictional project samples and session-owned additions. Each case opens at `/case-library/[id]` with an on-demand evidence inspector. Saved plans remains a preview empty state.
+The homepage at `/` opens **New chat**, with a message composer, optional project constraints, and **Add cases**. Wren can greet users and clarify questions without searching; substantive answers and recommendations use retrieved case sources with clickable citations. By default, it searches only your uploads. The case picker lets you attach up to five existing cases, including explicitly selected fictional samples; attached cases become the exclusive context until you choose **Use my library**. Full replies appear after validation, with actual processing stages while Wren works.
 
-The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** saves the request and opens a chat workspace with relevant cases alongside Wren’s answers. Users can ask about a specific case, find related cases, and compare their constraints with past work. Clickable citations open original source passages. **Recent queries** restores conversations during the same 24-hour demo session, including after reload; unsent drafts remain local and reset on reload. Submitting requests or follow-ups sends text to the server and, when configured, OpenAI for interpretation, embeddings, and answer generation. Missing AI configuration keeps keyword search and original excerpts available.
+**Case library** at `/case-library` provides uploads, nine read-only fictional samples, and dedicated case pages at `/case-library/[id]`. **Ask Wren about this case** opens chat with that case attached. **Create a case** in chat links to the existing library workflow; Wren does not create cases or upload documents. **Saved plans** at `/saved-plans` remains a preview.
 
-To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. Use the sidebar links to visit the other pages and return without losing your draft. On desktop, use the sidebar toggle to collapse or expand navigation; its state survives navigation too. Use **Change theme** in the workspace header to choose Light, Dark, or System. Stop the dev server with Ctrl+C.
+**Recent queries** restores saved chats, case selections, and evidence during the same 24-hour demo session. Messages are limited to 10,000 characters. Unsubmitted drafts remain local and reset on reload. Submitted text and retrieved excerpts are sent to OpenAI when configured. Missing AI configuration preserves keyword excerpts with a visible paused-answer message. Every Ready document is eligible for retrieval, but answers use a bounded selection of passages rather than reading every document on every turn.
 
-Read the [conversational queries guide](docs/features/conversational-queries.md) for the form-to-chat workflow, case focus, request comparisons, persistence, citations, usage limits, and recovery.
+To inspect the interface without Supabase, run `bun install --frozen-lockfile`, then `bun run dev` and open the printed URL. Saving chats and selecting cases require the local database setup below. Stop the server with Ctrl+C.
+
+Read the [Wren conversational assistant guide](docs/features/conversational-queries.md) for examples, the case picker, retrieval, system prompt, persistence, limits, and recovery.
 
 Read the [case overview guide](docs/features/case-overviews.md) for the dedicated case page, structured AI review, manual corrections, and safe sample replacement.
 
@@ -102,7 +104,7 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
-The New request interface renders without database credentials; searching cases requires Supabase, and semantic search additionally requires an OpenAI key. The case library requires configured Supabase services. Manual entry does not need an AI API key; optional AI reading does. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
+The New chat interface renders without database credentials; searching cases requires Supabase, and semantic search additionally requires an OpenAI key. The case library requires configured Supabase services. Manual entry does not need an AI API key; optional AI reading does. Add placeholder environment variables to `.env.example` as integrations are implemented, and keep real values in ignored `.env.local` or deployment configuration. `NEXT_PUBLIC_` values are exposed to the browser.
 
 `AGENTS.md` contains the development workflow. Optional skills in `.agents/skills/` provide agent guidance; their presence does not install their recommended libraries. Review their licenses before redistributing them.
 
@@ -151,7 +153,7 @@ src/app/
   layout.tsx                Root HTML, fonts, theme/Motion providers, metadata
   (workspace)/
     layout.tsx              Shared workspace, draft provider, and query history
-    page.tsx                New request (/)
+    page.tsx                Ask Wren chat (/)
     case-library/page.tsx   Searchable case library (/case-library)
     case-library/[id]/      Dedicated case overview, evidence, and source management
     saved-plans/page.tsx    Saved plans (/saved-plans)
@@ -231,9 +233,9 @@ The project includes [`motion`](https://motion.dev/docs/react-installation). `bu
 
 Motion responds to user actions: subtle press feedback and sidebar width changes. There is no automatic entrance sequence. `initial={false}` keeps content visible before hydration, and the composer wraps shadcn Button with `motion.create()` for press feedback.
 
-`reducedMotion="user"` respects the visitor’s device preference. The composer uses `useReducedMotion` to remove press transforms and use immediate sample scrolling. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations, including dropdown animations.
+`reducedMotion="user"` respects the visitor’s device preference. Chat loading indicators respect reduced motion. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations, including dropdown animations.
 
-Run `bun run dev` and open the printed URL. Try a sample, submit the request, navigate between pages, toggle the sidebar, and change themes. Repeat with reduced motion enabled in your device or browser settings. Stop the server with Ctrl+C.
+Run `bun run dev` and open the printed URL. Send a message, attach cases, navigate between pages, toggle the sidebar, and change themes. Repeat with reduced motion enabled in your device or browser settings. Stop the server with Ctrl+C.
 
 ## SEO setup
 
