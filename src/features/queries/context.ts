@@ -38,8 +38,7 @@ export function validatePlan(
   return {
     query: item.query.trim(),
     caseId: focus.caseId ?? item.caseId,
-    related:
-      focus.scope === "related" || (focus.scope === "library" && item.related),
+    related: focus.scope === "related" || item.related,
     clarification: item.clarification,
     candidates: item.candidates as string[],
   };

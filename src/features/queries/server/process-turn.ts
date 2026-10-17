@@ -210,10 +210,32 @@ export async function processQueryTurn(
           resolvedFocus,
           sessionId,
         );
+        if (
+          resolvedFocus.scope === "related" &&
+          resolvedFocus.caseId &&
+          work.retrieval.cases.length
+        ) {
+          // The reference case stays out of results, but comparisons need its originals too.
+          const referenceResult = {
+            cases: [],
+            mode: result.mode,
+            warnings: [] as string[],
+          };
+          const referenceEvidence = await gatherEvidence(
+            referenceResult,
+            { scope: "case", caseId: resolvedFocus.caseId },
+            sessionId,
+          );
+          work.retrieval.warnings.push(
+            ...referenceResult.warnings.map(
+              (warning) => `Reference case: ${warning}`,
+            ),
+          );
+          work.evidence = [...work.evidence, ...referenceEvidence].map(
+            (item, index) => ({ ...item, id: `e${index + 1}` }),
+          );
+        }
       }
-      work.retrieval.warnings.push(
-        "Answers use selected excerpts, not a complete reading of every document. Inspect the originals for additional context.",
-      );
       await save({ work });
     }
     if (work.clarification || !work.evidence.length) {
@@ -249,6 +271,10 @@ export async function processQueryTurn(
           {
             ...context,
             focus: work.focus,
+            referenceCase:
+              work.focus.scope === "related"
+                ? { id: work.focus.caseId, title: work.focusTitle }
+                : null,
             cases: work.retrieval.cases.map(({ id, title, outcome }) => ({
               id,
               title,

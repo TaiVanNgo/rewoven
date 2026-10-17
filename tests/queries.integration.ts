@@ -221,10 +221,23 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
       ),
     );
     assert.ok(
-      relatedAnswer.turns[1].work?.evidence.every(
-        (item) => item.case_id !== first && item.case_id !== foreign,
+      relatedAnswer.turns[1].work?.retrieval.cases.every(
+        (item) => item.id !== first && item.id !== foreign,
       ),
     );
+    assert.ok(
+      relatedAnswer.turns[1].work?.evidence.some(
+        (item) => item.case_id === first,
+      ),
+    );
+    assert.ok(
+      relatedAnswer.turns[1].work?.evidence.every(
+        (item) => item.case_id !== foreign,
+      ),
+    );
+    const evidenceIds =
+      relatedAnswer.turns[1].work?.evidence.map((item) => item.id) ?? [];
+    assert.equal(new Set(evidenceIds).size, evidenceIds.length);
 
     const failureInput = {
       requestKey: randomUUID(),

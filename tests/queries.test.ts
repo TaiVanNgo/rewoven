@@ -119,7 +119,7 @@ test("case interpretation rejects invented identifiers and respects explicit foc
   assert.equal(
     validatePlan({ ...plan, related: true }, catalog, { scope: "case", caseId })
       .related,
-    false,
+    true,
   );
   assert.throws(() =>
     validatePlan({ ...plan, caseId: "foreign" }, catalog, {
