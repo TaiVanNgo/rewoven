@@ -33,9 +33,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           <footer className="mt-6 flex flex-col gap-6">
             <Separator />
             <p className="text-center text-xs leading-relaxed text-muted-foreground">
-              Fictional samples are shared and read-only. Your added cases and
-              queries stay in your demo session for 24 hours. Unsubmitted drafts
-              reset on reload.
+              Fictional samples are shared and read-only. Your cases, chats, and
+              saved plans stay in your demo session for 24 hours. Unsubmitted
+              chat drafts reset on reload.
             </p>
           </footer>
         </main>

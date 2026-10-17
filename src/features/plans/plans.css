@@ -1,0 +1,69 @@
+.plan-prose {
+  line-height: 1.8;
+  font-size: 0.9375rem;
+}
+.plan-prose h1,
+.plan-prose h2,
+.plan-prose h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.6em 0 0.7em;
+}
+.plan-prose h1 {
+  font-size: 1.65rem;
+}
+.plan-prose h2 {
+  font-size: 1.2rem;
+}
+.plan-prose h3 {
+  font-size: 1.05rem;
+}
+.plan-prose > :first-child {
+  margin-top: 0;
+}
+.plan-prose p,
+.plan-prose ul,
+.plan-prose ol,
+.plan-prose blockquote,
+.plan-prose pre {
+  margin: 0.8em 0;
+}
+.plan-prose ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.plan-prose ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.plan-prose li + li {
+  margin-top: 0.6em;
+}
+.plan-prose a {
+  text-decoration: underline;
+}
+.plan-prose blockquote {
+  border-left: 2px solid var(--color-knowledge-ink);
+  padding-left: 1em;
+}
+.plan-prose pre {
+  overflow-x: auto;
+  padding: 1em;
+  background: var(--color-secondary);
+  border-radius: 0.5rem;
+}
+.plan-prose code {
+  font-size: 0.85em;
+}
+.plan-prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  max-width: 100%;
+}
+.plan-prose th,
+.plan-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.5em 0.8em;
+}
