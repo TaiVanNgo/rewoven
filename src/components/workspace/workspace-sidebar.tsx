@@ -24,10 +24,13 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/workspace/brand-logo";
+import { RecentQueries } from "@/features/queries/query-history";
+import { useRequestDraft } from "@/features/requests/request-draft";
 import { sidebarTransition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceSidebar() {
+  const { updateDraft } = useRequestDraft();
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
@@ -100,13 +103,24 @@ export function WorkspaceSidebar() {
           className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1"
         >
           {[
-            { href: "/", label: "New request", icon: FilePlus2Icon },
+            { href: "/", label: "New chat", icon: FilePlus2Icon },
             { href: "/case-library", label: "Case library", icon: ArchiveIcon },
             { href: "/saved-plans", label: "Saved plans", icon: BookmarkIcon },
           ].map(({ href, label, icon: NavigationIcon }) => (
             <Link
               key={href}
               href={href}
+              onClick={
+                href === "/"
+                  ? () =>
+                      updateDraft({
+                        request: "",
+                        deadline: "",
+                        technology: "",
+                        capabilities: "",
+                      })
+                  : undefined
+              }
               aria-current={
                 pathname === href ||
                 (href !== "/" && pathname.startsWith(`${href}/`))
@@ -131,6 +145,7 @@ export function WorkspaceSidebar() {
             </Link>
           ))}
         </nav>
+        <RecentQueries collapsed={collapsed} />
       </div>
       <div
         className={cn(

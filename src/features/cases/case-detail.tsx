@@ -1,5 +1,6 @@
 "use client";
 import { ArrowUpRightIcon, FileTextIcon, XIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -105,7 +106,15 @@ export function CaseDetail({
           {record.sources.length === 1 ? "document" : "documents"} · Read the
           case, then check the evidence.
         </p>
-        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        <div className="flex flex-wrap gap-2">
+          {actions}
+          <Link
+            href={`/?case=${record.id}`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Ask Wren about this case
+          </Link>
+        </div>
       </header>
       {(stale || legacyStale) && (
         <Alert variant="caution">

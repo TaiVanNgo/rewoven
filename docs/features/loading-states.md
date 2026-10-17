@@ -2,7 +2,7 @@
 
 A skeleton is a temporary outline of content that has not arrived yet. The library now shows a grid of case-card placeholders. Opening a dedicated case page shows a title and narrative-section outline until its session-authorized API request finishes.
 
-The placeholders use Rewoven's existing colors and controls. No dependency, artificial delay, or fake action is added.
+The placeholders use Rewoven's existing colors and controls. Skeletons add no artificial delay or fake action. The first-query Wren transition has a deliberate 1.2-second minimum gesture with normal motion; network requests run immediately, and reduced motion removes that hold.
 
 ## Current behavior
 
@@ -12,6 +12,7 @@ The placeholders use Rewoven's existing colors and controls. No dependency, arti
 - Session and API failures show an error and retry control instead of an endless skeleton. A case outside the session is not replaced with another case.
 - Next.js Suspense boundaries surround runtime URL hooks and dynamic route parameters. The workspace frame can render while the selected route loads.
 - AI reading and form submission retain their progress text and disabled controls. They do not replace editable forms with skeletons.
+- A first query moves Wren from her portrait to a dimmed workspace, then fades her away when chat opens. It does not wait for answer generation. Follow-ups retain their inline indicator. See the [Wren transition guide](wren-query-transition.md) for timing, errors, accessibility, and browser checks.
 
 [case-skeleton.tsx](../../src/features/cases/case-skeleton.tsx) defines the card-grid and narrative placeholders. Route `loading.tsx` files and the client data views reuse them. Update these shapes alongside future layout changes.
 
