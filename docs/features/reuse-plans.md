@@ -24,7 +24,7 @@ Open the printed URL, usually `http://localhost:3000`:
 2. Choose **Draft reuse plan** after Wren finishes answering. Request preparation uses the original constraints and at most eight recent user messages / 24,000 characters. It does not use earlier AI answers as evidence. A notice identifies omitted older context; add any important missing details.
 3. Correct the title, requirements, deadline, technology, capabilities, and questions. Choose **Confirm request and generate plan**. If preparation fails or the key is absent, a manual review form remains available.
 4. Read the preview and open numbered citations. Their source list retains the original excerpts, document versions, and locations. The request describes proposed work and remains separate from historical evidence.
-5. Edit the title and Markdown. On mobile, switch between **Edit Markdown** and **Preview**. Keep stable markers such as `[S1]` next to supported claims. Separate consecutive markers with a comma: `[S1], [S2]`. Rewoven manages their reference definitions separately.
+5. Edit the title and plan. **Visual** opens a formatted editor with a toolbar; select text before choosing bold, italic, strikethrough, or **Edit link**. Choose paragraph/headings, bullet/numbered lists, blockquotes, code, or a divider to structure the plan. **Markdown** opens its source. On mobile, switch between **Edit plan** and **Preview**. Keep stable markers such as `[S1]` next to supported claims. Separate consecutive markers with a comma: `[S1], [S2]`. Rewoven manages their reference definitions separately.
 6. Choose **Save**. Generation stores a recovery draft automatically, but it does not add a plan to Saved plans until you explicitly save it. Saved plans survive refresh within the same 24-hour demo session.
 7. Choose **Export Markdown**. This downloads the latest saved version, including the confirmed request, plan, warnings, source excerpts, and absolute source links. Save pending edits first.
 
@@ -43,6 +43,16 @@ The server captures the originating chat and case-selection scope. Confirmation 
 Each generation creates a separate draft. Retries resume that draft and confirmed request. To change the confirmed request, return to the chat and create another plan. The original generation stays separate from the latest explicit save; there is no full save history or automatic merging.
 
 ## Editing, evidence, and export
+
+For example, select “Evaluate transaction-enforced seat reservations” and choose **Bold**. The editor displays bold text, while Markdown mode contains `**Evaluate transaction-enforced seat reservations**`. Choose **Save**, reload, and export: the formatting and existing `[S1]` reference remain in the saved Markdown. Opening the editor, focusing it, or switching modes without editing does not change the saved text or enable Save.
+
+The toolbar offers paragraph/headings 1–3, bold, italic, strikethrough, bullet/numbered lists, blockquote, inline/fenced code, horizontal rule, link editing/removal, and undo/redo. Focus a toolbar button and press Enter to use it with the keyboard. To add a link, select ordinary text, choose **Edit link**, and enter an `http://`, `https://`, `mailto:`, or local URL such as `/case-library`. Open the link dialog again to change or remove it. Open evidence through the preview's numbered references. Citation chips in the editor preserve their source numbers; changing surrounding text does not verify its claims.
+
+Markdown remains the saved format; this editor update requires no new migration or API changes. `formatted-plan-editor.tsx` selects the editing mode, `visual-plan-editor.tsx` owns TipTap, selection formatting, and the link dialog, and `editor-markdown.ts` defines the supported formatting and citation conversion. The parent `plan-editor.tsx` keeps the existing save, recovery, preview, and conflict handling. The editor loads only when a ready plan needs it; browser-only initialization avoids a server/client hydration mismatch.
+
+TipTap's Markdown bridge is [currently beta](https://tiptap.dev/docs/editor/markdown). Before visual conversion, Rewoven checks for unsupported features and whether conversion preserves the document. Plans with tables, task lists, raw HTML, images, reference definitions, headings 4–6, unsupported links, or formatting that cannot round-trip safely open in Markdown mode with an explanation. Their source remains intact. You can keep editing and saving supported Markdown in source mode without converting it. Tables have no visual editing controls in this version. Fonts, colors, alignment, images, and collaboration are outside this toolbar's scope.
+
+Clipboard input uses text rather than foreign HTML. Supported pasted Markdown is converted to the editor's formatting; unsupported pasted syntax is inserted as a code block with a notice so its text stays literal. Paste into Markdown mode when you want to retain unsupported formatting as source. Move citation markers outside a paragraph before converting that paragraph into a code block; the toolbar and keyboard shortcut guard this conversion because code blocks only support text. The original preview safety rules still apply. Undo/redo covers visual changes since the visual editor was opened; switching to source and back starts a new visual undo history. Actual visual edits may normalize Markdown spacing and delimiters. The 50,000-character limit applies to the serialized Markdown: an oversized visual edit remains available to shorten, but cannot be saved.
 
 Markdown preview supports headings, lists, tables, task lists, and code. Raw HTML is omitted, unsafe URL protocols are filtered, and remote images are not rendered. Citation markers resolve through an immutable server-owned evidence map and open the existing source viewer.
 
@@ -88,6 +98,8 @@ Unit tests cover structured findings, invalid references/redefinitions, and expo
 
 Browser checks use fictional local records and mocked generation, with real save/read/export/source endpoints. They cover request review, Markdown preview safety, citations, refresh, unsaved recovery, save conflicts, downloads, and mobile layout. These checks do not establish live-model relevance, organizational value, or hosted-deployment behavior. A production database needs the new migration before this feature can work; merging through the existing production release workflow applies it.
 
+Editor unit tests also cover formatting round trips, exact citation serialization, escaped brackets, code, unsupported-source detection, and link policy. Browser checks exercise the toolbar, link dialog, undo/redo, unchanged mode switching, serialized length limit, formatted saves/exports, and light/dark mobile layouts.
+
 For the optional browser regression, use a Python environment with Playwright installed and Google Chrome available (or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to your Chromium executable). With local Supabase and the app already running:
 
 ```bash
@@ -98,4 +110,27 @@ bun --env-file=.env.local tests/plans.browser-fixture.ts --cleanup
 
 Set `TEST_BASE_URL` when the app uses a port other than 3000. The fixture script rejects hosted Supabase targets and creates only its own fictional session records. Always run cleanup afterward, including after a failed browser check. Screenshots are written under `/tmp/rewoven-plans-browser/`.
 
-Local verification on 17 October 2026 passed 84 unit tests, all 14 API/database integration tests against a local production server, formatting, lint, type checking, and a production build. Browser checks passed at 1440 px and 390 px, including keyboard citation inspection, safe preview, saving/export, recovery, concurrent-save conflict, and leaving the chat during preparation. Provider stages were mocked; no paid model-quality evaluation or hosted production migration was performed.
+### Developing in a separate worktree
+
+Run these commands from the editor worktree, after configuring its own ignored `.env.local` for local Supabase and setting `SITE_URL=http://localhost:3002`:
+
+```bash
+bun install --frozen-lockfile
+bun run dev --port 3002
+```
+
+Open `http://localhost:3002`, then **Saved plans**. A worktree gives the code and Next.js build files their own directory. It still shares local Supabase when both checkouts use the same local URL, so do not reset or stop the database used by another checkout. Stop this Next.js server with Ctrl+C.
+
+For browser verification from a second terminal in that worktree, use a separate fixture file and preserve the same variables for setup, checks, and cleanup:
+
+```bash
+export TEST_BASE_URL=http://localhost:3002
+export PLAN_BROWSER_FIXTURE=/tmp/rewoven-editor-browser-fixture.json
+bun --env-file=.env.local tests/plans.browser-fixture.ts
+python3 tests/plans.browser.py
+bun --env-file=.env.local tests/plans.browser-fixture.ts --cleanup
+```
+
+Use the Python executable from an environment with Playwright installed. The optional `PLAN_BROWSER_FIXTURE` setting keeps simultaneous browser runs from sharing their session fixture file.
+
+Editor-update verification on 17 October 2026 passed 116 unit tests, all 14 API/database integration tests against the worktree’s local server on port 3002, formatting, lint, type checking, and a production build. Browser checks passed at 1440 px and 390 px in light/dark themes, including every toolbar action, keyboard formatting, typed citations, safe paste, citation-preserving code-block guards, unsupported-source save/reload, clean mode switching, length validation, evidence inspection, export, recovery, concurrent-save conflict, and leaving the chat during preparation. Provider stages were mocked; no paid model-quality evaluation or hosted production migration was performed.

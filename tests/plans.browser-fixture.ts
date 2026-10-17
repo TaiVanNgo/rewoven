@@ -5,7 +5,8 @@ import { seedTarget } from "../scripts/seed-target";
 
 const { url, secret } = seedTarget(false);
 const db = createClient(url, secret);
-const file = "/tmp/rewoven-plan-browser-fixture.json";
+const file =
+  process.env.PLAN_BROWSER_FIXTURE ?? "/tmp/rewoven-plan-browser-fixture.json";
 if (
   !["127.0.0.1", "localhost"].includes(
     new URL(process.env.SUPABASE_URL ?? "").hostname,
