@@ -18,3 +18,7 @@ output/playwright/
 
 # Generated from the installed PDF.js version before dev/build.
 public/pdfjs/
+
+# Local video production sources, media, renders, and guide.
+/video/intro/
+/docs/features/intro-video.md

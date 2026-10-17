@@ -16,3 +16,7 @@ skills-lock.json
 output/playwright/
 
 .worktrees/
+
+# Local video production files are maintained separately from the app.
+video/intro/
+docs/features/intro-video.md
