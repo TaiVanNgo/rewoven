@@ -24,10 +24,13 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/workspace/brand-logo";
+import { RecentQueries } from "@/features/queries/query-history";
+import { useRequestDraft } from "@/features/requests/request-draft";
 import { sidebarTransition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceSidebar() {
+  const { updateDraft } = useRequestDraft();
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
@@ -107,6 +110,17 @@ export function WorkspaceSidebar() {
             <Link
               key={href}
               href={href}
+              onClick={
+                href === "/"
+                  ? () =>
+                      updateDraft({
+                        request: "",
+                        deadline: "",
+                        technology: "",
+                        capabilities: "",
+                      })
+                  : undefined
+              }
               aria-current={pathname === href ? "page" : undefined}
               title={label}
               className={cn(
@@ -123,6 +137,7 @@ export function WorkspaceSidebar() {
             </Link>
           ))}
         </nav>
+        <RecentQueries collapsed={collapsed} />
       </div>
       <div
         className={cn(

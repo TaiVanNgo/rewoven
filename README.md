@@ -2,15 +2,17 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and fills editable case fields with source quotes; no title is required before reading. New requests retrieve up to three cases with source excerpts. AI comparisons, richer project overviews, client request attachments, and plan persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and fills editable case fields with source quotes; no title is required before reading. New requests open session-saved conversations with up to three case candidates, cited answers, request comparisons, and follow-up questions. Richer project overviews, client request attachments, and reuse-plan generation/persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
 The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing ten read-only fictional samples and session-owned additions. Saved plans remains a preview empty state.
 
-The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** searches authorized source passages and shows results with document links; unavailable query embeddings produce a labelled keyword-only fallback. The request and all constraints stay in memory while navigating between the workspace pages, then reset on reload or closing the tab. Draft edits remain local until you choose **Find past cases**, which submits the request to the server and, when configured, OpenAI for query embeddings. Requests and search results are not persisted.
+The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** saves the request and opens a chat workspace with relevant cases alongside Wren’s answers. Users can ask about a specific case, find related cases, and compare their constraints with past work. Clickable citations open original source passages. **Recent queries** restores conversations during the same 24-hour demo session, including after reload; unsent drafts remain local and reset on reload. Submitting requests or follow-ups sends text to the server and, when configured, OpenAI for interpretation, embeddings, and answer generation. Missing AI configuration keeps keyword search and original excerpts available.
 
 To inspect this interface without starting Supabase, install dependencies with `bun install --frozen-lockfile`, then run `bun run dev`. Open the URL printed by Next.js, usually `http://localhost:3000`. Try a sample, edit the request and constraints, and select **Find past cases**. Use the sidebar links to visit the other pages and return without losing your draft. On desktop, use the sidebar toggle to collapse or expand navigation; its state survives navigation too. Use **Change theme** in the workspace header to choose Light, Dark, or System. Stop the dev server with Ctrl+C.
 
-Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases persist in a cookie-backed demo session for 24 hours; request drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
+Read the [conversational queries guide](docs/features/conversational-queries.md) for the form-to-chat workflow, case focus, request comparisons, persistence, citations, usage limits, and recovery.
+
+Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases and submitted conversations persist in a cookie-backed demo session for 24 hours; unsubmitted drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
 
 Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.md) to configure OpenAI, review suggested fields with evidence, and understand billing limits. AI reading is optional; manual case entry still works without an AI key.
 
@@ -92,7 +94,8 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Implement optional OpenAI-assisted case reading, editable suggestions, source evidence, and saved review records.
 - [x] Implement multi-document upload, resumable indexing, and request-to-case passage retrieval.
 - [x] Read large and multiple documents with AI, resume saved progress, and review combined case metadata.
-- [ ] Implement richer project overviews, client request attachments, AI comparison, and plan persistence.
+- [x] Implement session-saved query conversations, cited case Q&A, related-case discovery, and request comparison.
+- [ ] Implement richer project overviews, client request attachments, and reuse-plan generation/persistence.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
@@ -144,7 +147,7 @@ Markdown prose wrapping is set to `preserve`, so formatting retains your existin
 src/app/
   layout.tsx                Root HTML, fonts, theme/Motion providers, metadata
   (workspace)/
-    layout.tsx              Shared workspace and in-memory draft provider
+    layout.tsx              Shared workspace, draft provider, and query history
     page.tsx                New request (/)
     case-library/page.tsx   Case library (/case-library)
     saved-plans/page.tsx    Saved plans (/saved-plans)
@@ -160,6 +163,7 @@ src/components/
 src/features/cases/          Library, source viewer, form, types, validation, extraction
   server/                   Supabase access, ownership, ingestion, sessions
 src/app/api/                Session, case, retry, and authorized original-file routes
+src/features/queries/          Saved chat, case focus, evidence, comparison, server workflow
 src/features/requests/
   request-composer.tsx       Form interactions and sample loading
   request-draft.tsx          Draft type, provider, and access hook

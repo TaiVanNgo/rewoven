@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useState,
+} from "react";
 
 export type RequestDraft = {
   request: string;
@@ -23,13 +29,17 @@ const RequestDraftContext = createContext<{
 
 export function RequestDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState(emptyDraft);
+  const updateDraft = useCallback(
+    (patch: Partial<RequestDraft>) =>
+      setDraft((current) => ({ ...current, ...patch })),
+    [],
+  );
 
   return (
     <RequestDraftContext
       value={{
         draft,
-        updateDraft: (patch) =>
-          setDraft((current) => ({ ...current, ...patch })),
+        updateDraft,
       }}
     >
       {children}

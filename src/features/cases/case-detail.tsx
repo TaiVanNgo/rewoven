@@ -1,8 +1,10 @@
 "use client";
 import { TriangleAlertIcon } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -121,6 +123,12 @@ export function CaseDetail({
             </Alert>
           )}
           {actions}
+          <Link
+            href={`/?case=${record.id}`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Ask Wren about this case
+          </Link>
         </CardContent>
       </Card>
       {record.aiReview && <AIReadingRecord review={record.aiReview} />}
