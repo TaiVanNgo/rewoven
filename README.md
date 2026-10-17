@@ -24,6 +24,8 @@ Read the [multi-document ingestion and semantic retrieval guide](docs/features/s
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
+Wren animates from her portrait into the workspace on the first message of a new chat, then fades as the saved chat opens. Answer generation continues independently. See the [Wren transition guide](docs/features/wren-query-transition.md) for timing, cancellation, and reduced motion.
+
 For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. To import the nine fictional project samples into production, temporarily set `SEED_SAMPLE_CASES=true` in Vercel Production and redeploy; see the deployment guide for permissions troubleshooting and the complete steps. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
 
 ## Quick start
@@ -231,7 +233,7 @@ The project includes [`motion`](https://motion.dev/docs/react-installation). `bu
 
 `src/components/providers/motion-provider.tsx` wraps route content in MotionConfig. Presets in `src/lib/motion.ts` use a 180ms interaction transition and a 240ms sidebar transition. CSS control transitions and dropdown animations use the same 180ms timing and interface easing.
 
-Motion responds to user actions: subtle press feedback and sidebar width changes. There is no automatic entrance sequence. `initial={false}` keeps content visible before hydration, and the composer wraps shadcn Button with `motion.create()` for press feedback.
+Motion responds to user actions: subtle press feedback and sidebar width changes. There is no automatic page-load entrance sequence. Wren’s first-message handoff runs only after submission. `initial={false}` keeps content visible before hydration, and the composer wraps shadcn Button with `motion.create()` for press feedback.
 
 `reducedMotion="user"` respects the visitor’s device preference. Chat loading indicators respect reduced motion. The sidebar sets its transition duration to zero under reduced motion, and a global CSS media query disables CSS transitions and animations, including dropdown animations.
 

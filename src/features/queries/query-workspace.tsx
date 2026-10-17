@@ -45,10 +45,20 @@ export function QueryWorkspace({
   id,
   initialCaseId,
   companion,
+  onCreateStart,
+  onCreated,
+  onCreateError,
+  onReady,
+  onLoadError,
 }: {
   id: string | null;
   initialCaseId?: string | null;
   companion?: ReactNode;
+  onCreateStart?: () => AbortSignal;
+  onCreated?: (id: string) => void;
+  onCreateError?: () => void;
+  onReady?: (id: string) => void;
+  onLoadError?: (id: string) => void;
 }) {
   const router = useRouter();
   const { draft: requestDraft, updateDraft } = useRequestDraft();
@@ -82,6 +92,13 @@ export function QueryWorkspace({
   const busy = pending || processing;
   const work = latest?.work;
   const hasEvidence = !!work?.evidence.length;
+  const opened = conversation !== null;
+  useEffect(() => {
+    if (id && opened) onReady?.(id);
+  }, [id, opened, onReady]);
+  useEffect(() => {
+    if (id && !opened && error) onLoadError?.(id);
+  }, [id, opened, error, onLoadError]);
   const restore = useCallback((query: QueryConversation) => {
     setConversation(query);
     setContext(query.chat_context ?? EMPTY_CHAT_CONTEXT);
@@ -219,13 +236,16 @@ export function QueryWorkspace({
     setError("");
     followBottom.current = true;
     const sentDraft = draftRef.current;
+    const signal = !id ? onCreateStart?.() : undefined;
     try {
-      await caseApi("/api/demo-session", { method: "POST" });
+      await caseApi("/api/demo-session", { method: "POST", signal });
+      if (signal?.aborted) return;
       if (!id) {
         const { query } = await caseApi<{ query: QueryConversation }>(
           "/api/queries",
           {
             method: "POST",
+            signal,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...requestDraft,
@@ -236,8 +256,10 @@ export function QueryWorkspace({
             }),
           },
         );
+        if (signal?.aborted) return;
         updateDraft({ ...requestDraft, request: "" });
         void refresh();
+        onCreated?.(query.id);
         router.push(`/?query=${query.id}`);
       } else {
         let active = conversation;
@@ -277,6 +299,8 @@ export function QueryWorkspace({
       if (message === sentDraft && draftRef.current === sentDraft) setDraft("");
       submission.current = null;
     } catch (e) {
+      if (signal?.aborted) return;
+      if (!id) onCreateError?.();
       setError(
         e instanceof Error
           ? e.message
@@ -315,7 +339,13 @@ export function QueryWorkspace({
     >
       <header className="query-toolbar">
         <div>
-          <h1 className="font-heading text-lg font-bold">Ask Wren</h1>
+          <h1
+            id="query-workspace-title"
+            tabIndex={-1}
+            className="font-heading text-lg font-bold"
+          >
+            Ask Wren
+          </h1>
           <p className="text-xs text-muted-foreground">
             Your past work, ready for a conversation
           </p>
@@ -329,7 +359,7 @@ export function QueryWorkspace({
         </div>
       </header>
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-query-open-error tabIndex={-1}>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -408,7 +438,7 @@ export function QueryWorkspace({
                     <Button
                       key={text}
                       variant="outline"
-                      className="h-auto whitespace-normal"
+                      className="h-auto max-w-full whitespace-normal"
                       onClick={() => {
                         setDraft(text);
                         updateDraft({ ...requestDraft, request: text });

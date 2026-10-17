@@ -1,0 +1,234 @@
+.wren-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.wren-search-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--background) 76%, transparent);
+}
+.wren-search-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.wren-search-character {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: wren-breathe 3s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.wren-search-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+}
+.wren-search-label {
+  margin-top: 1rem;
+  color: var(--foreground);
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.wren-search-documents {
+  position: absolute;
+  top: 55%;
+  left: 43%;
+  width: 42%;
+  height: 38%;
+}
+.wren-search-glow,
+.wren-search-ring {
+  position: absolute;
+  top: 22%;
+  left: 8%;
+  width: 40%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.wren-search-glow {
+  background: radial-gradient(
+    circle,
+    #38e1d080,
+    #cef13840 45%,
+    transparent 72%
+  );
+  animation: wren-glow 3s ease-in-out infinite;
+}
+.wren-search-ring {
+  border: 1px solid #38e1d0;
+  animation: wren-pulse 3s ease-out infinite;
+}
+.wren-search-ring-delayed {
+  border-color: #cef138;
+  animation-delay: 0.9s;
+}
+.wren-search-threads {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: #38e1d0;
+}
+.wren-search-threads path {
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 6 4;
+  animation: wren-thread 1.5s linear infinite;
+}
+.wren-search-threads path:nth-child(2) {
+  stroke: #cef138;
+}
+.wren-search-threads circle {
+  fill: currentColor;
+}
+.wren-search-document {
+  position: absolute;
+  width: 34%;
+  height: 25%;
+  padding: 5%;
+  border: 1px solid #b7c5c5;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 3px 12px #20284614;
+}
+.wren-search-document-tab {
+  width: 36%;
+  height: 18%;
+  margin-bottom: 12%;
+  border-radius: 1px;
+  background: #c4d2d4;
+}
+.wren-search-document span {
+  display: block;
+  height: 5%;
+  margin-top: 8%;
+  border-radius: 1px;
+  background: #b8d5d4;
+}
+.wren-search-document span:last-child {
+  width: 65%;
+}
+.wren-search-document-back {
+  top: 32%;
+  left: 12%;
+  animation: wren-shuffle-back 3s ease-in-out infinite;
+}
+.wren-search-document-middle {
+  top: 22%;
+  left: 24%;
+  border-color: #38c6b7;
+  animation: wren-shuffle-middle 3s ease-in-out infinite;
+}
+.wren-search-document-front {
+  top: 12%;
+  left: 37%;
+  width: 39%;
+  height: 28%;
+  border: 2px solid #c2e828;
+  animation: wren-highlight 3s ease-in-out infinite;
+}
+.wren-search-document-front .wren-search-document-tab {
+  width: 48%;
+  background: #cef138;
+}
+.wren-search-document-front span {
+  background: #36a898;
+}
+.wren-search-overlay[data-phase="returning"] .wren-search-documents {
+  opacity: 0;
+  transition: opacity 0.18s ease-out;
+}
+@keyframes wren-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  35% {
+    transform: translateY(-4px) rotate(-0.5deg);
+  }
+  70% {
+    transform: translateY(2px) rotate(0.4deg);
+  }
+}
+@keyframes wren-glow {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.85;
+  }
+}
+@keyframes wren-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes wren-thread {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes wren-shuffle-back {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+  25% {
+    transform: translate(-3px, -12px) rotate(-4deg);
+  }
+  60% {
+    transform: translate(2px, -4px) rotate(2deg);
+  }
+}
+@keyframes wren-shuffle-middle {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+  35% {
+    transform: translate(6px, -18px) rotate(6deg);
+  }
+  70% {
+    transform: translate(-2px, -3px) rotate(-2deg);
+  }
+}
+@keyframes wren-highlight {
+  0%,
+  15%,
+  100% {
+    transform: translate(0, 0) scale(0.96);
+  }
+  45%,
+  80% {
+    transform: translate(8px, -20px) scale(1.06) rotate(3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wren-search-overlay *,
+  .wren-search-overlay *::before,
+  .wren-search-overlay *::after {
+    animation: none;
+    transition: none;
+  }
+}

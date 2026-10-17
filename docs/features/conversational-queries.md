@@ -13,7 +13,7 @@ Wren is a conversational case advisor. You can greet it, ask about a project, co
 
 The case picker references existing cases; it does not upload or duplicate documents. Cases with no readable sources cannot be attached. Partially indexed sources have a coverage warning. **Create a case** opens the existing Case library flow; create and process the case there, then attach it in chat. Wren does not create records or invent historical cases for you.
 
-**Ask Wren about this case** on a case page opens a new chat with that case attached. No answer is generated until you send a message. The first message names the saved conversation. Optional timeline, technology, and capability constraints can be supplied before sending. Enter sends; Shift + Enter inserts a line break. Unsubmitted drafts reset on reload.
+**Ask Wren about this case** on a case page opens a new chat with that case attached. No answer is generated until you send a message. The first message names the saved conversation. A [brief Wren animation](wren-query-transition.md) accompanies its creation and ends when the saved chat opens, independently of answer generation. Follow-ups and reopened chats keep their normal processing indicators. Optional timeline, technology, and capability constraints can be supplied before sending. Enter sends; Shift + Enter inserts a line break. Unsubmitted drafts reset on reload.
 
 ## Start and verify locally
 
