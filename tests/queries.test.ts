@@ -100,7 +100,7 @@ test("answers reject uncited claims and fabricated evidence but allow honest gap
 test("citation links use server-resolved source locations", () => {
   assert.equal(
     evidenceHref(evidence),
-    `/case-library?case=${caseId}&source=source&page=3&start=12&end=48`,
+    `/case-library/${caseId}?source=source&page=3&start=12&end=48`,
   );
 });
 test("case interpretation rejects invented identifiers and respects explicit focus", () => {

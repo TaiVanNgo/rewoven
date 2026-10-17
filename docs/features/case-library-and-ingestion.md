@@ -9,10 +9,10 @@ Rewoven can now store past projects, let you inspect their original documents, a
 Imagine your team built a vendor billing portal. You have delivery notes explaining that finance reviewed invoices and that each approval recorded a reviewer and timestamp.
 
 1. Open **Case library**, then **Add case**.
-2. Enter `Vendor Billing Portal` as the title.
-3. Choose **Paste text** and paste the delivery notes, or choose **Upload file** and select a supported file.
-4. Add context if it helps. Leave the outcome blank if nobody recorded one.
-5. Select **Add case**.
+2. Choose **Paste text** and paste the delivery notes, or select supported source files.
+3. Choose **Enter details yourself instead** and enter `Vendor Billing Portal` as the title.
+4. Add supported findings under the overview sections. Leave recorded results empty if nobody documented a result.
+5. Select the save/add action, then open the new case to inspect its overview and sources.
 
 Rewoven stores the original material, extracts readable text, and prepares that text for keyword search. A successful case becomes **Ready** and appears in the library. You can select it, inspect its text, and open or download the original.
 
@@ -43,13 +43,13 @@ The workspace page remains a **Server Component**, which provides the page frame
 | Table              | What it remembers                                                            | Why it is separate                                                  |
 | ------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `demo_sessions`    | A session identifier, token hash, and expiry                                 | Establishes who may access personal additions.                      |
-| `cases`            | Title, context, outcome, lessons, and processing status                      | Describes the project independently of a particular document.       |
+| `cases`            | Title, overview, revision, compatibility fields, and processing status       | Describes the project independently of a particular document.       |
 | `source_documents` | Original text or file location, extracted text, pages, warnings, and version | Keeps evidence and its origin available for inspection.             |
 | `source_chunks`    | Smaller text pieces, their locations, and search indexes                     | Makes source text searchable while retaining its document and page. |
 
 An uploaded PDF is kept unchanged in the private `case-sources` bucket. Its extracted text is a different representation stored in the database. Pasted text is retained directly in the database instead of creating an uploaded file.
 
-A **chunk** is a piece of text of up to 2,000 characters. PDF chunks stay within their original page and keep that page number. This increment uses PostgreSQL keyword search; it does not create embeddings or ask an AI model to choose relevant cases.
+A **chunk** is a piece of text of up to 2,000 characters. PDF chunks stay within their original page and keep that page number. Chunks support PostgreSQL keyword search and the separate semantic indexing flow described in the [retrieval guide](semantic-retrieval.md).
 
 Chunking prefers paragraph breaks and otherwise ends at whitespace so ordinary words stay whole. For example, `narwhal` remains searchable when it crosses character 2,000. Each chunk retains its exact start and end offsets in the unchanged page text. An unbroken token longer than 2,000 characters is still split to respect the chunk limit. The new boundaries apply when a source is processed; existing Ready cases retain their stored chunks until reprocessed.
 
@@ -88,17 +88,17 @@ Expiry ends access through the application. It does not currently delete expired
 
 Read these in this order if you want to follow the implementation:
 
-| File                                                                | What to look for                                                              |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [case-library.tsx](../../src/features/cases/case-library.tsx)       | Loading the session, search results, selection, and processing updates.       |
-| [add-case-dialog.tsx](../../src/features/cases/add-case-dialog.tsx) | Form state, file selection/drop, validation, and submission.                  |
-| [ingestion.ts](../../src/features/cases/server/ingestion.ts)        | Bounded uploads, original storage, processing claims, and completion/failure. |
-| [extraction.ts](../../src/features/cases/extraction.ts)             | UTF-8 decoding, PDF pages, warnings, and source chunks.                       |
-| [repository.ts](../../src/features/cases/server/repository.ts)      | Ownership-scoped reads and keyword search.                                    |
-| [session.ts](../../src/features/cases/server/session.ts)            | Cookie creation, expiry checks, and session lookup.                           |
-| [source-viewer.tsx](../../src/features/cases/source-viewer.tsx)     | Document tabs, PDF page controls, and original-file links.                    |
-| [migrations](../../supabase/migrations/)                            | Tables, access restrictions, indexes, and transactional processing functions. |
-| [seed-cases.ts](../../scripts/seed-cases.ts)                        | Repeatable local import of ten fictional cases and their real source files.   |
+| File                                                                | What to look for                                                               |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [case-library.tsx](../../src/features/cases/case-library.tsx)       | Loading the session, search results, selection, and processing updates.        |
+| [add-case-dialog.tsx](../../src/features/cases/add-case-dialog.tsx) | Form state, file selection/drop, validation, and submission.                   |
+| [ingestion.ts](../../src/features/cases/server/ingestion.ts)        | Bounded uploads, original storage, processing claims, and completion/failure.  |
+| [extraction.ts](../../src/features/cases/extraction.ts)             | UTF-8 decoding, PDF pages, warnings, and source chunks.                        |
+| [repository.ts](../../src/features/cases/server/repository.ts)      | Ownership-scoped reads and keyword search.                                     |
+| [session.ts](../../src/features/cases/server/session.ts)            | Cookie creation, expiry checks, and session lookup.                            |
+| [source-viewer.tsx](../../src/features/cases/source-viewer.tsx)     | Document tabs, PDF page controls, and original-file links.                     |
+| [migrations](../../supabase/migrations/)                            | Tables, access restrictions, indexes, and transactional processing functions.  |
+| [seed-cases.ts](../../scripts/seed-cases.ts)                        | Validated local import of nine curated project cases and their original files. |
 
 The HTTP interface is deliberately small:
 
@@ -131,18 +131,20 @@ bun run db:seed
 bun run dev
 ```
 
-`db:migrate` applies pending local migrations without resetting existing data. `db:seed` imports the original files as well as database records, and preserves existing Ready seeds on reruns. This local command deliberately accepts only a local Supabase URL. For the separate, explicitly opted-in Vercel Production import and table-permission repair, follow the [production deployment guide](ci-cd-and-production.md#import-the-fictional-samples-into-production).
+`db:migrate` applies pending local migrations without resetting existing data. `db:seed` imports the original files as well as database records, and preserves original/checkpoint identities on reruns and atomically activates the new catalog. This local command deliberately accepts only a local Supabase URL. For the separate, explicitly opted-in Vercel Production import and table-permission repair, follow the [production deployment guide](ci-cd-and-production.md#import-the-fictional-samples-into-production).
 
 Open [the local library](http://localhost:3000/case-library), or use the port printed by Next.js. Try this walkthrough:
 
-1. Select **Expense Approval Portal**. It should have two sources and an unknown outcome.
-2. Select **Delivery notes.pdf**, advance to page 3, and read the single-manager approval description.
-3. Select **Open original PDF**. It should open the actual PDF at the selected page, subject to your browser's PDF-viewing support.
-4. Switch to **retrospective.md** to inspect its permission checklist.
-5. Add the vendor billing example described at the start of this guide.
-6. Refresh, then select your case again. Its source should still be available.
-7. Search for a distinctive word from that source. The Ready case should appear.
-8. Open a private window. It should show the shared samples without your addition.
+1. Search for **Harbor** and open **Harbor Route Planning Pilot**.
+2. Read the pilot scope, then select a citation beside its recorded results.
+3. Check the supporting quote and open the original PDF at physical page 9.
+4. Open **Sources** to inspect extracted pages and processing details.
+5. Add the manual example described above, then open its dedicated case page.
+6. Refresh and inspect the retained original. Use **Write overview** to organize manual findings.
+7. Return to the library and search for a distinctive word from the source.
+8. Open a private window. It should show nine shared project samples without your addition.
+
+For structured AI review, contributor corrections, and safe sample replacement, read [case overviews](case-overviews.md).
 
 Stop Next.js with **Ctrl+C**. Supabase keeps running; `bun run db:stop` stops it while preserving local data. On later days, `bun run devx` starts Supabase and Next.js together. Reapply migrations after pulling schema changes; startup does not apply pending migrations to an existing database.
 

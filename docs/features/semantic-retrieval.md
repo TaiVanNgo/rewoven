@@ -2,7 +2,7 @@
 
 Imagine one historical project with `SRS.pdf`, `meeting-minutes.md`, and `retrospective.txt`. Add them to one case. Rewoven keeps each original separately, extracts its text, and makes source passages searchable. Later, describe a new project on **New request** and choose **Find past cases**. Results contain up to three cases with original excerpts and links that open the matching document location.
 
-Retrieval returns original evidence. [AI-assisted case entry](ai-assisted-case-reading.md) now combines metadata from multiple documents in saved stages. [Conversational queries](conversational-queries.md) add cited answers, request comparisons, and related-case discovery on top of retrieval. Richer project overviews, reuse-plan generation/persistence, and client request attachments remain future work.
+Retrieval returns original evidence. [AI-assisted case entry](ai-assisted-case-reading.md) now combines metadata from multiple documents in saved stages. [Conversational queries](conversational-queries.md) add cited answers, request comparisons, and related-case discovery on top of retrieval. [Case overviews](case-overviews.md) provide structured project narratives. Reuse-plan generation/persistence and client request attachments remain future work.
 
 ## Run it locally
 
@@ -90,4 +90,6 @@ bun run test:integration
 
 Exact vector search is appropriate for the initial demo corpus; larger datasets need measured query latency before selecting an approximate index. Multilingual relevance and maximum-capacity processing speed are not promised. Real model relevance requires the separate billable evaluation command documented in the README. Local success does not verify a hosted Vercel/Supabase deployment.
 
-Verification on 16 October 2026 passed formatting, lint, type checking, a production build, 43 unit tests, and seven integration tests. A live evaluation over the fictional samples found the expected case in the top three for 10 of 10 labelled requests; both unrelated requests returned no matches. Browser checks covered a two-file upload, a later pasted document, semantic results, citation highlighting, and a 390-pixel mobile layout. These are fixture/demo checks, not measured organizational relevance or maximum-capacity benchmarks.
+Verification on 16 October 2026 passed formatting, lint, type checking, a production build, 43 unit tests, and seven integration tests. A historical live evaluation over the now-retired sample catalog found the expected case in the top three for 10 of 10 labelled requests; both unrelated requests returned no matches. Browser checks covered a two-file upload, a later pasted document, semantic results, citation highlighting, and a 390-pixel mobile layout. These are fixture/demo checks, not measured organizational relevance or maximum-capacity benchmarks.
+
+The current catalog has nine projects from the supplied PDF/Markdown pack. The live evaluation script now uses nine matching scenarios plus two unrelated requests; the historical 10/10 result above does not apply to this replacement catalog. Current automated regression coverage uses mocked embeddings. Run the explicit billable evaluation only after indexing the active samples. Retired samples are excluded from retrieval and coverage counts.

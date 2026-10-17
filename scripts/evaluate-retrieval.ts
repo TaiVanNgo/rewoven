@@ -18,44 +18,40 @@ if (session.error || !session.data)
   throw new Error("Could not create evaluation session.");
 const examples = [
   [
-    "Employees submit expense claims for one supervisor to approve, with a decision audit trail.",
-    "Expense Approval Portal",
+    "Import delivery manifests, approve run sheets and keep stop amendment history for dispatchers.",
+    "Harbor Route Planning Pilot",
   ],
   [
-    "A client must complete legal checks before we activate their account. Each onboarding task needs an assigned role.",
-    "Client Onboarding Checklist",
+    "Review attendance workbook aliases and versioned payroll category mappings before generating a vendor-format draft.",
+    "Cedar Payroll Integration Design Review",
   ],
   [
-    "Find internal help articles using labels and inspect their revision history.",
-    "Support Knowledge Base",
+    "Migrate legacy identities with independent reconciliation and preserve historical author identifiers.",
+    "Prism Identity Cutover - Conflicting Closure Records",
   ],
   [
-    "A purchase request goes through manager then finance; a rejection requires a reason and resubmission restarts review.",
-    "Purchase Workflow Notes",
+    "Buffer pump telemetry offline, deduplicate repeated sequence uploads and show coverage gaps.",
+    "Watershed Pump Telemetry - Offline Pilot Journal",
   ],
   [
-    "Compare warehouse stock against shipments each night and put discrepancies into a human review queue.",
-    "Inventory Reconciliation",
+    "Reconcile subscription event invoice drafts, block posting on mismatches and retain a billing rollback path.",
+    "Redwood Subscription Billing Rollback Report",
   ],
   [
-    "Reserve staff and rooms for calendar appointments without exceeding capacity, and test daylight saving changes.",
-    "Appointment Scheduling",
+    "Prepare appointment reminders, recheck opt-out preferences and reconcile delivery receipts.",
+    "Compass Appointment Reminder Pilot",
   ],
   [
-    "Suppliers submit invoices. Finance should detect duplicate vendor IDs and invoice numbers before paying.",
-    "Vendor Billing Portal",
+    "Migrate searchable catalog attachments with checksums and human review while treating imported notes as untrusted content.",
+    "Lexicon Archive Migration and Untrusted Attachment",
   ],
   [
-    "Help the next support shift see the current incident impact, attempted actions, and owner of unfinished work.",
-    "Incident Handoff Log",
+    "Track donated pantry food with stock movements, explicit units, correction reasons and a paper fallback.",
+    "Vườn Nhỏ - Nhật ký thiết kế kho thực phẩm cộng đồng",
   ],
   [
-    "Preview CSV rows, validate email addresses before writing data, show per-row errors, and prevent duplicate batch imports.",
-    "Customer Import Tool",
-  ],
-  [
-    "Deploy a new release only after approval and smoke tests, keeping a rollback command for failures.",
-    "Release Checklist",
+    "Reserve course seats under concurrent requests with transaction-enforced lease expiry and idempotent confirmation.",
+    "Summit Course Registration Engineering Journal",
   ],
   [
     "Calculate quantum gate error correction for a superconducting qubit array.",
@@ -81,7 +77,7 @@ try {
     );
   }
   console.log(
-    `Expected case in top three: ${hits}/10; unrelated requests with no results: ${negatives}/2.`,
+    `Expected case in top three: ${hits}/9; unrelated requests with no results: ${negatives}/2.`,
   );
   if (hits < 8 || negatives !== 2) process.exitCode = 1;
 } finally {

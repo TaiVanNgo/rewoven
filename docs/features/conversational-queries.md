@@ -4,9 +4,9 @@ The request form now opens a saved conversation. Wren can answer questions about
 
 ## Try a concrete example
 
-1. Open **New request**, choose **Two-stage purchase approvals**, and select **Find past cases**.
-2. The submitted request appears above a conversation, alongside up to three ranked case candidates. Ask: “What happened in the Expense Approval Portal, and what changes for two approval stages?”
-3. Wren should explain only what the available source excerpts support. For the fictional approval case, finance received reports rather than acting as an approval stage, and no delivery outcome is recorded. Treat suggestions for extending the workflow as recommendations or inferences.
+1. Open **New request**, choose **Review delivery runs**, and select **Find past cases**.
+2. The submitted request appears above a conversation, alongside up to three ranked case candidates. Ask: “What happened in Harbor Route Planning Pilot, and what changes if every depot needs it?”
+3. Wren should explain only what the available source excerpts support. For the fictional Harbor case, the recorded improvement covers two pilot depots and ten observed business days. Wren should preserve that limit rather than claim company-wide results. Treat suggestions for a broader rollout as recommendations or inferences.
 4. Select a citation to open the library at its source, PDF page where available, and character range. The exact excerpt is retained with the conversation.
 5. Select **Ask Wren** on a result to focus the next question on that case. **Find related**, or asking for similar cases while focused, searches for other cases, excluding the reference case from results. Its original excerpts still support the comparison. **Search all cases** removes the explicit case filter; name a case or describe a new capability in your next question to change topics.
 6. Return through **Recent queries**, or reload the query URL. Messages, submitted constraints, evidence, and the latest submitted focus remain available during the same demo session.

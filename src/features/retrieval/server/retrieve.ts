@@ -68,7 +68,9 @@ export async function retrieve(
     db
       .from("cases")
       .select("source_documents(status,indexing_status)")
-      .or(`is_seed.eq.true,session_id.eq.${sessionId}`),
+      .or(
+        `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+      ),
   ]);
   checkDatabase(result.error);
   checkDatabase(coverage.error);

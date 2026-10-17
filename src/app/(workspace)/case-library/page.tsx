@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/workspace/page-header";
 import { CaseLibrary } from "@/features/cases/case-library";
+import { CaseLibrarySkeleton } from "@/features/cases/case-skeleton";
 import "@/features/cases/case-library-layout.css";
 import { createPageMetadata } from "@/lib/seo";
 export const metadata = createPageMetadata({
@@ -16,7 +18,9 @@ export default function CaseLibraryPage() {
         title="Case library"
         description="Past work, with the original sources."
       />
-      <CaseLibrary />
+      <Suspense fallback={<CaseLibrarySkeleton />}>
+        <CaseLibrary />
+      </Suspense>
     </div>
   );
 }

@@ -2,9 +2,9 @@
 
 Rewoven helps delivery teams find relevant past projects, understand what changes this time, and build a reuse plan with sources they can check.
 
-The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and fills editable case fields with source quotes; no title is required before reading. New requests open session-saved conversations with up to three case candidates, cited answers, request comparisons, and follow-up questions. Richer project overviews, client request attachments, and reuse-plan generation/persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
+The project contains a responsive New request interface built with Next.js, TypeScript, Tailwind CSS, and Motion, using Prettier, Biome, and Bun. The case library supports Supabase persistence, original-source inspection, multi-file text/Markdown/PDF ingestion, and keyword plus semantic passage retrieval. AI-assisted entry reads multiple documents in saved stages and prepares an editable, source-linked project overview; no title is required before reading. Dedicated case pages organize the problem, approach, results, lessons, and gaps. New requests open session-saved conversations with up to three case candidates, cited answers, request comparisons, and follow-up questions. Client request attachments and reuse-plan generation/persistence are not implemented yet. The local product brief is in `SRS.md`, which is ignored by Git.
 
-The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing ten read-only fictional samples and session-owned additions. Saved plans remains a preview empty state.
+The workspace has three separate routes: **New request** at `/`, **Case library** at `/case-library`, and **Saved plans** at `/saved-plans`. They share a sidebar and workspace layout. Case library supports browsing nine read-only fictional project samples and session-owned additions. Each case opens at `/case-library/[id]` with an on-demand evidence inspector. Saved plans remains a preview empty state.
 
 The homepage includes the request composer, optional constraints, three fictional sample requests, and Wren’s illustration. Samples populate and focus the textarea; blank requests are blocked and requests are limited to 10,000 characters. **Find past cases** saves the request and opens a chat workspace with relevant cases alongside Wren’s answers. Users can ask about a specific case, find related cases, and compare their constraints with past work. Clickable citations open original source passages. **Recent queries** restores conversations during the same 24-hour demo session, including after reload; unsent drafts remain local and reset on reload. Submitting requests or follow-ups sends text to the server and, when configured, OpenAI for interpretation, embeddings, and answer generation. Missing AI configuration keeps keyword search and original excerpts available.
 
@@ -12,15 +12,17 @@ To inspect this interface without starting Supabase, install dependencies with `
 
 Read the [conversational queries guide](docs/features/conversational-queries.md) for the form-to-chat workflow, case focus, request comparisons, persistence, citations, usage limits, and recovery.
 
+Read the [case overview guide](docs/features/case-overviews.md) for the dedicated case page, structured AI review, manual corrections, and safe sample replacement.
+
 Read the [case library and ingestion guide](docs/features/case-library-and-ingestion.md) for a concrete walkthrough, the browser/server/database flow, important files, and verified behavior. Added cases and submitted conversations persist in a cookie-backed demo session for 24 hours; unsubmitted drafts still reset on reload. Session expiry ends access but does not automatically delete stored records or files.
 
 Use the [AI-assisted case reading guide](docs/features/ai-assisted-case-reading.md) to configure OpenAI, review suggested fields with evidence, and understand billing limits. AI reading is optional; manual case entry still works without an AI key.
 
-Read the [multi-document ingestion and semantic retrieval guide](docs/features/semantic-retrieval.md) for upload quotas, resumable processing, source citations, and token budgets. After applying migrations, use `bun run db:backfill` to repair missing original sizes. To index existing Ready sources and fictional samples, run `bun run db:backfill --embed`; this makes billable OpenAI calls and preserves existing chunks. Use `bun run test:retrieval:live` for the separate billable evaluation of ten labelled requests and two no-match requests against local samples.
+Read the [multi-document ingestion and semantic retrieval guide](docs/features/semantic-retrieval.md) for upload quotas, resumable processing, source citations, and token budgets. After applying migrations, use `bun run db:backfill` to repair missing original sizes. To index existing Ready sources and fictional samples, run `bun run db:backfill --embed`; this makes billable OpenAI calls and preserves existing chunks. Use `bun run test:retrieval:live` for the separate billable evaluation of nine labelled requests and two no-match requests against local samples.
 
 For loading behavior, see the [skeleton and loading-state guide](docs/features/loading-states.md). It explains route fallbacks, case-library placeholders, background refreshes, and how to inspect them on a slow connection.
 
-For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. To import the ten fictional samples into production, temporarily set `SEED_SAMPLE_CASES=true` in Vercel Production and redeploy; see the deployment guide for permissions troubleshooting and the complete steps. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
+For pull-request checks and production releases, follow the [CI/CD and production deployment guide](docs/features/ci-cd-and-production.md). GitHub Actions runs checks against disposable local Supabase and needs no production credentials. Vercel deploys `main` using `bun run build:vercel`: build the app, apply pending production migrations and storage configuration, then publish. Preview and local builds skip hosted migrations. To import the nine fictional project samples into production, temporarily set `SEED_SAMPLE_CASES=true` in Vercel Production and redeploy; see the deployment guide for permissions troubleshooting and the complete steps. Configure `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, and `SUPABASE_DB_PASSWORD` only in Vercel's Production environment, alongside the existing application settings. `vercel.json` enables normal Git deployments and requests sequential Git builds without cancelling an in-flight build.
 
 ## Quick start
 
@@ -54,14 +56,14 @@ Older CLI versions may label the server key `service_role`. Port 54321 serves th
 
 `db:start` starts Supabase and creates or updates the private `case-sources` bucket with a 5 MB upload limit from `supabase/config.toml`. You do not need to create the bucket in Studio manually. This command explicitly targets local storage, and can be rerun after a normal stop. The first startup downloads the container images and can take several minutes. Local migrations run during initial database creation; an ordinary restart preserves the existing database. Case fixtures and their original files are imported with the separate seed command below.
 
-After configuring the local credentials, apply pending migrations and import the ten fictional samples:
+After configuring the local credentials, apply pending migrations and import the nine fictional project samples:
 
 ```bash
 bun run db:migrate
 bun run db:seed
 ```
 
-These commands preserve existing data and already-Ready seed cases. Run `db:migrate` after pulling schema changes. `db:start` does not apply pending migrations to an existing database. `db:seed` is local-only and uploads original fixture files as well as creating records.
+These commands preserve user cases and activate the nine prepared samples together. Retired sample records and originals remain accessible through old links; rerunning seeding preserves source and chunk identities and makes no AI calls. Run `db:migrate` after pulling schema changes. `db:start` does not apply pending migrations to an existing database. `db:seed` is local-only and uploads original fixture files as well as creating records.
 
 After the first-time setup, start local Supabase and the web app with one command:
 
@@ -94,8 +96,9 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Implement optional OpenAI-assisted case reading, editable suggestions, source evidence, and saved review records.
 - [x] Implement multi-document upload, resumable indexing, and request-to-case passage retrieval.
 - [x] Read large and multiple documents with AI, resume saved progress, and review combined case metadata.
+- [x] Implement dedicated case pages and editable evidence-backed project overviews.
 - [x] Implement session-saved query conversations, cited case Q&A, related-case discovery, and request comparison.
-- [ ] Implement richer project overviews, client request attachments, and reuse-plan generation/persistence.
+- [ ] Implement client request attachments and reuse-plan generation/persistence.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 
@@ -112,7 +115,7 @@ The New request interface renders without database credentials; searching cases 
 | `bun run db:start`               | Start local Supabase and provision the declared storage bucket.                                      |
 | `bun run db:migrate`             | Apply pending local migrations without resetting data.                                               |
 | `bun run db:seed:production`     | Import samples only in Vercel Production with explicit opt-in; see the deployment guide.             |
-| `bun run db:seed`                | Import ten fictional cases and original files locally; preserve Ready seeds.                         |
+| `bun run db:seed`                | Validate and activate nine curated project samples locally; retain legacy sources.                   |
 | `bun run test`                   | Run focused validation, extraction, and session unit tests.                                          |
 | `bun run test:case-reading:live` | Run billable staged reading of three fictional documents, including a source over 50,000 characters. |
 | `bun run test:ai:live`           | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.                  |
@@ -149,7 +152,8 @@ src/app/
   (workspace)/
     layout.tsx              Shared workspace, draft provider, and query history
     page.tsx                New request (/)
-    case-library/page.tsx   Case library (/case-library)
+    case-library/page.tsx   Searchable case library (/case-library)
+    case-library/[id]/      Dedicated case overview, evidence, and source management
     saved-plans/page.tsx    Saved plans (/saved-plans)
   globals.css               Tailwind, light/dark tokens, focus and motion policy
   icon.png                  Portrait favicon

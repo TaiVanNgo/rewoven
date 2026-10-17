@@ -44,5 +44,5 @@ export type QueryConversation = QuerySummary & {
 };
 
 export function evidenceHref(evidence: Passage) {
-  return `/case-library?case=${evidence.case_id}&source=${evidence.source_id}&page=${evidence.page_number ?? 1}&start=${evidence.char_start}&end=${evidence.char_end}`;
+  return `/case-library/${evidence.case_id}?source=${evidence.source_id}&page=${evidence.page_number ?? 1}&start=${evidence.char_start}&end=${evidence.char_end}`;
 }

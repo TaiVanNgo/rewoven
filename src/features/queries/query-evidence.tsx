@@ -10,7 +10,7 @@ export function Citation({ evidence }: { evidence: Evidence }) {
   if (evidence.stale)
     return (
       <Link
-        href={`/case-library?case=${evidence.case_id}`}
+        href={`/case-library/${evidence.case_id}`}
         className="query-citation"
       >
         {evidence.source_title} · saved v{evidence.version} · inspect current
@@ -88,7 +88,7 @@ export function CaseCard({
       </details>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
         <Link
-          href={`/case-library?case=${record.id}`}
+          href={`/case-library/${record.id}`}
           className="mr-auto self-center text-xs font-semibold underline underline-offset-4"
         >
           Inspect case

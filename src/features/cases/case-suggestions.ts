@@ -1,3 +1,4 @@
+import { type CaseOverview, overviewSchema } from "./case-overview";
 import type { SourcePage } from "./types";
 
 export const SUGGESTION_FIELDS = [
@@ -16,7 +17,9 @@ export type SuggestedValue = {
     sourceTitle?: string;
   }[];
 };
-export type CaseSuggestions = Record<SuggestionField, SuggestedValue>;
+export type CaseSuggestions = Record<SuggestionField, SuggestedValue> & {
+  overview?: CaseOverview;
+};
 export type CaseAnalysis = {
   id: string;
   model: string;
@@ -46,29 +49,35 @@ export function createSuggestionsSchema(excerptCount: number) {
   return {
     type: "object",
     additionalProperties: false,
-    required: [...SUGGESTION_FIELDS],
-    properties: Object.fromEntries(
-      SUGGESTION_FIELDS.map((field) => [
-        field,
-        {
-          type: "object",
-          additionalProperties: false,
-          required: ["value", "evidence"],
-          properties: {
-            value: { type: "string", maxLength: SUGGESTED_FIELD_LIMITS[field] },
-            evidence: {
-              type: "array",
-              maxItems: MAX_EVIDENCE_QUOTES,
-              items: {
-                type: "integer",
-                minimum: 1,
-                maximum: excerptCount,
+    required: [...SUGGESTION_FIELDS, "overview"],
+    properties: {
+      overview: overviewSchema(excerptCount),
+      ...Object.fromEntries(
+        SUGGESTION_FIELDS.map((field) => [
+          field,
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["value", "evidence"],
+            properties: {
+              value: {
+                type: "string",
+                maxLength: SUGGESTED_FIELD_LIMITS[field],
+              },
+              evidence: {
+                type: "array",
+                maxItems: MAX_EVIDENCE_QUOTES,
+                items: {
+                  type: "integer",
+                  minimum: 1,
+                  maximum: excerptCount,
+                },
               },
             },
           },
-        },
-      ]),
-    ),
+        ]),
+      ),
+    },
   };
 }
 

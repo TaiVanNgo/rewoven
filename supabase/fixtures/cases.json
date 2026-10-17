@@ -1,54 +1,790 @@
 [
   {
-    "title": "Expense Approval Portal",
-    "context": "Single-manager expense approval with role-based permissions and decision history.",
-    "sources": ["delivery-notes.pdf", "retrospective.md"]
+    "key": "01",
+    "title": "Harbor Route Planning Pilot",
+    "file": "output/pdf/rewoven-test-pack/pdf/01-harbor-route-planning.pdf",
+    "sha256": "6114daf496ac583d3acfe1a7e6548d5489e1d14304e4e5b964a474d83e691bd0",
+    "sections": {
+      "summary": [
+        {
+          "text": "A two-depot pilot reduced route preparation time; the evidence is limited to ten business days.",
+          "evidence": [
+            {
+              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Dispatchers rebuilt the same delivery routes in spreadsheets each morning, while depot supervisors could not distinguish a confirmed stop from a late customer amendment.",
+          "evidence": [
+            {
+              "quote": "Dispatchers rebuilt the same delivery routes in spreadsheets each morning, while depot supervisors could not distinguish a confirmed stop from a late customer amendment.",
+              "page": 1
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A browser application calls an API backed by PostgreSQL. A background worker validates CSV manifests and prepares candidate groups. Redis holds short-lived job leases; an object bucket retains the accepted input file. Drivers receive an exported run sheet rather than a new mobile application.",
+          "evidence": [
+            {
+              "quote": "A browser application calls an API backed by PostgreSQL. A background worker validates CSV manifests and prepares candidate groups. Redis holds short-lived job leases; an object bucket retains the accepted input file. Drivers receive an exported run sheet rather than a new mobile application.",
+              "page": 4
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
+          "evidence": [
+            {
+              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Bind approval to a specific manifest revision.",
+          "evidence": [
+            {
+              "quote": "Bind approval to a specific manifest revision.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Keep the manual export path available during worker incidents.",
+          "evidence": [
+            {
+              "quote": "Keep the manual export path available during worker incidents.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Measure preparation time separately from delivery performance.",
+          "evidence": [
+            {
+              "quote": "Measure preparation time separately from delivery performance.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "These pilot observations do not establish company-wide results.",
+          "evidence": [
+            {
+              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
+              "page": 9
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Client Onboarding Checklist",
-    "context": "Structured client verification with explicit role assignment.",
-    "sources": ["client-onboarding.md"]
+    "key": "02",
+    "title": "Cedar Payroll Integration Design Review",
+    "file": "output/pdf/rewoven-test-pack/pdf/02-cedar-payroll-design.pdf",
+    "sha256": "3ab6c5631e80e76bb47f946ea404ad8f213de534b30a8d5fca2e19a4f3407bce",
+    "sections": {
+      "summary": [
+        {
+          "text": "This payroll integration remains a proposal. No implementation or measured result is recorded.",
+          "evidence": [
+            {
+              "quote": "No implementation, deployment, payroll run, time-saving measurement, payment validation, or user acceptance result is recorded. The proposal targets reducing preparation effort by 40 percent, but that number is a planning hypothesis and has not been measured.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Local workshop administrators emailed different attendance spreadsheets to payroll, leaving analysts to resolve employee codes and overtime categories by hand before preparing a batch.",
+          "evidence": [
+            {
+              "quote": "Local workshop administrators emailed different attendance spreadsheets to payroll, leaving analysts to resolve employee codes and overtime categories by hand before preparing a batch.",
+              "page": 1
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "The proposed service uses a small web form, an API, and PostgreSQL mapping tables. A queue would handle workbook validation. The design calls for a private bucket with a short retention period and a vendor-format exporter; no banking integration is included.",
+          "evidence": [
+            {
+              "quote": "The proposed service uses a small web form, an API, and PostgreSQL mapping tables. A queue would handle workbook validation. The design calls for a private bucket with a short retention period and a vendor-format exporter; no banking integration is included.",
+              "page": 4
+            }
+          ]
+        }
+      ],
+      "results": [],
+      "lessons": [
+        {
+          "text": "The design review explicitly recorded that display names are unsafe identity keys.",
+          "evidence": [
+            {
+              "quote": "The design review explicitly recorded that display names are unsafe identity keys.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Reviewers documented the need to distinguish draft generation from payment approval.",
+          "evidence": [
+            {
+              "quote": "Reviewers documented the need to distinguish draft generation from payment approval.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "The review notes caution that proposed efficiency targets are not achieved outcomes.",
+          "evidence": [
+            {
+              "quote": "The review notes caution that proposed efficiency targets are not achieved outcomes.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "The 40 percent preparation-effort reduction is a planning hypothesis, not an achieved outcome.",
+          "evidence": [
+            {
+              "quote": "No implementation, deployment, payroll run, time-saving measurement, payment validation, or user acceptance result is recorded. The proposal targets reducing preparation effort by 40 percent, but that number is a planning hypothesis and has not been measured.",
+              "page": 9
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Support Knowledge Base",
-    "context": "Internal documentation search with tag filters and versioned articles.",
-    "sources": ["support-guide.pdf"]
+    "key": "03",
+    "title": "Prism Identity Cutover - Conflicting Closure Records",
+    "file": "output/pdf/rewoven-test-pack/pdf/03-prism-identity-conflict.pdf",
+    "sha256": "b158885e72699683dc95f756e1dcab5d91918edd60c77190f4376eed2b085383",
+    "sections": {
+      "summary": [
+        {
+          "text": "The identity cutover has conflicting closure records, so its overall outcome remains unresolved.",
+          "evidence": [
+            {
+              "quote": "The release summary states: \"All 240 accounts migrated successfully and no sign-in failures remained.\" A separate reconciliation note for the same cutover states: \"Only 228 accounts were verified; 12 account owners still could not sign in.\" Both refer to the same workgroup and closure window. No later authoritative correction is present. The overall outcome is unresolved.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Staff used separate accounts for the knowledge portal and the service desk. The migration aimed to consolidate sign-in while preserving historical author identifiers and existing access restrictions.",
+          "evidence": [
+            {
+              "quote": "Staff used separate accounts for the knowledge portal and the service desk. The migration aimed to consolidate sign-in while preserving historical author identifiers and existing access restrictions.",
+              "page": 1
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A migration worker reads two legacy exports and writes reviewed mappings to PostgreSQL. The portal validates canonical identifiers through an existing identity gateway. Historical authorship remains keyed to the original account, with a translation table used for display only.",
+          "evidence": [
+            {
+              "quote": "A migration worker reads two legacy exports and writes reviewed mappings to PostgreSQL. The portal validates canonical identifiers through an existing identity gateway. Historical authorship remains keyed to the original account, with a translation table used for display only.",
+              "page": 4
+            }
+          ]
+        }
+      ],
+      "results": [],
+      "lessons": [
+        {
+          "text": "Use the same inclusion rules in migration and reconciliation reports.",
+          "evidence": [
+            {
+              "quote": "Use the same inclusion rules in migration and reconciliation reports.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Preserve the source and scope of every closure claim.",
+          "evidence": [
+            {
+              "quote": "Preserve the source and scope of every closure claim.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Do not declare completion while an independently observed exception remains unresolved.",
+          "evidence": [
+            {
+              "quote": "Do not declare completion while an independently observed exception remains unresolved.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "The release summary claims 240 successes; reconciliation verifies 228 with 12 sign-in failures. No authoritative resolution is present.",
+          "evidence": [
+            {
+              "quote": "The release summary states: \"All 240 accounts migrated successfully and no sign-in failures remained.\" A separate reconciliation note for the same cutover states: \"Only 228 accounts were verified; 12 account owners still could not sign in.\" Both refer to the same workgroup and closure window. No later authoritative correction is present. The overall outcome is unresolved.",
+              "page": 9
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Purchase Workflow Notes",
-    "context": "Purchase approvals with an explicit rejection path.",
-    "sources": ["purchase-workflow.txt"]
+    "key": "04",
+    "title": "Watershed Pump Telemetry - Offline Pilot Journal",
+    "file": "output/pdf/rewoven-test-pack/pdf/04-watershed-sensor-pilot.pdf",
+    "sha256": "09a25ff150181bc841bfdd566ff21887c84c917f7f5db517946ad284326cb30d",
+    "sections": {
+      "summary": [
+        {
+          "text": "Bench replay avoided duplicate readings, with one supervised delayed field upload. Wider reliability is unknown.",
+          "evidence": [
+            {
+              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Field crews recorded pump readings on paper during unreliable cellular coverage. The pilot explored buffered readings and technician-visible gaps without using sensor data to control equipment.",
+          "evidence": [
+            {
+              "quote": "Field crews recorded pump readings on paper during unreliable cellular coverage. The pilot explored buffered readings and technician-visible gaps without using sensor data to control equipment.",
+              "page": 1
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A small edge recorder buffers readings in local storage. An HTTP ingestion service validates sequence numbers and writes observations to PostgreSQL. A browser dashboard shows uploaded readings and explicit gaps. The prototype has no remote actuation path and no predictive maintenance model.",
+          "evidence": [
+            {
+              "quote": "A small edge recorder buffers readings in local storage. An HTTP ingestion service validates sequence numbers and writes observations to PostgreSQL. A browser dashboard shows uploaded readings and explicit gaps. The prototype has no remote actuation path and no predictive maintenance model.",
+              "page": 4
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
+          "evidence": [
+            {
+              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Record device time and server receipt time separately.",
+          "evidence": [
+            {
+              "quote": "Record device time and server receipt time separately.",
+              "page": 11
+            }
+          ]
+        },
+        {
+          "text": "A successful delayed upload does not erase a coverage gap.",
+          "evidence": [
+            {
+              "quote": "A successful delayed upload does not erase a coverage gap.",
+              "page": 11
+            }
+          ]
+        },
+        {
+          "text": "Keep a telemetry pilot isolated from equipment control permissions.",
+          "evidence": [
+            {
+              "quote": "Keep a telemetry pilot isolated from equipment control permissions.",
+              "page": 11
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Battery life, long-term reliability, and safe operation at additional sites are not established.",
+          "evidence": [
+            {
+              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
+              "page": 10
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Inventory Reconciliation",
-    "context": "Nightly warehouse reconciliation with exception review.",
-    "sources": ["inventory.md"],
-    "outcome": "The fictional pilot recorded unresolved mismatches for manual review."
+    "key": "05",
+    "title": "Redwood Subscription Billing Rollback Report",
+    "file": "output/pdf/rewoven-test-pack/pdf/05-redwood-billing-rollback.pdf",
+    "sha256": "ab0794b933441c6c63c803f7d00c8eb061ea2148337c68b1ea442200d32dbbdd",
+    "sections": {
+      "summary": [
+        {
+          "text": "The billing rollout failed reconciliation and was rolled back before any new-service invoices were posted.",
+          "evidence": [
+            {
+              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "The team attempted to replace a monthly invoice spreadsheet with a service that grouped subscription changes, generated draft invoices, and exported approved totals to an existing accounting system.",
+          "evidence": [
+            {
+              "quote": "The team attempted to replace a monthly invoice spreadsheet with a service that grouped subscription changes, generated draft invoices, and exported approved totals to an existing accounting system.",
+              "page": 1
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A web console reviews drafts produced by a queue worker. PostgreSQL stores subscription events, line items, and export receipts. A private object bucket retains baseline exports. The accounting system remains the authority for posted invoices and is accessed through a batch-file interface.",
+          "evidence": [
+            {
+              "quote": "A web console reviews drafts produced by a queue worker. PostgreSQL stores subscription events, line items, and export receipts. A private object bucket retains baseline exports. The accounting system remains the authority for posted invoices and is accessed through a batch-file interface.",
+              "page": 4
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
+          "evidence": [
+            {
+              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
+              "page": 9
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Effective dates need a deterministic sequence when multiple events share a date.",
+          "evidence": [
+            {
+              "quote": "Effective dates need a deterministic sequence when multiple events share a date.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Block posting on unresolved reconciliation differences.",
+          "evidence": [
+            {
+              "quote": "Block posting on unresolved reconciliation differences.",
+              "page": 10
+            }
+          ]
+        },
+        {
+          "text": "Report fallback completion separately from feature rollout success.",
+          "evidence": [
+            {
+              "quote": "Report fallback completion separately from feature rollout success.",
+              "page": 10
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "The fallback spreadsheet completed billing, but that does not establish success or measured time savings for the new service.",
+          "evidence": [
+            {
+              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
+              "page": 9
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Appointment Scheduling",
-    "context": "Shared calendar booking with capacity limits.",
-    "sources": ["scheduling.md"]
+    "key": "06",
+    "title": "Compass Appointment Reminder Pilot",
+    "file": "output/pdf/rewoven-test-pack/markdown/06-compass-appointment-pilot.md",
+    "sha256": "8efcb78bbdafa154391bd6fec74f2be304bfc2b783b085612f65972d6f85a56e",
+    "sections": {
+      "summary": [
+        {
+          "text": "A three-week office pilot reduced reminder reconciliation time. Attendance effects were not measured.",
+          "evidence": [
+            {
+              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Booking staff manually called people with upcoming administrative appointments and could not reliably tell whether a reminder was sent, declined, or awaiting a callback. The experiment concerns office scheduling only and contains no clinical records or medical guidance.",
+          "evidence": [
+            {
+              "quote": "Booking staff manually called people with upcoming administrative appointments and could not reliably tell whether a reminder was sent, declined, or awaiting a callback. The experiment concerns office scheduling only and contains no clinical records or medical guidance.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A browser queue is backed by a small API and PostgreSQL. A background scheduler prepares reminder tasks, while a gateway adapter records delivery receipts from a fictional messaging sandbox. Appointment scheduling remains in an existing office system; the reminder service does not amend it.",
+          "evidence": [
+            {
+              "quote": "A browser queue is backed by a small API and PostgreSQL. A background scheduler prepares reminder tasks, while a gateway adapter records delivery receipts from a fictional messaging sandbox. Appointment scheduling remains in an existing office system; the reminder service does not amend it.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
+          "evidence": [
+            {
+              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Recheck changing preferences immediately before dispatch.",
+          "evidence": [
+            {
+              "quote": "Recheck changing preferences immediately before dispatch.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Treat gateway receipts as delivery evidence, never attendance evidence.",
+          "evidence": [
+            {
+              "quote": "Treat gateway receipts as delivery evidence, never attendance evidence.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Use opaque references when the workflow does not need sensitive content.",
+          "evidence": [
+            {
+              "quote": "Use opaque references when the workflow does not need sensitive content.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Appointment attendance and no-show changes were not measured.",
+          "evidence": [
+            {
+              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
+              "page": null
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Vendor Billing Portal",
-    "context": "Invoice submissions, duplicate checks, and finance review.",
-    "sources": ["billing.md"]
+    "key": "07",
+    "title": "Lexicon Archive Migration and Untrusted Attachment",
+    "file": "output/pdf/rewoven-test-pack/markdown/07-lexicon-archive-untrusted-source.md",
+    "sha256": "2ceb5e24d7abe92ddf9c4bfd6b8db36eec2f13d4b4833aabef0eac8ab280fbf5",
+    "sections": {
+      "summary": [
+        {
+          "text": "No production catalog migration or model-resistance evaluation is recorded; throughput remains a target.",
+          "evidence": [
+            {
+              "quote": "No production migration, completeness audit, model resistance evaluation, throughput benchmark, or end-user result is recorded. An internal target of indexing 50,000 records per day is a proposed acceptance target, not an achieved measurement.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "A reading-room catalog mixed bibliographic descriptions with attachment notes from external contributors. The migration needed searchable records while preserving the distinction between trusted catalog fields and untrusted imported text.",
+          "evidence": [
+            {
+              "quote": "A reading-room catalog mixed bibliographic descriptions with attachment notes from external contributors. The migration needed searchable records while preserving the distinction between trusted catalog fields and untrusted imported text.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "An ingestion worker reads text-based attachments from a private bucket and produces candidate catalog entries. PostgreSQL stores reviewed fields and source markers. A reviewer-facing browser shows the original text next to proposed changes. A downstream assistant can summarize records, but imported attachment text never receives tool permissions.",
+          "evidence": [
+            {
+              "quote": "An ingestion worker reads text-based attachments from a private bucket and produces candidate catalog entries. PostgreSQL stores reviewed fields and source markers. A reviewer-facing browser shows the original text next to proposed changes. A downstream assistant can summarize records, but imported attachment text never receives tool permissions.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "results": [],
+      "lessons": [
+        {
+          "text": "The review notes explicitly require source text to remain separate from assistant instructions.",
+          "evidence": [
+            {
+              "quote": "The review notes explicitly require source text to remain separate from assistant instructions.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Retaining checksums helps reviewers distinguish revised attachments.",
+          "evidence": [
+            {
+              "quote": "Retaining checksums helps reviewers distinguish revised attachments.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "A successful text parse is not a successful migration or a factual accuracy audit.",
+          "evidence": [
+            {
+              "quote": "A successful text parse is not a successful migration or a factual accuracy audit.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "The 50,000-record daily throughput goal is unmeasured. Production completion and assistant robustness remain unestablished.",
+          "evidence": [
+            {
+              "quote": "No production migration, completeness audit, model resistance evaluation, throughput benchmark, or end-user result is recorded. An internal target of indexing 50,000 records per day is a proposed acceptance target, not an achieved measurement.",
+              "page": null
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Incident Handoff Log",
-    "context": "Structured incident handoffs between support shifts.",
-    "sources": ["incident.md"],
-    "lessons": "Require an owner for each unresolved action."
+    "key": "08",
+    "title": "Vườn Nhỏ - Nhật ký thiết kế kho thực phẩm cộng đồng",
+    "file": "output/pdf/rewoven-test-pack/markdown/08-vuon-nho-kho-cong-dong.md",
+    "sha256": "8947be75587677c6a5e7dcc915f9ebfb45af1adb1215763a57c6184b98f972c8",
+    "sections": {
+      "summary": [
+        {
+          "text": "Bản thiết kế kho thực phẩm cộng đồng chưa được triển khai và chưa có kết quả đo thực tế.",
+          "evidence": [
+            {
+              "quote": "Chưa có triển khai thực tế, chưa có dữ liệu trước-sau và chưa đo tỷ lệ thất thoát. Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết để kiểm chứng. Không được viết rằng nhóm đã đạt mục tiêu này.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Volunteers recorded donated food in separate notebooks. The planned shared register should make quantity corrections visible while keeping household names and personal circumstances out of the inventory record.",
+          "evidence": [
+            {
+              "quote": "Volunteers recorded donated food in separate notebooks. The planned shared register should make quantity corrections visible while keeping household names and personal circumstances out of the inventory record.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "The proposed register uses a simple browser form, a small API, and PostgreSQL. Offline paper capture remains valid during volunteer shifts. A reviewed import would bring paper entries into the register, with original sheet references retained for reconciliation.",
+          "evidence": [
+            {
+              "quote": "The proposed register uses a simple browser form, a small API, and PostgreSQL. Offline paper capture remains valid during volunteer shifts. A reviewed import would bring paper entries into the register, with original sheet references retained for reconciliation.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "results": [],
+      "lessons": [
+        {
+          "text": "Ghi rõ đơn vị cạnh mỗi số lượng; không tự đổi hộp thành kilogram.",
+          "evidence": [
+            {
+              "quote": "Ghi rõ đơn vị cạnh mỗi số lượng; không tự đổi hộp thành kilogram.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Giữ lại lý do điều chỉnh thay vì ghi đè số cũ.",
+          "evidence": [
+            {
+              "quote": "Giữ lại lý do điều chỉnh thay vì ghi đè số cũ.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Không biến mong muốn cải thiện thành kết quả đã đạt được.",
+          "evidence": [
+            {
+              "quote": "Không biến mong muốn cải thiện thành kết quả đã đạt được.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết; chưa đo tỷ lệ thất thoát.",
+          "evidence": [
+            {
+              "quote": "Chưa có triển khai thực tế, chưa có dữ liệu trước-sau và chưa đo tỷ lệ thất thoát. Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết để kiểm chứng. Không được viết rằng nhóm đã đạt mục tiêu này.",
+              "page": null
+            }
+          ]
+        }
+      ]
+    }
   },
   {
-    "title": "Customer Import Tool",
-    "context": "CSV imports with validation, preview, and row-level errors.",
-    "sources": ["imports.md"]
-  },
-  {
-    "title": "Release Checklist",
-    "context": "Manual release gates, smoke checks, and a rollback checklist.",
-    "sources": ["releases.md"]
+    "key": "09",
+    "title": "Summit Course Registration Engineering Journal",
+    "file": "output/pdf/rewoven-test-pack/markdown/09-summit-course-registration.md",
+    "sha256": "994c1a556df3d141a08afed82892125a2a98214838ca1fa455734b9e4213ed0c",
+    "sections": {
+      "summary": [
+        {
+          "text": "Synthetic tests confirmed 20 reservations from 60 competing requests; production enrolment was not observed.",
+          "evidence": [
+            {
+              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "The registration site checked seat availability before payment confirmation, allowing two applicants to see the same last seat. The engineering journal records a limited reservation experiment and the boundary between load testing and real enrolment.",
+          "evidence": [
+            {
+              "quote": "The registration site checked seat availability before payment confirmation, allowing two applicants to see the same last seat. The engineering journal records a limited reservation experiment and the boundary between load testing and real enrolment.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A Next.js browser flow talks to an API that performs reservation and confirmation inside PostgreSQL transactions. A scheduled worker cleans up expired reservations, but transaction checks enforce the lease even if the worker is late. A payment provider is represented by a local simulator in the documented experiment.",
+          "evidence": [
+            {
+              "quote": "A Next.js browser flow talks to an API that performs reservation and confirmation inside PostgreSQL transactions. A scheduled worker cleans up expired reservations, but transaction checks enforce the lease even if the worker is late. A payment provider is represented by a local simulator in the documented experiment.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
+          "evidence": [
+            {
+              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Check lease expiry inside the same transaction as confirmation.",
+          "evidence": [
+            {
+              "quote": "Check lease expiry inside the same transaction as confirmation.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Keep a stable idempotency key across client retries.",
+          "evidence": [
+            {
+              "quote": "Keep a stable idempotency key across client retries.",
+              "page": null
+            }
+          ]
+        },
+        {
+          "text": "Report synthetic concurrency separately from real enrolment outcomes.",
+          "evidence": [
+            {
+              "quote": "Report synthetic concurrency separately from real enrolment outcomes.",
+              "page": null
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "These are engineering test results; no real student enrolment or production payment outcome is recorded.",
+          "evidence": [
+            {
+              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
+              "page": null
+            }
+          ]
+        }
+      ]
+    }
   }
 ]

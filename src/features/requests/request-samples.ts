@@ -1,26 +1,26 @@
 export const requestSamples = [
   {
-    title: "Two-stage purchase approvals",
-    summary: "Manager then finance, with decision history.",
+    title: "Review delivery runs",
+    summary: "Prepare routes with reviewed manifest revisions.",
     description:
-      "Build a dashboard where purchase requests go through a manager and then finance, with a history of decisions.",
-    category: "Approval flow",
+      "Help dispatchers import delivery manifests, review route groups, and keep an audit trail of late stop amendments before exporting run sheets.",
+    category: "Delivery planning",
     badgeVariant: "approval",
   },
   {
-    title: "Client onboarding checklist",
-    summary: "A clear handoff for new clients.",
+    title: "Prevent overbooked courses",
+    summary: "Reserve seats safely under concurrent requests.",
     description:
-      "Structured step-by-step verification flow for new customer accounts with role assignment and status logging.",
-    category: "Onboarding",
+      "Build course registration with time-limited seat reservations, safe confirmation retries, and capacity checks inside a database transaction.",
+    category: "Registration",
     badgeVariant: "onboarding",
   },
   {
-    title: "Searchable support knowledge base",
-    summary: "Find answers in past support work.",
+    title: "Search a document archive",
+    summary: "Keep original sources separate from suggestions.",
     description:
-      "Indexed internal documentation search with tag filters and versioned solution cards.",
-    category: "Knowledge repo",
+      "Migrate a searchable catalog with versioned attachments, original checksums, and human review of proposed record changes. Treat imported notes as untrusted content.",
+    category: "Document archive",
     badgeVariant: "knowledge",
   },
 ] as const;

@@ -107,6 +107,7 @@ language sql stable security invoker set search_path='' as $$
       case when p_vector is not null and ch.embedding_model='text-embedding-3-small' then 1-(ch.embedding OPERATOR(extensions.<=>) p_vector) end similarity
     from public.source_chunks ch join public.source_documents d on d.id=ch.source_id join public.cases c on c.id=d.case_id
     where d.status='ready' and (c.is_seed or c.session_id=p_session)
+      and (not c.is_seed or c.sample_visible or c.id=p_case)
       and (p_case is null or c.id=p_case) and (p_exclude is null or c.id<>p_exclude)
       and exists(select 1 from public.demo_sessions where id=p_session and expires_at>now())
   ), query as (

@@ -1,5 +1,7 @@
 # AI-assisted case entry
 
+The case-page refactor adds six structured, source-linked overview sections to staged reading. See [case overviews](case-overviews.md) for the current review editor, edited-claim provenance, refresh behavior, and prepared sample catalog. The original four metadata fields remain as compatibility projections.
+
 Upload the documents from one historical project and let Rewoven suggest its title, context, recorded outcome, and lessons. You review and confirm the draft rather than typing those fields from scratch. The reader accepts the same material as ingestion: up to **5 MB and 500,000 extracted characters per document**, with **50 documents, 100 MB of originals, and 5,000,000 accepted extracted characters per case**.
 
 For example, upload an SRS proposing automated notifications, meeting minutes postponing that feature, and a retrospective describing the manual approval flow that actually shipped. The reader processes all three documents and combines their supported findings. Planned features must remain distinct from delivered work; intended benefits must not become measured outcomes.

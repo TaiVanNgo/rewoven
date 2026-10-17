@@ -77,6 +77,7 @@ export async function processQueryTurn(
       .from("cases")
       .select("id,title")
       .or(`is_seed.eq.true,session_id.eq.${sessionId}`)
+      .or("is_seed.eq.false,sample_visible.eq.true")
       .order("created_at")
       .limit(201);
     checkDatabase(catalogResult.error);

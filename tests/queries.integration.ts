@@ -28,6 +28,7 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
     ),
   );
   const sessions: string[] = [];
+  const retiredSamples: string[] = [];
   const oldKey = process.env.OPENAI_API_KEY,
     oldSessionLimit = process.env.AI_CHAT_SESSION_LIMIT,
     oldDailyLimit = process.env.AI_CHAT_DAILY_LIMIT;
@@ -100,6 +101,20 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
       "Foreign secret portal",
       "Private unrelated case evidence.",
     );
+    const retired = await addCase(
+      a.id,
+      "Retired integration sample",
+      "Manager approval audit evidence from a retired sample.",
+    );
+    retiredSamples.push(retired);
+    assert.ifError(
+      (
+        await db
+          .from("cases")
+          .update({ is_seed: true, session_id: null, sample_visible: false })
+          .eq("id", retired)
+      ).error,
+    );
     const query = await createQuery(
       {
         requestKey: randomUUID(),
@@ -113,7 +128,12 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
       embedder: async (texts: string[]) => texts.map(vector),
       model: async (kind: "plan" | "answer", input: unknown) => {
         modelCalls++;
-        if (kind === "plan")
+        if (kind === "plan") {
+          assert.ok(
+            (input as { catalog: { id: string }[] }).catalog.every(
+              (item) => item.id !== retired,
+            ),
+          );
           return {
             query: "manager approval audit",
             caseId: null,
@@ -121,6 +141,7 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
             clarification: "",
             candidates: [],
           };
+        }
         const evidence = (input as { evidence: { id: string }[] }).evidence;
         return {
           sections: [
@@ -222,7 +243,8 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
     );
     assert.ok(
       relatedAnswer.turns[1].work?.retrieval.cases.every(
-        (item) => item.id !== first && item.id !== foreign,
+        (item) =>
+          item.id !== first && item.id !== foreign && item.id !== retired,
       ),
     );
     assert.ok(
@@ -492,5 +514,7 @@ test("persisted queries isolate sessions, focus evidence, recover failures, and 
       else process.env[key] = value;
     }
     await db.from("demo_sessions").delete().in("id", sessions);
+    if (retiredSamples.length)
+      await db.from("cases").delete().in("id", retiredSamples);
   }
 });
