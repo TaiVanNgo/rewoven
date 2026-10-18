@@ -4,13 +4,15 @@ Rewoven helps delivery teams find relevant past projects, understand what change
 
 The project uses Next.js, TypeScript, Tailwind CSS, Motion, Supabase, and Bun. The case library supports multi-document text/Markdown/PDF ingestion, source-linked overviews, dedicated case pages, and hybrid keyword/semantic retrieval. Wren is a conversational case advisor: ask questions, compare projects, and discuss decisions using original case evidence.
 
-The homepage at `/` opens **New chat**, with a message composer, **Upload files**, optional project constraints, and **Add cases**. Upload up to five PDF/TXT/MD problem documents per message, type a query, or combine both. Wren reads files on Send and compares their requirements with historical evidence; follow-up messages retain active documents. Wren can greet users and clarify questions without searching; substantive answers and recommendations use retrieved case sources with clickable citations. By default, it searches only your uploads. The case picker lets you attach up to five existing cases, including explicitly selected fictional samples; attached cases become the exclusive context until you choose **Use my library**. Full replies appear after validation, with actual processing stages while Wren works.
+The homepage at `/` opens **New chat**, with a message composer, **Upload files**, optional project constraints, and **Add cases**. Upload up to five PDF/TXT/MD problem documents per message, type a query, or combine both. Wren reads files on Send and compares their requirements with historical evidence; follow-up messages retain active documents. Wren can greet users and clarify questions without searching; substantive answers and recommendations use retrieved case sources with clickable citations. By default, Wren searches the full Case library: the nine preloaded fictional Threadline Delivery projects plus historical cases uploaded in the current session. No demo-library switch is required. **Add cases** optionally narrows a chat to up to five particular projects; **Search full library** restores collection-wide discovery. Full replies appear after validation, with actual processing stages while Wren works.
 
 **Case library** at `/case-library` provides uploads, nine read-only fictional samples, and dedicated case pages at `/case-library/[id]`. **Ask Wren about this case** opens chat with that case attached. **Create a case** in chat links to the existing library workflow; Wren does not create historical cases. Problem documents uploaded in chat remain separate from the case library. **Draft reuse plan** prepares a reviewable request from a saved chat, then generates a cited draft. Users edit Markdown, explicitly save it, and export it. **Saved plans** at `/saved-plans` lists plans saved during the current demo session. See the [reuse-plan guide](docs/features/reuse-plans.md) for the workflow, recovery, export, and limits.
 
 **Recent queries** restores saved chats, case selections, and evidence during the same 24-hour demo session. Messages are limited to 10,000 characters. Unsubmitted chat drafts remain local and reset on reload. Ready-plan edits have a tab-local recovery buffer until explicitly saved. Submitted text, request-document passages, and retrieved historical excerpts are sent to OpenAI when configured. Missing AI configuration preserves keyword excerpts with a visible paused-answer message. Every Ready document is eligible for retrieval, but answers use a bounded selection of passages rather than reading every document on every turn.
 
 To inspect the interface without Supabase, run `bun install --frozen-lockfile`, then `bun run dev` and open the printed URL. Saving chats and selecting cases require the local database setup below. Stop the server with Ctrl+C.
+
+Start with the [purchasing demo guide](docs/features/purchasing-demo.md) for the nine-project story, downloadable 29-file pack, judge walkthrough, seed replacement, and evidence checks.
 
 Read the [query file upload guide](docs/features/query-file-uploads.md) for formats, limits, staged reading, recovery, citations, and plan exports.
 
@@ -81,6 +83,14 @@ bun run devx
 
 `devx` waits for Supabase startup and bucket provisioning to succeed before starting Next.js. Supabase runs in background containers; Next.js stays attached to your terminal. Use `bun run dev` when you only need the frontend.
 
+For a fresh local demo, stop any running Next.js server with Ctrl+C, then run:
+
+```bash
+bun devrs
+```
+
+`devrs` starts local Supabase, resets its database and reapplies migrations/SQL seeds, provisions storage buckets, imports the nine fictional projects and their 27 originals, then starts Next.js. **This deletes existing local cases, chats, saved plans, and embeddings.** It explicitly targets the local database. Sample import makes no AI calls; semantic search needs the separate `bun run db:backfill --embed` command to rebuild embeddings. Use `bun run devx` for ordinary restarts that preserve data. See the [local reset guide](docs/features/case-library-and-ingestion.md#reset-the-local-demo).
+
 Open the URL printed by the dev server (usually `http://localhost:3000`). Edit
 `src/app/(workspace)/page.tsx` and save to see changes through Fast Refresh. Stop the server
 with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx --port 3001` (or `bun run dev --port 3001` for the frontend alone).
@@ -107,7 +117,8 @@ For a hosted deployment, provision the same bucket using the declared configurat
 - [x] Implement dedicated case pages and editable evidence-backed project overviews.
 - [x] Implement session-saved query conversations, cited case Q&A, related-case discovery, and request comparison.
 - [x] Implement reuse-plan generation, request review, Markdown editing, explicit saves, and export.
-- [ ] Implement client request attachments.
+- [x] Implement client request attachments.
+- [x] Prepare nine related Threadline Delivery projects, 27 historical originals, two client inputs, and explicit full demo-library search.
 - [ ] Set the production origin and deployment configuration before launch.
 - [ ] Choose a project license before publishing; no root license is provided yet.
 

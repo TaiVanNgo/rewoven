@@ -5,7 +5,7 @@ export function chatContextInput(value: unknown): ChatContext {
   const item = value as Partial<ChatContext> | null;
   if (
     !item ||
-    !["library", "selected"].includes(String(item.mode)) ||
+    !["library", "selected", "samples"].includes(String(item.mode)) ||
     !Array.isArray(item.caseIds) ||
     item.caseIds.length > 5 ||
     item.caseIds.some(
@@ -15,13 +15,17 @@ export function chatContextInput(value: unknown): ChatContext {
     ) ||
     new Set(item.caseIds.map((id) => id.toLowerCase())).size !==
       item.caseIds.length ||
-    (item.mode === "library"
+    (item.mode !== "selected"
       ? item.caseIds.length !== 0
       : item.caseIds.length === 0)
   )
-    throw new QueryInputError("Choose up to five cases, or use your library.");
+    throw new QueryInputError(
+      "Choose up to five cases, or use the full case library.",
+    );
   return {
-    mode: item.mode as ChatContext["mode"],
+    // Older clients may still send the former demo-only mode.
+    mode:
+      item.mode === "samples" ? "library" : (item.mode as ChatContext["mode"]),
     caseIds: item.caseIds.map((id) => id.toLowerCase()),
   };
 }

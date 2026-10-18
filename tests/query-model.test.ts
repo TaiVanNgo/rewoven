@@ -136,3 +136,27 @@ test("Wren assistant prompts preserve case boundaries and untrusted-source rules
     );
   }
 });
+
+test("reuse plans restrict generated references to historical excerpts, not request-document IDs", async () => {
+  await queryModel(
+    "reuse_plan",
+    {
+      evidence: [{ id: "e1" }],
+      requestDocuments: { evidence: [{ id: "r_current" }] },
+    },
+    config,
+    async (_url, init) => {
+      const payload = JSON.parse(String(init.body));
+      const refs =
+        payload.text.format.schema.properties.sections.items.properties.items
+          .items.properties.evidence;
+      assert.deepEqual(refs.items.enum, ["e1"]);
+      return Response.json({
+        status: "completed",
+        output: [
+          { type: "message", content: [{ type: "output_text", text: "{}" }] },
+        ],
+      });
+    },
+  );
+});

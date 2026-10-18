@@ -30,7 +30,26 @@ export async function retrieveAssistant(
 }> {
   const db = database();
   const warnings: string[] = [];
-  const caseIds = context.mode === "selected" ? context.caseIds : narrowed;
+  let caseIds = context.mode === "selected" ? context.caseIds : narrowed;
+  // A narrowed discovery request must still respect the visible library. An
+  // explicit attachment retains access to its original source, even if retired.
+  if (context.mode !== "selected" && narrowed.length) {
+    const active = await db
+      .from("cases")
+      .select("id")
+      .or(
+        `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+      )
+      .in("id", narrowed);
+    checkDatabase(active.error);
+    caseIds = (active.data ?? []).map((s) => s.id);
+    if (!caseIds.length)
+      return {
+        passages: [],
+        mode: "keyword",
+        warnings: ["The requested cases are not available in this library."],
+      };
+  }
   let mode: RetrievalResult["mode"] = "hybrid";
   const queryChunks = queries.map((query) =>
     chunkPages([{ number: 1, text: query }], "text"),
@@ -76,7 +95,10 @@ export async function retrieveAssistant(
     );
   sourcesQuery = caseIds.length
     ? sourcesQuery.in("case_id", caseIds)
-    : sourcesQuery.eq("cases.session_id", sessionId).eq("cases.is_seed", false);
+    : sourcesQuery.or(
+        `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+        { referencedTable: "cases" },
+      );
   const sources = await sourcesQuery;
   checkDatabase(sources.error);
   if (

@@ -1,6 +1,6 @@
 # Reuse plans
 
-Imagine a new course-registration project. Your team has a fictional registration journal describing seat leases and a duplicate-confirmation issue. Discuss the new requirements with Wren, attach the relevant case, and choose **Draft reuse plan**. Review the request, generate a draft, change the recommendations, choose **Save**, and download **Export Markdown**.
+Imagine a new branch purchasing project. Your team has a fictional purchasing pilot describing revision-bound approvals and a reimbursement project recording a duplicate-submission incident. Discuss the new requirements with Wren, attach the relevant case, and choose **Draft reuse plan**. Review the request, generate a draft, change the recommendations, choose **Save**, and download **Export Markdown**.
 
 The result is a starting plan for human review. A cited requirement or design proposal does not establish delivered functionality. Missing outcomes remain unknown, and recommendations describe proposed work.
 
@@ -20,7 +20,7 @@ bun run dev
 
 Open the printed URL, usually `http://localhost:3000`:
 
-1. Start a Wren chat and describe the new work. Use **Add cases** to attach a relevant fictional sample, such as Summit Course Registration Engineering Journal. Library mode searches your uploads; samples need explicit selection.
+1. Start a Wren chat and describe the new work. The default Case library includes the nine preloaded fictional Threadline Delivery projects plus your session’s uploads. Optionally use **Add cases** to narrow discovery to particular projects such as Office Purchasing Pilot.
 2. Choose **Draft reuse plan** after Wren finishes answering. Request preparation uses the original constraints and at most eight recent user messages / 24,000 characters. Active request documents and their source-linked findings are captured separately from historical cases. It does not use earlier AI answers as evidence. A notice identifies omitted older context; add any important missing details.
 3. Correct the title, requirements, deadline, technology, capabilities, and questions. Choose **Confirm request and generate plan**. If preparation fails or the key is absent, a manual review form remains available.
 4. Read the preview and open numbered citations. Their source list retains the original excerpts, document versions, and locations. The request describes proposed work and remains separate from historical evidence.
@@ -44,7 +44,7 @@ Each generation creates a separate draft. Retries resume that draft and confirme
 
 ## Editing, evidence, and export
 
-For example, select “Evaluate transaction-enforced seat reservations” and choose **Bold**. The editor displays bold text, while Markdown mode contains `**Evaluate transaction-enforced seat reservations**`. Choose **Save**, reload, and export: the formatting and existing `[S1]` reference remain in the saved Markdown. Opening the editor, focusing it, or switching modes without editing does not change the saved text or enable Save.
+For example, select “Evaluate revision-bound purchase approvals” and choose **Bold**. The editor displays bold text, while Markdown mode contains `**Evaluate revision-bound purchase approvals**`. Choose **Save**, reload, and export: the formatting and existing `[S1]` reference remain in the saved Markdown. Opening the editor, focusing it, or switching modes without editing does not change the saved text or enable Save.
 
 The toolbar offers paragraph/headings 1–3, bold, italic, strikethrough, bullet/numbered lists, blockquote, inline/fenced code, horizontal rule, link editing/removal, and undo/redo. Focus a toolbar button and press Enter to use it with the keyboard. To add a link, select ordinary text, choose **Edit link**, and enter an `http://`, `https://`, `mailto:`, or local URL such as `/case-library`. Open the link dialog again to change or remove it. Open evidence through the preview's numbered references. Citation chips in the editor preserve their source numbers; changing surrounding text does not verify its claims.
 

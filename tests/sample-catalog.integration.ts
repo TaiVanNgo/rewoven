@@ -112,7 +112,20 @@ test("catalog replacement is resumable and preserves user cases, chunk IDs, orig
       published.filter((c: { is_seed: boolean }) => c.is_seed).length,
       9,
     );
-    assert.ok(!published.some((c: { id: string }) => c.id === legacyId));
+    assert.ok(
+      !published.some((c: { id: string }) => legacySampleIds.includes(c.id)),
+    );
+    for (const item of catalog) {
+      const detail = await (
+        await fetch(`${base}/api/cases/${item.id}`, { headers: cookie })
+      ).json();
+      assert.equal(detail.case.sources.length, 3);
+    }
+    const invalidActivation = await db.rpc("activate_sample_catalog", {
+      p_new: catalog.slice(0, 8).map((c) => c.id),
+      p_legacy: legacySampleIds,
+    });
+    assert.ok(invalidActivation.error);
     assert.ok(
       published.some(
         (c: { id: string; context: string }) =>
@@ -136,23 +149,23 @@ test("catalog replacement is resumable and preserves user cases, chunk IDs, orig
     const before = await db
       .from("source_chunks")
       .select("id")
-      .eq("source_id", catalog[0].sourceId)
+      .eq("source_id", catalog[0].sources[0].sourceId)
       .order("ordinal");
     assert.equal(before.error, null);
     await seedSamples();
     const after = await db
       .from("source_chunks")
       .select("id")
-      .eq("source_id", catalog[0].sourceId)
+      .eq("source_id", catalog[0].sources[0].sourceId)
       .order("ordinal");
     assert.deepEqual(after.data, before.data);
     const original = await db.storage
       .from("case-sources")
-      .download(catalog[0].path);
+      .download(catalog[0].sources[0].path);
     assert.ok(original.data);
     assert.deepEqual(
       new Uint8Array(await original.data.arrayBuffer()),
-      catalog[0].bytes,
+      catalog[0].sources[0].bytes,
     );
   } finally {
     await db.from("demo_sessions").delete().eq("id", owner.data.id);

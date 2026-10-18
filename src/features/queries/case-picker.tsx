@@ -27,7 +27,6 @@ export function CasePicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [samples, setSamples] = useState(false);
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [chosen, setChosen] = useState<SelectedCase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,7 +89,7 @@ export function CasePicker({
             <DialogTitle>Add cases to this chat</DialogTitle>
             <DialogDescription>
               Choose up to five cases. Wren will use only these cases until you
-              switch back to your library.
+              switch back to the full library.
             </DialogDescription>
           </DialogHeader>
           <label htmlFor="case-picker-search" className="sr-only">
@@ -102,24 +101,6 @@ export function CasePicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <div className="flex gap-2">
-            <Button
-              variant={samples ? "ghost" : "secondary"}
-              size="sm"
-              aria-pressed={!samples}
-              onClick={() => setSamples(false)}
-            >
-              My cases
-            </Button>
-            <Button
-              variant={samples ? "secondary" : "ghost"}
-              size="sm"
-              aria-pressed={samples}
-              onClick={() => setSamples(true)}
-            >
-              Sample cases
-            </Button>
-          </div>
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {chosen.length} of 5 selected
             {chosen.length ? `: ${chosen.map((c) => c.title).join(", ")}` : ""}
@@ -129,69 +110,62 @@ export function CasePicker({
             aria-busy={loading}
           >
             {loading && <output>Loading cases…</output>}
-            {!loading && !cases.some((c) => c.is_seed === samples) && (
+            {!loading && !cases.length && (
               <p className="py-5 text-sm text-muted-foreground">
                 {query
                   ? "No matching cases."
-                  : samples
-                    ? "No samples are available."
-                    : "You haven’t uploaded any cases yet."}
+                  : "No cases are available yet. Add a case in Case library."}
               </p>
             )}
-            {cases
-              .filter((c) => c.is_seed === samples)
-              .map((record) => {
-                const readable = record.sources.some(
-                  (s) => s.status === "ready",
-                );
-                const incomplete = record.sources.some(
-                  (s) => s.status !== "ready" || s.indexing_status !== "ready",
-                );
-                const checked = chosen.some((c) => c.id === record.id);
-                return (
-                  <label
-                    key={record.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-control border border-border p-3 has-disabled:cursor-default has-disabled:opacity-60"
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-4 accent-knowledge-ink"
-                      checked={checked}
-                      disabled={
-                        saving ||
-                        (!checked && (!readable || chosen.length >= 5))
-                      }
-                      onChange={(e) =>
-                        setChosen((previous) =>
-                          e.target.checked
-                            ? [
-                                ...previous,
-                                {
-                                  id: record.id,
-                                  title: record.title,
-                                  is_seed: record.is_seed,
-                                },
-                              ]
-                            : previous.filter((c) => c.id !== record.id),
-                        )
-                      }
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-semibold wrap-anywhere">
-                        {record.title}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {record.is_seed ? "Fictional sample · " : ""}
-                        {!readable
-                          ? "No readable sources — finish processing in Case library"
-                          : incomplete
-                            ? "Some documents are not fully indexed"
-                            : `${record.sources.length} source document(s)`}
-                      </span>
+            {cases.map((record) => {
+              const readable = record.sources.some((s) => s.status === "ready");
+              const incomplete = record.sources.some(
+                (s) => s.status !== "ready" || s.indexing_status !== "ready",
+              );
+              const checked = chosen.some((c) => c.id === record.id);
+              return (
+                <label
+                  key={record.id}
+                  className="flex cursor-pointer items-start gap-3 rounded-control border border-border p-3 has-disabled:cursor-default has-disabled:opacity-60"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 accent-knowledge-ink"
+                    checked={checked}
+                    disabled={
+                      saving || (!checked && (!readable || chosen.length >= 5))
+                    }
+                    onChange={(e) =>
+                      setChosen((previous) =>
+                        e.target.checked
+                          ? [
+                              ...previous,
+                              {
+                                id: record.id,
+                                title: record.title,
+                                is_seed: record.is_seed,
+                              },
+                            ]
+                          : previous.filter((c) => c.id !== record.id),
+                      )
+                    }
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-semibold wrap-anywhere">
+                      {record.title}
                     </span>
-                  </label>
-                );
-              })}
+                    <span className="text-xs text-muted-foreground">
+                      {record.is_seed ? "Fictional sample · " : ""}
+                      {!readable
+                        ? "No readable sources — finish processing in Case library"
+                        : incomplete
+                          ? "Some documents are not fully indexed"
+                          : `${record.sources.length} source document(s)`}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">

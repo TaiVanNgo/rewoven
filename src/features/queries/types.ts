@@ -10,7 +10,11 @@ export type QuerySummary = {
   updated_at: string;
 };
 export type Evidence = Passage & { id: string; stale?: boolean };
-export type ChatContext = { mode: "library" | "selected"; caseIds: string[] };
+export type ChatContext = {
+  // "samples" remains readable in saved snapshots; new inputs use "library".
+  mode: "library" | "selected" | "samples";
+  caseIds: string[];
+};
 export const EMPTY_CHAT_CONTEXT: ChatContext = { mode: "library", caseIds: [] };
 export type AnswerSection = {
   kind: "fact" | "inference" | "recommendation" | "unknown" | "conversation";

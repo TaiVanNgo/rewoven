@@ -1,6 +1,6 @@
 # Reading a case with evidence
 
-Open **Case library**, search for `Harbor`, and open **Harbor Route Planning Pilot**. The first section explains the important result and its limit: route preparation improved in a two-depot pilot, observed over ten business days. **Recorded results** gives the actual measurements. **Gaps and conflicting evidence** explains what those measurements do not establish.
+Open **Case library**, search for `Office Purchasing`, and open **Office Purchasing Pilot**. Its three sources describe a one-office, single-manager workflow. **Recorded results** explains the limited acceptance; **Gaps and conflicting evidence** keeps finance routing and multi-branch behavior outside that result. The [purchasing demo guide](purchasing-demo.md) explains how this case connects to the other eight projects.
 
 Library cards wrap long titles and summaries within their boundaries, showing up to two title lines and three summary lines. Open a case to read the full text.
 
@@ -64,7 +64,7 @@ Search is stored in `?q=` and returned by **Back to case library**. Original lin
 
 Hover or keyboard-focus **[1]** after a finding to see the case, source document, saved version, physical page, and supporting quote. Numbers follow first appearance across the overview; the same reference reuses its number. Click or press Enter to open the shared source modal on desktop or mobile. Escape closes it and restores focus.
 
-For example, open a Harbor finding and check its pilot result against the cited PDF page. PDFs open the original physical page, with page navigation, zoom, and fit controls. The **Extracted text** tab highlights the source quote within surrounding text. Markdown and text documents open extracted text directly. The saved quote stays visible above the viewer; **Open original** opens the retained file separately.
+For example, open an Office Purchasing finding and check its delivered scope against page 1 of delivery-review.pdf. PDFs open the original physical page, with page navigation, zoom, and fit controls. The **Extracted text** tab highlights the source quote within surrounding text. Markdown and text documents open extracted text directly. The saved quote stays visible above the viewer; **Open original** opens the retained file separately.
 
 Finding quotes do not always contain character offsets. The preview endpoint locates them using the same whitespace normalization used by evidence validation and maps the match back to original text positions. A quote that cannot be located stays visible separately, without highlighting unrelated text. Text context is bounded rather than loading an entire large document into the page.
 

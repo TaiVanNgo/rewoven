@@ -1,46 +1,66 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { loadSampleCatalog } from "../scripts/sample-catalog";
+import { legacySampleIds, loadSampleCatalog } from "../scripts/sample-catalog";
 import { extractSource } from "../src/features/cases/extraction";
 
-test("nine curated overviews cite original sources and preserve proposal, conflict, failure, language and synthetic boundaries", async () => {
+test("nine Threadline projects retain three originals, exact evidence and honest delivery status", async () => {
   const catalog = await loadSampleCatalog();
   assert.equal(catalog.length, 9);
-  const item = (id: string) => {
-    const found = catalog.find((c) => c.fixture.key === id);
-    assert.ok(found);
-    return found;
-  };
-  for (const id of ["02", "03", "07", "08"])
-    assert.equal(item(id).overview.sections.results.length, 0);
+  assert.equal(catalog.flatMap((c) => c.sources).length, 27);
+  assert.ok(catalog.every((c) => !legacySampleIds.includes(c.id)));
+  for (const item of catalog) {
+    assert.equal(item.overview.sources.length, 3);
+    assert.deepEqual(
+      item.sources.map((s) => s.key),
+      ["brief", "notes", "review"],
+    );
+    const review = item.sources[2];
+    assert.equal(review.extracted.pages.length, 2);
+    assert.ok(review.extracted.pages[0].text.includes("Threadline Delivery"));
+    assert.ok(item.sources.every((s) => s.extracted.warnings.length === 0));
+    for (const findings of Object.values(item.overview.sections))
+      for (const finding of findings) {
+        assert.ok(finding.evidence.length);
+        for (const reference of finding.evidence)
+          assert.ok(
+            item.sources.some((s) => s.sourceId === reference.sourceId),
+          );
+      }
+  }
+  const proposal = catalog[8];
+  assert.equal(proposal.overview.sections.results.length, 0);
   assert.match(
-    item("01").overview.sections.results[0].text,
-    /46 minutes to 29/,
+    proposal.overview.sections.gaps[0].text,
+    /implementation.*not established/,
   );
-  assert.match(item("03").overview.sections.gaps[0].text, /240.*228.*12/);
-  const sensor = item("04");
-  assert.equal(sensor.extracted.pages[5].text, "");
-  assert.equal(sensor.overview.sections.results[0].evidence[0].page, 10);
   assert.match(
-    sensor.overview.sections.results[0].text,
-    /controlled bench replay/,
+    catalog[3].overview.sections.results[0].text,
+    /stopped.*manually/,
   );
-  assert.match(item("05").overview.sections.results[0].text, /37 of 400/);
-  assert.match(item("06").overview.sections.gaps[0].text, /not measured/);
-  assert.match(item("07").overview.sections.gaps[0].text, /unmeasured/);
-  assert.match(item("08").overview.sections.lessons[0].text, /Ghi rõ đơn vị/);
-  assert.match(item("09").overview.sections.results[0].text, /synthetic/);
-  const notebook = await extractSource(
-    new Uint8Array(
-      await readFile(
-        "output/pdf/rewoven-test-pack/markdown/10-commonplace-notebook-no-project.md",
-      ),
+  assert.match(
+    catalog[1].overview.sections.results[0].text,
+    /controlled.*checks/i,
+  );
+  assert.match(catalog[7].overview.sections.gaps[0].text, /outside/);
+});
+
+test("client inputs extract with physical page locations and stay outside the seed manifest", async () => {
+  const root = "output/pdf/rewoven-purchase-demo/upload/Client input/";
+  const brief = await extractSource(
+    new Uint8Array(await readFile(`${root}client-brief.pdf`)),
+    "pdf",
+  );
+  assert.equal(brief.pages.length, 2);
+  assert.deepEqual(brief.warnings, []);
+  assert.match(brief.pages[0].text, /10,000,000 or more/);
+  assert.match(brief.pages[1].text, /Retri|Retry|Retrying/);
+  const constraints = await readFile(`${root}constraints.md`, "utf8");
+  assert.match(constraints, /exactly VND 10,000,000 takes both stages/);
+  const catalog = await loadSampleCatalog();
+  assert.ok(
+    catalog.every((c) =>
+      c.sources.every((s) => !s.file.includes("Client input")),
     ),
-    "md",
-  );
-  assert.match(
-    notebook.text,
-    /not a software, delivery, research, or business project/,
   );
 });

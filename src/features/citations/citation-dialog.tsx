@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { caseApi } from "@/features/cases/api-client";
+import { MarkdownSource } from "./markdown-source";
 import {
   type CitationReference,
   citationKey,
@@ -109,7 +110,8 @@ function SourceContent({ reference }: { reference: CitationReference }) {
     }
   }
   const pdf = preview?.source.format === "pdf";
-  const activeTab = tab ?? (pdf ? "pdf" : "text");
+  const markdown = preview?.source.format === "md";
+  const activeTab = tab ?? (pdf ? "pdf" : markdown ? "markdown" : "text");
   const version = reference.version ?? preview?.source.version;
   const original = `${prefix}/${reference.sourceId}/original${version ? `?version=${version}` : ""}${pdf ? `#page=${page}` : ""}`;
   return (
@@ -174,11 +176,39 @@ function SourceContent({ reference }: { reference: CitationReference }) {
             value={activeTab}
             onValueChange={(value) => setTab(String(value))}
           >
-            {pdf && (
+            {(pdf || markdown) && (
               <TabsList aria-label="Source view">
-                <TabsTrigger value="pdf">Original PDF</TabsTrigger>
-                <TabsTrigger value="text">Extracted text</TabsTrigger>
+                {pdf ? (
+                  <TabsTrigger value="pdf">Original PDF</TabsTrigger>
+                ) : (
+                  <TabsTrigger value="markdown">Rendered Markdown</TabsTrigger>
+                )}
+                <TabsTrigger value="text">
+                  {markdown ? "Markdown source" : "Extracted text"}
+                </TabsTrigger>
               </TabsList>
+            )}
+            {markdown && (
+              <TabsContent value="markdown">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Source excerpt · Context from character{" "}
+                  {preview.start.toLocaleString()}. Use Markdown source to
+                  inspect exact text and highlighting.
+                </p>
+                <section
+                  className="max-h-[55dvh] overflow-y-auto rounded-lg border border-border bg-card p-5 text-sm"
+                  aria-label="Rendered Markdown source"
+                >
+                  {preview.text ? (
+                    <MarkdownSource
+                      text={preview.text}
+                      highlight={preview.highlight}
+                    />
+                  ) : (
+                    "No extractable text on this page."
+                  )}
+                </section>
+              </TabsContent>
             )}
             {pdf && (
               <TabsContent value="pdf">
@@ -255,17 +285,17 @@ function SourceContent({ reference }: { reference: CitationReference }) {
                   "No extractable text on this page."
                 )}
               </section>
-              {preview.page === page &&
-                !preview.highlight &&
-                reference.quote &&
-                page === (reference.page ?? 1) && (
-                  <p className="mt-2 text-xs text-caution-foreground">
-                    The saved quote could not be located here. It remains
-                    visible above; no unrelated text has been highlighted.
-                  </p>
-                )}
             </TabsContent>
           </Tabs>
+          {preview.page === page &&
+            !preview.highlight &&
+            reference.quote &&
+            page === (reference.page ?? 1) && (
+              <p className="mt-2 text-xs text-caution-foreground">
+                The saved quote could not be located here. It remains visible
+                above; no unrelated text has been highlighted.
+              </p>
+            )}
         </>
       )}
       <Link

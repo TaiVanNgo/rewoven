@@ -650,12 +650,14 @@ function QueryWorkspaceContent({
                   I’m Wren. Ask me about your past projects, explore what
                   happened, or work through a decision using their lessons. Add
                   cases for a closer look. Upload a brief or requirements file
-                  to compare your current problem with past work.
+                  to compare your current problem with the projects in Case
+                  library. I search the full library unless you attach specific
+                  cases.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    "What can I learn from my past projects?",
-                    "Help me compare the risks in these cases",
+                    "Which past projects help us build branch purchasing?",
+                    "What went wrong in the Invoice Matching Pilot?",
                     "What should we do differently next time?",
                   ].map((text) => (
                     <Button
@@ -693,7 +695,7 @@ function QueryWorkspaceContent({
                       <p className="mt-2 text-xs text-muted-foreground">
                         {turn.context_snapshot.mode === "selected"
                           ? `${turn.context_snapshot.caseIds.length} attached case(s)`
-                          : "My uploaded cases"}
+                          : "Case library"}
                       </p>
                     )}
                   </div>
@@ -873,9 +875,9 @@ function QueryWorkspaceContent({
                 onApply={applyCases}
               />
               <span className="text-xs text-muted-foreground">
-                {context.mode === "library"
-                  ? "Using my uploaded cases"
-                  : "Using only attached cases"}
+                {context.mode === "selected"
+                  ? "Using only attached cases"
+                  : "Searching Case library"}
               </span>
               {context.mode === "selected" && (
                 <Button
@@ -886,7 +888,7 @@ function QueryWorkspaceContent({
                     void applyCases([]).catch((e) => setError(e.message))
                   }
                 >
-                  Use my library
+                  Search full library
                 </Button>
               )}
             </div>

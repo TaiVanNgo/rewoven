@@ -1,0 +1,108 @@
+.source-markdown {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.source-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.25em 0 0.5em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.source-markdown h1 {
+  font-size: 1.75em;
+}
+
+.source-markdown h2 {
+  font-size: 1.4em;
+}
+
+.source-markdown h3 {
+  font-size: 1.15em;
+}
+
+.source-markdown :is(p, ul, ol, blockquote, pre, table, hr) {
+  margin-block: 0.85em;
+}
+
+.source-markdown > :first-child {
+  margin-top: 0;
+}
+
+.source-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.source-markdown :is(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.source-markdown ul {
+  list-style: disc;
+}
+
+.source-markdown ol {
+  list-style: decimal;
+}
+
+.source-markdown li + li {
+  margin-top: 0.25em;
+}
+
+.source-markdown blockquote {
+  border-left: 3px solid var(--knowledge-ink);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+}
+
+.source-markdown a {
+  color: var(--knowledge-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.source-markdown code {
+  border-radius: 0.25rem;
+  background: var(--muted);
+  padding: 0.1em 0.3em;
+  font-size: 0.9em;
+}
+
+.source-markdown pre {
+  overflow-x: auto;
+  border-radius: var(--radius-control);
+  background: var(--muted);
+  padding: 1em;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.source-markdown pre code {
+  padding: 0;
+}
+
+.source-markdown-table {
+  overflow-x: auto;
+}
+
+.source-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.source-markdown :is(th, td) {
+  border: 1px solid var(--border);
+  padding: 0.5em 0.75em;
+}
+
+.source-markdown th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+.source-markdown mark {
+  border-radius: 0.125rem;
+  background: var(--accent);
+  color: var(--accent-foreground);
+}

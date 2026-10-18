@@ -17,7 +17,7 @@ bun run dev
 `db:start` provisions both private storage buckets. Existing installations should rerun it after pulling this feature. `db:migrate` adds request documents, processing checkpoints, transactional quotas, and saved-plan request references. `db:seed` installs fictional historical examples without AI calls. Use `bun run devx` instead of `dev` to also start the database.
 
 1. Open the URL printed by Next.js, usually `http://localhost:3000`.
-2. Choose **Add cases** to select a fictional approval-related case, or use your own historical cases. Library mode continues to search your uploaded historical cases; samples require explicit selection.
+2. Keep the default Case library scope to discover relevant projects across the nine preloaded projects and your own historical cases. **Add cases** is optional and narrows the search to specific projects.
 3. Choose **Upload files**, or drop files onto the composer. Add a brief and supporting checklist. Type a question if useful, then choose **Send**. Selecting a file alone does not start AI processing.
 4. Watch each file's upload, extraction, and reading progress. Wren starts comparison after the accepted files finish reading; there is no mandatory request-review screen.
 5. Open a numbered reference to inspect its original PDF page or highlighted text. Request citations say **Request document**; historical citations retain the case title.

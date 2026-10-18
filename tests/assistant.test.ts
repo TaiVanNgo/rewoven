@@ -18,12 +18,19 @@ test("chat selection validates mode, five-case bound, duplicates and identifiers
   for (const value of [
     null,
     { mode: "library", caseIds: [a] },
+    { mode: "samples", caseIds: [a] },
     { mode: "selected", caseIds: [] },
     { mode: "selected", caseIds: [a, a] },
     { mode: "selected", caseIds: ["foreign"] },
     { mode: "selected", caseIds: Array(6).fill(a) },
   ])
     assert.throws(() => chatContextInput(value));
+});
+test("legacy demo scope is accepted as the unified library", () => {
+  assert.deepEqual(chatContextInput({ mode: "samples", caseIds: [] }), {
+    mode: "library",
+    caseIds: [],
+  });
 });
 test("case identifiers are canonicalized before duplicate checks", () => {
   const lower = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

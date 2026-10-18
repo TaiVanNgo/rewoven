@@ -143,7 +143,7 @@ test("Wren routes conversation, scopes multi-case evidence, persists context, an
             caseIds: [],
             reply: "Hi! What would you like to explore?",
           };
-        if (kind === "assistant_review") return { query: "pilot outcome" };
+        if (kind === "assistant_review") return { query: "zebracaveat" };
         assert.ok(payload.evidence?.length);
         return {
           sections: [
@@ -283,14 +283,10 @@ test("Wren routes conversation, scopes multi-case evidence, persists context, an
     );
     assert.deepEqual(
       new Set(q.turns.at(-1)?.work?.evidence.map((e) => e.case_id)),
-      new Set([first, second, third, fourth]),
+      new Set([first, second, third, fourth, sample]),
     );
     assert.ok(
-      q.turns
-        .at(-1)
-        ?.work?.evidence.every(
-          (e) => e.case_id !== sample && e.case_id !== foreign,
-        ),
+      q.turns.at(-1)?.work?.evidence.every((e) => e.case_id !== foreign),
     );
     q = await processAssistantTurn(
       q.id,

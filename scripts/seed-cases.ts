@@ -38,72 +38,78 @@ export async function seedSamples({
           })
         ).error,
       );
-    const prior = await db
-      .from("source_documents")
-      .select("id,status")
-      .eq("id", item.sourceId)
-      .maybeSingle();
-    check(prior.error);
-    const upload = await db.storage
-      .from("case-sources")
-      .upload(item.path, item.bytes, {
-        contentType:
-          item.format === "pdf"
-            ? "application/pdf"
-            : "text/markdown; charset=utf-8",
-        upsert: false,
-      });
-    if (upload.error) {
-      if (String(upload.error.statusCode) !== "409") check(upload.error);
-      const retained = await db.storage
+    for (const source of item.sources) {
+      const prior = await db
+        .from("source_documents")
+        .select("id,status,case_id")
+        .eq("id", source.sourceId)
+        .maybeSingle();
+      check(prior.error);
+      if (prior.data && prior.data.case_id !== item.id)
+        throw new Error(
+          "A sample source identifier is occupied by another case.",
+        );
+      const upload = await db.storage
         .from("case-sources")
-        .download(item.path);
-      check(retained.error);
-      if (
-        !retained.data ||
-        createHash("sha256")
-          .update(new Uint8Array(await retained.data.arrayBuffer()))
-          .digest("hex") !== item.fixture.sha256
-      )
-        throw new Error("A retained original does not match its checksum.");
-    }
-    if (!prior.data || prior.data.status !== "ready") {
+        .upload(source.path, source.bytes, {
+          contentType:
+            source.format === "pdf"
+              ? "application/pdf"
+              : "text/markdown; charset=utf-8",
+          upsert: false,
+        });
+      if (upload.error) {
+        if (String(upload.error.statusCode) !== "409") check(upload.error);
+        const retained = await db.storage
+          .from("case-sources")
+          .download(source.path);
+        check(retained.error);
+        if (
+          !retained.data ||
+          createHash("sha256")
+            .update(new Uint8Array(await retained.data.arrayBuffer()))
+            .digest("hex") !== source.sha256
+        )
+          throw new Error("A retained original does not match its checksum.");
+      }
+      if (!prior.data || prior.data.status !== "ready") {
+        check(
+          (
+            await db.from("source_documents").upsert(
+              {
+                id: source.sourceId,
+                case_id: item.id,
+                title: source.filename,
+                format: source.format,
+                version: 1,
+                storage_path: source.path,
+                extracted_text: source.extracted.text,
+                pages: source.extracted.pages,
+                warnings: source.extracted.warnings,
+                status: "ready",
+                byte_size: source.bytes.length,
+                char_count: source.extracted.text.length,
+                page_count: source.extracted.pages.length,
+                extraction_cursor: source.extracted.pages.length,
+              },
+              { onConflict: "id" },
+            )
+          ).error,
+        );
+      }
+      const chunks = chunkPages(source.extracted.pages, source.format).map(
+        (chunk) => ({ ...chunk, source_id: source.sourceId }),
+      );
+      // Stable (source, ordinal) keys preserve IDs and existing embeddings on retry.
       check(
         (
-          await db.from("source_documents").upsert(
-            {
-              id: item.sourceId,
-              case_id: item.id,
-              title: item.filename,
-              format: item.format,
-              version: 1,
-              storage_path: item.path,
-              extracted_text: item.extracted.text,
-              pages: item.extracted.pages,
-              warnings: item.extracted.warnings,
-              status: "ready",
-              byte_size: item.bytes.length,
-              char_count: item.extracted.text.length,
-              page_count: item.extracted.pages.length,
-              extraction_cursor: item.extracted.pages.length,
-            },
-            { onConflict: "id" },
-          )
+          await db.from("source_chunks").upsert(chunks, {
+            onConflict: "source_id,ordinal",
+            ignoreDuplicates: true,
+          })
         ).error,
       );
     }
-    const chunks = chunkPages(item.extracted.pages, item.format).map(
-      (chunk) => ({ ...chunk, source_id: item.sourceId }),
-    );
-    // Stable (source, ordinal) keys preserve IDs and existing embeddings on retry.
-    check(
-      (
-        await db.from("source_chunks").upsert(chunks, {
-          onConflict: "source_id,ordinal",
-          ignoreDuplicates: true,
-        })
-      ).error,
-    );
     check(
       (
         await db
@@ -131,7 +137,7 @@ export async function seedSamples({
     ).error,
   );
   console.log(
-    "Ready: 9 fictional project samples. Originals and legacy citation links preserved; no AI calls made.",
+    "Ready: 9 Threadline Delivery projects / 27 original sources. Previous samples retired; citation links preserved. No AI calls made.",
   );
 }
 if (import.meta.main)

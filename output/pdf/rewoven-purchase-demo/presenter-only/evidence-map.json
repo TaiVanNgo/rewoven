@@ -1,0 +1,92 @@
+[
+  {
+    "case": "Office Purchasing Pilot",
+    "status": "Delivered limited pilot",
+    "result": "The one-office pilot was accepted for request submission, single-manager review, revision checks, and inspection of request events. No finance approval stage was delivered.",
+    "lesson": "An approval must identify the exact request revision it authorizes. A later edit requires a new decision; preserving an old decision is not permission to reuse it.",
+    "gap": "Approval-time savings, multi-branch behavior, and finance routing were not measured or implemented in this pilot. The client accepted a narrow workflow, not a general purchasing platform.",
+    "reviewFile": "upload/Historical cases/01-office-purchasing/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Expense Reimbursement Portal",
+    "status": "Delivered internal pilot after retry defect repair",
+    "result": "After the repair, controlled lost-response and concurrent-retry checks produced one claim record per matching operation. A changed payload with the same operation key was rejected.",
+    "lesson": "Keep one stable operation key across retries and enforce uniqueness in the database. A disabled button alone does not protect against duplicate server writes.",
+    "gap": "Production reliability, offline queuing, intentional duplicate-receipt detection, and a long-term operation-key retention policy were not established.",
+    "reviewFile": "upload/Historical cases/02-expense-reimbursement/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Supplier Onboarding Workspace",
+    "status": "Delivered checklist workflow",
+    "result": "The delivered workflow blocked directory acceptance while required document checks were incomplete and reopened the affected check after document replacement.",
+    "lesson": "Separate document collection, human review, and business authorization. A complete checklist is evidence that a process ran, not proof that every downstream action is permitted.",
+    "gap": "Bank validation, supplier risk assessment, and purchase authorization were outside the delivered scope. No reduction in onboarding effort was measured.",
+    "reviewFile": "upload/Historical cases/03-supplier-onboarding/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Invoice Matching Pilot",
+    "status": "Failed pilot; manual fallback retained",
+    "result": "The invoice-matching pilot was stopped because unresolved matching errors remained. Staff completed the cycle manually; no automated posting was performed.",
+    "lesson": "Do not treat a populated match field or a completed manual fallback as proof that automation succeeded. Preserve unresolved exceptions and block dependent actions until the reconciliation rule is agreed.",
+    "gap": "A repaired matching service, measured time savings, accepted tolerance rules, and production matching accuracy were not established.",
+    "reviewFile": "upload/Historical cases/04-invoice-matching/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Branch Inventory Request Portal",
+    "status": "Delivered branch-scoped pilot",
+    "result": "The two-branch acceptance checks rejected unauthorized cross-branch reads and writes while allowing an explicitly assigned central reviewer to inspect both branches.",
+    "lesson": "Check the actor's current assignment against the record's stored branch on every server read and write. A filtered list does not establish authorization.",
+    "gap": "Automatic directory synchronization, staff-transfer policy, purchasing authority, and real stock movement were outside the pilot's evidence.",
+    "reviewFile": "upload/Historical cases/05-branch-inventory/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Audit Export Dashboard",
+    "status": "Delivered operational review export",
+    "result": "The pilot export included the selected authorized events through its cutoff, with actor, timestamp, action, revision, and a recorded export scope.",
+    "lesson": "Record event provenance and export boundaries. Preserve corrections as new events, and avoid describing an application event log as tamper-proof or compliant without separate evidence.",
+    "gap": "Retention policy, legal compliance, privileged-administrator tamper resistance, and maximum export capacity were not established.",
+    "reviewFile": "upload/Historical cases/06-audit-export/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Staff Leave Approval Tool",
+    "status": "Delivered manager delegation pilot",
+    "result": "The manager-delegation pilot accepted decisions within an active assignment, rejected expired authority, and retained the actual acting reviewer in history.",
+    "lesson": "Represent delegated authority explicitly, evaluate it at decision time, and retain the actual actor. Do not infer spending authority from an unrelated managerial role.",
+    "gap": "Financial authorization, purchasing delegation policy, directory synchronization, and staffing benefits were not established.",
+    "reviewFile": "upload/Historical cases/07-staff-leave/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Marketing Content Approval Tool",
+    "status": "Delivered editorial review workflow",
+    "result": "The editorial pilot delivered draft comments, review notifications, and scheduling status. It did not deliver revision-bound financial approval.",
+    "lesson": "A familiar approval label does not establish equivalent business authority. Reuse notification and work-queue ideas only after checking the new workflow's decision and revision requirements.",
+    "gap": "Financial authorization, amount thresholds, immutable approved revisions, and purchasing outcomes were outside this project's scope.",
+    "reviewFile": "upload/Historical cases/08-marketing-content/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  },
+  {
+    "case": "Purchasing Expansion Proposal",
+    "status": "Proposal only; not implemented",
+    "result": "No implementation, acceptance test result, or production outcome was recorded for the purchasing expansion. The client paused the proposal before authorizing delivery.",
+    "lesson": "Treat an unimplemented proposal as an option to investigate, not a proven solution. Separate an intended workflow, a preliminary estimate, and an executed acceptance result.",
+    "gap": "The finance threshold, policy ownership, implementation, test execution, delivery estimate, and business outcomes were not established for this proposal.",
+    "reviewFile": "upload/Historical cases/09-purchasing-expansion/delivery-review.pdf",
+    "resultPage": 1,
+    "lessonAndGapPage": 2
+  }
+]
