@@ -6,6 +6,8 @@ import {
 } from "next/font/google";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { OnboardingProvider } from "@/features/onboarding/onboarding-provider";
+import { RequestDraftProvider } from "@/features/requests/request-draft";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -58,7 +60,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          <MotionProvider>{children}</MotionProvider>
+          <MotionProvider>
+            <RequestDraftProvider>
+              <OnboardingProvider>{children}</OnboardingProvider>
+            </RequestDraftProvider>
+          </MotionProvider>
         </ThemeProvider>
       </body>
     </html>
