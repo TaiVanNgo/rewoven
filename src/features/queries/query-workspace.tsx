@@ -134,6 +134,8 @@ function QueryWorkspaceContent({
     latest?.status === "processing" &&
     Date.now() - new Date(latest.started_at).getTime() < 300000;
   const busy = pending || processing;
+  const selectionMissing =
+    context.mode === "selected" && !context.caseIds.length;
   const work = latest?.work;
   const hasEvidence = !!work?.evidence.length;
   const opened = conversation !== null;
@@ -246,9 +248,15 @@ function QueryWorkspaceContent({
           if (controller.signal.aborted) return;
           restore(query);
           setLoaded(true);
-          if (!query.turns.length) {
+          if (!query.turns.length) setLocalDraft(query.request.request);
+          if (
+            !query.turns.length &&
+            !(
+              query.chat_context?.mode === "selected" &&
+              !query.chat_context.caseIds.length
+            )
+          ) {
             setPending(true);
-            setLocalDraft(query.request.request);
             for (const file of query.files ?? [])
               if (file.enabled)
                 await prepareQueryFile(file, updateFile, controller.signal);
@@ -357,6 +365,7 @@ function QueryWorkspaceContent({
   async function send(message: string, retry?: QueryTurn) {
     if (
       busy ||
+      selectionMissing ||
       !loaded ||
       (!message.trim() &&
         !uploads.length &&
@@ -845,6 +854,14 @@ function QueryWorkspaceContent({
               void send(draft);
             }}
           >
+            {selectionMissing && (
+              <Alert variant="caution">
+                <AlertDescription>
+                  The attached cases were deleted. Choose cases or search full
+                  library before sending another message.
+                </AlertDescription>
+              </Alert>
+            )}
             <FileContext
               files={conversation?.files ?? []}
               disabled={busy}
@@ -870,13 +887,16 @@ function QueryWorkspaceContent({
                 onFiles={addFiles}
               />
               <CasePicker
+                label={selectionMissing ? "Choose cases" : "Add cases"}
                 selected={selected}
                 disabled={busy || !loaded}
                 onApply={applyCases}
               />
               <span className="text-xs text-muted-foreground">
                 {context.mode === "selected"
-                  ? "Using only attached cases"
+                  ? selectionMissing
+                    ? "No attached cases remain"
+                    : "Using only attached cases"
                   : "Searching Case library"}
               </span>
               {context.mode === "selected" && (
@@ -952,6 +972,7 @@ function QueryWorkspaceContent({
                 size="icon"
                 disabled={
                   busy ||
+                  selectionMissing ||
                   !loaded ||
                   (!draft.trim() &&
                     !uploads.length &&

@@ -20,10 +20,12 @@ export function CasePicker({
   selected,
   disabled,
   onApply,
+  label = "Add cases",
 }: {
   selected: SelectedCase[];
   disabled: boolean;
   onApply: (cases: SelectedCase[]) => Promise<void>;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -76,7 +78,7 @@ export function CasePicker({
           setOpen(true);
         }}
       >
-        Add cases
+        {label}
       </Button>
       <Dialog
         open={open}

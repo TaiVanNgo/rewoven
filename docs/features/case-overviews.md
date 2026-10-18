@@ -31,13 +31,13 @@ For production-mode local verification, run `bun run build` before `bun run star
 - **Lessons and reusable material:** documented lessons and artifacts, without invented files or links.
 - **Gaps and conflicting evidence:** limitations and unresolved disagreements. Conflicting results stay out of the actual-outcome projection until resolved.
 
-Empty sections say **Not documented**. Cases created before structured overviews keep their saved context, outcome, and lessons. The migration does not invent a story for them. They can use **Read case with AI** or **Write overview** when the owner wants to prepare one.
+Empty sections say **Not documented**. Cases created before structured overviews keep their saved context, outcome, and lessons. The migration does not invent a story for them. They can use **Read case with AI** or **Edit case** when the owner wants to prepare an overview.
 
 ## Create, review, and correct
 
 For your own case, add one or more supported documents. AI reading is optional and billable when configured. It reads all accepted documents in saved stages and prepares the metadata and six overview sections. Review the findings and their quotes before confirming.
 
-**Edit overview** supports manual entry without an AI key. Each section allows up to four findings of 600 characters. An edited or newly written finding becomes a **Contributor note · Evidence not verified** and loses inherited AI citations. Unchanged findings retain server-stored evidence; submitting a forged citation does not replace it. Blank editor rows are omitted when saved.
+**Edit case** supports manual entry without an AI key. Each section allows up to four findings of 600 characters. An edited or newly written finding becomes a **Contributor note · Evidence not verified** and loses inherited AI citations. Unchanged findings retain server-stored evidence; submitting a forged citation does not replace it. Blank editor rows are omitted when saved. Editing does not rebuild source embeddings. For whole-case deletion and its effect on sources and saved history, see [editing and permanent deletion](case-library-and-ingestion.md#edit-or-permanently-delete-a-case).
 
 A refreshed AI draft stays separate from the confirmed overview. The review dialog lets you compare it and choose **Use new overview, keeping my notes**. Existing contributor corrections are retained; each section remains limited to four findings. Saving checks the previous case fields and overview revision together. If another tab saved first, reload the saved overview before applying edits again.
 

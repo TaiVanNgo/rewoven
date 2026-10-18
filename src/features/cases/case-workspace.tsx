@@ -46,9 +46,18 @@ export function CaseWorkspace({ children }: { children: React.ReactNode }) {
     if (!ready || !activeRoute) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
+    let lastCleanup = 0;
     async function advance() {
       let delay = 3000;
       try {
+        if (Date.now() - lastCleanup >= 30_000) {
+          lastCleanup = Date.now();
+          // File cleanup is independent of document processing. A transient
+          // cleanup error must not pause indexing other cases.
+          void caseApi("/api/cases/cleanup", { method: "POST" }).catch(
+            () => {},
+          );
+        }
         const result = await caseApi<{ cases: CaseSummary[] }>("/api/cases");
         const next = result.cases
           .filter((c) => !c.is_seed)

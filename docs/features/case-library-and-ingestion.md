@@ -20,6 +20,57 @@ A blank outcome stays **Outcome not recorded**. The application does not invent 
 
 For the loading placeholders and request transitions, see [Understanding loading states and skeletons](loading-states.md).
 
+## Edit or permanently delete a case
+
+Suppose you added **Vendor Billing Portal**, then discovered its recorded outcome needs correcting. Open its case page, select **Edit case**, update the title or overview findings, and select **Save overview**. Your edits remain separate from the original AI draft. A changed finding becomes an unverified contributor note; unchanged findings retain their source references. If another tab saved first, reload the saved overview before trying again.
+
+Editing these details leaves original documents, chunk IDs, and embeddings unchanged. Embeddings describe the original source passages, so changing the title or overview requires no new embedding calls. Replacing or individually removing documents is outside this feature.
+
+To remove the whole project, select **Delete case**. The confirmation names the case and explains what will remain. **Cancel** receives initial keyboard focus. After **Delete permanently**, the app returns to the library and shows the result. A database failure leaves the confirmation open with an error and an enabled retry action. Failed and partially processed cases support the same controls. Shared fictional samples remain read-only on both the page and the API.
+
+### What happens to its embeddings?
+
+Embeddings live in `source_chunks.embedding`, alongside each passage. Both parent relationships already use `ON DELETE CASCADE`:
+
+```text
+cases → source_documents → source_chunks (including embeddings)
+```
+
+Deleting **Vendor Billing Portal** deletes only its source records, chunks, and vectors. Other projects remain searchable without reindexing. Related case-bound AI readings and reviews also cascade. Session-level analysis caches and embedding-usage accounting are separate from the searchable case corpus.
+
+The server first checks the active demo session and ownership. A database function then records original-file paths, removes the case from current chat selections, and deletes the case in one transaction. A deletion receipt prevents a delayed creation retry from recreating the same case ID. Repeating deletion from the original active session is safe.
+
+Saved answers and plans keep their historical text and quoted excerpts. Their sources become unavailable and receive the existing stale-evidence warnings; deleting a case does **not** erase those snapshots. Stale historical answers are omitted from the model's conversational answer history. New retrieval cannot find the deleted case. Database publication guards also reject answers or generated plans whose evidence disappeared during processing.
+
+If the deleted case was attached to a chat, the remaining attachments stay selected. If the last attachment disappears, the chat shows **Choose cases** and **Search full library** and blocks Send until you explicitly choose a scope. Old turn snapshots retain the selections used when those answers were written. Plans whose original selected cases were deleted need a new draft from a chat with current selections.
+
+### Why uploaded files need another step
+
+Supabase's database and Storage are separate services. The database transaction cannot remove file bytes through the Storage API. After deletion commits, the server attempts that cleanup. If Storage is unavailable, the case stays deleted and the file paths remain in the server-only `case_deletions` table for retry. Receipts deliberately survive removal of the demo session itself.
+
+An already issued [signed upload URL remains usable for two hours](https://supabase.com/docs/reference/javascript/storage-from-createsigneduploadurl). The cleanup record therefore keeps the paths for a final sweep at least **130 minutes after deletion** (or later when an upload reservation requires it), even if the immediate removal succeeded. That sweep removes a file uploaded late using an old URL. Completed cleanup clears the stored paths but retains the minimal case/session receipt for safe retries.
+
+While a case-library page is open, its existing background loop calls the session-authorized `POST /api/cases/cleanup` endpoint at most once every 30 seconds. Successful immediate cleanup schedules the final sweep; failures retry after 30 seconds. Each request handles at most 20 due cases. Closing the browser stops this loop: there is no scheduler in this feature.
+
+For cleanup without an open browser, run:
+
+```bash
+bun run db:cleanup-cases
+```
+
+The command drains due batches across all sessions using the server credentials in `.env.local`, including expired or removed sessions. Run it again after the final sweep becomes due. It makes no AI calls. For a hosted target, configure that target's server credentials and pass `--project-ref=<configured-project-reference>`; the reference must match `SUPABASE_URL`. Never put real credentials in tracked files. A hosted deployment needs an operator or separately configured scheduler to run maintenance when no browser remains open.
+
+### Important files and verification
+
+- `src/features/cases/edit-overview-dialog.tsx` and `delete-case-dialog.tsx` provide browser interactions; database and Storage credentials stay on the server.
+- `src/app/api/cases/[id]/route.ts` serves existing GET/PATCH and the new DELETE operation. DELETE returns `{ deleted: true, cleanupPending: boolean }`; `cleanupPending` includes the scheduled late-upload sweep.
+- `src/features/cases/server/deletion.ts` runs the transaction and bounded file cleanup. `scripts/cleanup-cases.ts` calls the same cleanup logic for maintenance.
+- `supabase/migrations/202610180003_case_deletion.sql` adds receipts, transactional deletion, recreation protection, and publication guards. Apply it locally with `bun run db:migrate`; ordinary server restarts do not apply migrations.
+
+With local Supabase and the app running, run `bun --env-file=.env.local test ./tests/case-deletion.integration.ts`. Tests cover unchanged embeddings after editing, cascades, another case's isolation, ownership and session checks, read-only samples, repeated deletion, source-processing interruption, saved snapshots, scope recovery, Storage failure, late uploads, and maintenance after session removal. Storage failures and time advancement are simulated; live AI calls are unnecessary.
+
+Use `bun run devx` to start local Supabase and development, then open the printed URL. Stop Next.js with Ctrl+C. To check production locally, stop development, run `bun run build`, then `bun run start`: the production server needs the compiled application produced by the build. The full verification commands remain in the README.
+
 ### Search by part of a title or source text
 
 Type `Har` into **Search cases and source text** to find **Harbor Route Planning Pilot**. After a short typing delay, the browser puts the query in `/case-library?q=Har` and requests `/api/cases?q=Har`. The server calls the database's `search_cases` function and returns matching cases.
@@ -148,7 +199,7 @@ Open [the local library](http://localhost:3000/case-library), or use the port pr
 3. Check the supporting quote and open the delivery-review PDF at physical page 1.
 4. Open **Sources** to inspect extracted pages and processing details.
 5. Add the manual example described above, then open its dedicated case page.
-6. Refresh and inspect the retained original. Use **Write overview** to organize manual findings.
+6. Refresh and inspect the retained original. Use **Edit case** to organize manual findings.
 7. Return to the library and search for a distinctive word from the source.
 8. Open a private window. It should show nine shared project samples without your addition.
 

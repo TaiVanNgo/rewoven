@@ -10,6 +10,7 @@ import { caseApi } from "./api-client";
 import { CaseDetail } from "./case-detail";
 import { CaseDetailSkeleton } from "./case-skeleton";
 import { useCaseWorkspace } from "./case-workspace";
+import { DeleteCaseDialog } from "./delete-case-dialog";
 import { EditOverviewDialog } from "./edit-overview-dialog";
 import { RetryCase } from "./retry-case";
 import type { CaseDetail as CaseDetailRecord } from "./types";
@@ -85,6 +86,10 @@ export function CasePage({ id }: { id: string }) {
               !record.is_seed ? (
                 <>
                   <EditOverviewDialog record={record} onSaved={saved} />
+                  <DeleteCaseDialog
+                    record={record}
+                    returnTo={`/case-library${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+                  />
                   <AddCaseDialog
                     key={`read-${record.id}-${record.overviewRevision}`}
                     disabled={!ready}

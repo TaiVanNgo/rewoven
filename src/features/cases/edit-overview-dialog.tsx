@@ -54,14 +54,14 @@ export function EditOverviewDialog({
       }}
     >
       <DialogTrigger render={<Button variant="outline" />}>
-        {record.overview ? "Edit overview" : "Write overview"}
+        Edit case
       </DialogTrigger>
       <DialogContent
         className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl"
         showCloseButton={!pending}
       >
         <DialogHeader>
-          <DialogTitle>Edit case overview</DialogTitle>
+          <DialogTitle>Edit case</DialogTitle>
           <DialogDescription>
             Your changes are saved separately from the original AI reading.
           </DialogDescription>
@@ -86,8 +86,16 @@ export function EditOverviewDialog({
                   body: JSON.stringify({
                     fields: { ...caseFields(baseline), title },
                     expected: caseFields(baseline),
-                    overview: cleaned,
-                    expectedOverviewRevision: baseline.overviewRevision ?? 0,
+                    // A title-only edit on an older case must not project an
+                    // empty overview over its saved context/outcome/lessons.
+                    ...(baseline.overview ||
+                    OVERVIEW_KEYS.some((key) => cleaned.sections[key].length)
+                      ? {
+                          overview: cleaned,
+                          expectedOverviewRevision:
+                            baseline.overviewRevision ?? 0,
+                        }
+                      : {}),
                   }),
                 },
               );

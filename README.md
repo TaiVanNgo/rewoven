@@ -8,6 +8,8 @@ The homepage at `/` opens **New chat**, with a message composer, **Upload files*
 
 **Case library** at `/case-library` provides uploads, nine read-only fictional samples, and dedicated case pages at `/case-library/[id]`. **Ask Wren about this case** opens chat with that case attached. **Create a case** in chat links to the existing library workflow; Wren does not create historical cases. Problem documents uploaded in chat remain separate from the case library. **Draft reuse plan** prepares a reviewable request from a saved chat, then generates a cited draft. Users edit Markdown, explicitly save it, and export it. **Saved plans** at `/saved-plans` lists plans saved during the current demo session. See the [reuse-plan guide](docs/features/reuse-plans.md) for the workflow, recovery, export, and limits.
 
+Owned case pages provide **Edit case** and **Delete case**, including failed or partially processed additions. Deletion removes the case, sources, chunks, and embeddings together; uploaded originals have durable, retryable Storage cleanup. Saved chats and plans retain historical excerpts with unavailable-source warnings. Read [editing and permanent deletion](docs/features/case-library-and-ingestion.md#edit-or-permanently-delete-a-case) for confirmation, scope recovery, and the final file-cleanup sweep.
+
 **Recent queries** restores saved chats, case selections, and evidence during the same 24-hour demo session. Messages are limited to 10,000 characters. Unsubmitted chat drafts remain local and reset on reload. Ready-plan edits have a tab-local recovery buffer until explicitly saved. Submitted text, request-document passages, and retrieved historical excerpts are sent to OpenAI when configured. Missing AI configuration preserves keyword excerpts with a visible paused-answer message. Every Ready document is eligible for retrieval, but answers use a bounded selection of passages rather than reading every document on every turn.
 
 To inspect the interface without Supabase, run `bun install --frozen-lockfile`, then `bun run dev` and open the printed URL. Saving chats and selecting cases require the local database setup below. Stop the server with Ctrl+C.
@@ -141,6 +143,7 @@ The New chat interface renders without database credentials; searching cases req
 | `bun run test:ai:live`           | Run one billable local OpenAI reading of a fictional PDF; verify save and evidence.                  |
 | `bun run test:integration`       | Test local API persistence, AI reading isolation/cache/limits, and recovery without OpenAI calls.    |
 | `bun run db:backfill`            | Backfill missing original sizes; add `--embed` for billable, resumable semantic indexing.            |
+| `bun run db:cleanup-cases`       | Retry due deleted-case file cleanup, including expired or removed sessions; makes no AI calls.       |
 | `bun run test:retrieval:live`    | Evaluate semantic relevance against local fictional cases with billable query embeddings.            |
 | `bun run db:status`              | Show local service URLs and credentials.                                                             |
 | `bun run db:stop`                | Stop local Supabase while preserving local data.                                                     |

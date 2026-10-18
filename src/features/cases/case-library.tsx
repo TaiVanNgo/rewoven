@@ -70,6 +70,15 @@ export function CaseLibrary() {
   }, [ready, query, revision, legacyCase]);
   return (
     <div className="flex flex-col gap-6">
+      {params.has("deleted") && (
+        <Alert>
+          <AlertDescription>
+            {params.get("deleted") === "cleanup-pending"
+              ? "Case deleted. Original-file cleanup and a final check for late uploads will run in the background while this library is open."
+              : "Case permanently deleted."}
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <Field className="max-w-md">
           <FieldLabel htmlFor="case-search">
