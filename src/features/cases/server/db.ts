@@ -23,6 +23,12 @@ export function database() {
 }
 export function checkDatabase(error: { message: string } | null) {
   if (error) {
+    if (
+      /^Sources changed while Wren was answering\.|^This case was permanently deleted\./.test(
+        error.message,
+      )
+    )
+      throw new ApiError(409, error.message);
     console.error("Case database operation failed:", error.message);
     throw new ApiError(
       503,

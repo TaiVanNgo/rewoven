@@ -2,6 +2,7 @@ import "server-only";
 import { chunkPages } from "@/features/cases/extraction";
 import { checkDatabase, database } from "@/features/cases/server/db";
 import { embedTexts } from "@/features/cases/server/embeddings";
+import { ApiError } from "@/features/cases/server/http";
 import { meanQueryVector } from "@/features/retrieval/embedding-math";
 import type { Passage, RetrievalResult } from "@/features/retrieval/types";
 import { evidenceBudget } from "../assistant";
@@ -29,6 +30,11 @@ export async function retrieveAssistant(
   warnings: string[];
 }> {
   const db = database();
+  if (context.mode === "selected" && !context.caseIds.length)
+    throw new ApiError(
+      409,
+      "The attached cases were deleted. Choose cases or search full library.",
+    );
   const warnings: string[] = [];
   let caseIds = context.mode === "selected" ? context.caseIds : narrowed;
   // A narrowed discovery request must still respect the visible library. An

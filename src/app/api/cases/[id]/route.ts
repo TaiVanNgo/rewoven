@@ -1,4 +1,5 @@
 import { saveCaseFields } from "@/features/cases/server/case-reading";
+import { deleteCase } from "@/features/cases/server/deletion";
 import {
   apiError,
   boundedJson,
@@ -36,5 +37,18 @@ export async function PATCH(
     return error instanceof InputError
       ? json({ error: error.message }, 400)
       : apiError(error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: RouteContext<"/api/cases/[id]">,
+) {
+  try {
+    checkOrigin(request);
+    const session = await requireSession();
+    return json(await deleteCase((await context.params).id, session.id));
+  } catch (error) {
+    return apiError(error);
   }
 }

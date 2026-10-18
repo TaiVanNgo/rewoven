@@ -72,8 +72,10 @@ export function conversationContext(
       // history makes e3 from an earlier answer look like today's e3 even
       // when the source has changed. Keep prose for conversational references.
       answer:
-        item.answer?.sections.map(({ heading, text }) => ({ heading, text })) ??
-        [],
+        (item.work?.evidence.some((e) => e.stale)
+          ? undefined
+          : item.answer
+        )?.sections.map(({ heading, text }) => ({ heading, text })) ?? [],
       focus: item.work?.focus ?? null,
     };
     const size = JSON.stringify(entry).length;

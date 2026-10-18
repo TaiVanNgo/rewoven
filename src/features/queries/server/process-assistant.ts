@@ -31,6 +31,14 @@ export async function processAssistantTurn(
 ) {
   const id = validId(String(input.requestKey ?? ""));
   const previous = await queryDetail(conversationId, sessionId);
+  if (
+    previous.chat_context?.mode === "selected" &&
+    !previous.chat_context.caseIds.length
+  )
+    throw new ApiError(
+      409,
+      "The attached cases were deleted. Choose cases or search full library before sending.",
+    );
   const hasPendingFiles = previous.files?.some(
     (f) => f.enabled && !f.first_turn_id,
   );
