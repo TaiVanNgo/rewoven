@@ -2,6 +2,8 @@
 
 This is a local fictional-demo record, not a production certification or accuracy benchmark. Keep it outside uploaded evidence.
 
+The original rehearsal below used an opt-in demo-library switch. The MVP now includes the nine projects in the default Case library; see the unified-library follow-up at the end of this record.
+
 ## Corpus and indexing
 
 - Nine active projects from one fictional software delivery company, Threadline Delivery, for different fictional clients.
@@ -40,3 +42,11 @@ Initial plan attempts used request-document citation IDs where the historical pl
 The five-minute walkthrough is a presentation target after setup, not a measured latency guarantee. No repeated median analysis benchmark or maximum-capacity test was performed for this pack. Answers use a bounded evidence selection and may group claims under citations that need closer inspection. A valid reference ID does not prove every sentence is supported. Review summaries, recommendations, exclusions, and original evidence before presenting them as decisions.
 
 The hosted app, hosted migrations, hosted sample import/indexing, and GitHub CI were not verified in this run. Local seeding and indexing do not change production. Google Drive sharing is left to the folder owner. Do not distribute local session links, cookies, credentials, or private rehearsal exports in the share pack.
+
+## Unified-library follow-up - 18 October 2026
+
+The nine active historical projects and each session's historical uploads now share the default Case library scope. The demo-library switch and separate picker tabs have been removed. Shared seeded records remain read-only and fictional; another session's uploads and retired samples remain excluded from collection discovery. Existing saved answers retain their original evidence and wording.
+
+The regression uploads the real Northbank PDF and constraints Markdown in a fresh session without historical uploads or manual scope selection. With mocked provider stages, it verifies real extraction/storage, both request documents reaching Wren, historical evidence across all nine projects, mixed request/historical citations, restored scope, and plan generation with separate request references. It also verifies the database retrieval boundary directly and checks that adding an owned case joins it to the library.
+
+All 129 unit tests, all 16 integration tests, formatting, lint, type checks, and a production build passed. Browser checks covered the single nine-case picker, optional five-case narrowing, returning to the full library, Northbank attachments, the default submission payload, and 1440 px/390 px light/dark layouts. The browser deliberately intercepts submission before AI processing; the integration suite covers the persisted request-to-plan flow with mocked providers. These checks do not establish live-model answer quality or hosted deployment behavior. No paid AI calls were made for this follow-up.

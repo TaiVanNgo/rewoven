@@ -8,14 +8,14 @@ Northbank needs purchasing across branches. No previous project solves everythin
 
 ## Prepare before the five-minute presentation
 
-Follow docs/features/purchasing-demo.md in the repository. Seed the nine projects, index all 27 source documents, and use a fresh demo session. Choose Use demo library. Do not attach individual cases: discovering useful cases across the nine-project collection is part of the story. Keep this presenter folder out of uploads. A hosted installation must be seeded and indexed separately from local development.
+Follow docs/features/purchasing-demo.md in the repository. Seed the nine projects, index all 27 source documents, and use a fresh demo session. The default Case library already includes the nine projects. Do not attach individual cases: discovering useful cases across the nine-project collection is part of the story. Keep this presenter folder out of uploads. A hosted installation must be seeded and indexed separately from local development.
 
 If demonstrating manual case creation, upload the three documents from ONE Historical cases folder as ONE case. Repeat for other projects only in a separate rehearsal session. Never upload the ZIP directly, the answer key, or client input to Case library. The built-in cases already contain all 27 originals.
 
 ## Five-minute narrative (processing time varies)
 
 1. First 30 seconds: explain the company and Northbank's problem. Point out that the history includes delivered work, a failed pilot, and an unimplemented proposal.
-2. Next 60 seconds: choose Use demo library and upload client-brief.pdf plus constraints.md from Client input into chat. Send: Which previous projects help with this request? Explain what we can reuse, what changes, and what is still unknown.
+2. Next 60 seconds: upload client-brief.pdf plus constraints.md from Client input into chat. Send: Which previous projects help with this request? Explain what we can reuse, what changes, and what is still unknown.
 3. Next 60 seconds: ask: What can we learn from our past projects about preventing duplicate submissions when a connection drops after Send? Then inspect sources for the purchasing revision rule and reimbursement retry defect. A broad first answer may select only some useful projects; a targeted follow-up demonstrates further discovery. Show the PDF page and original text. Explain why a different project's lesson can transfer without making the two products identical.
 4. Next 45 seconds: ask: Why isn't the marketing approval workflow enough, and was the purchasing expansion actually implemented? Expect qualified comparison with original sources, not a refusal to mention partial matches.
 5. Remaining time: choose Draft reuse plan, review Northbank's requirements, generate, and inspect the draft. Edit one next step to add a meeting with the finance-assignment owner, Save, reload if time permits, and Export Markdown.
