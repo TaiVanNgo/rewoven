@@ -83,6 +83,6 @@ All ten inputs were read with the app's actual `extractSource` function. File ty
 
 These checks confirm readable inputs and valid source excerpts. No live model calls were made while generating this pack. The expectations are a human review rubric, not an assertion that the model has already passed these scenarios. Prompts can influence model behavior without guaranteeing semantic accuracy.
 
-## Prepared library catalog
+## Archived test pack
 
-The application now uses documents 01–09 as nine curated, read-only fictional project cases. Document 10 remains a non-project test control. Their original bytes are unchanged. `bun run db:seed` reads only the nine source files and the separately curated manifest; it does not upload this README or the answer key, and makes no model calls. See [the overview guide](../../../docs/features/case-overviews.md).
+These documents remain extraction/robustness fixtures. They are no longer the active sample catalog. The [purchasing demo](../../../docs/features/purchasing-demo.md) replaces public samples with nine related Threadline Delivery projects and preserves retired citation targets. Do not upload the old answer key or this README as evidence.

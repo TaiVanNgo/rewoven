@@ -21,23 +21,28 @@ export const LEGACY_TITLES = [
   "Customer Import Tool",
   "Release Checklist",
 ];
-export function seedId(value: string, namespace = "rewoven-sample-v2") {
+export function seedId(value: string, namespace = "rewoven-threadline-v1") {
   const hash = createHash("sha256")
     .update(`${namespace}:${value}`)
     .digest("hex");
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
-export const legacySampleIds = LEGACY_TITLES.map((title) =>
-  seedId(title, "rewoven-seed-v1"),
-);
+export const legacySampleIds = [
+  ...LEGACY_TITLES.map((title) => seedId(title, "rewoven-seed-v1")),
+  ...Array.from({ length: 9 }, (_, i) =>
+    seedId(String(i + 1).padStart(2, "0"), "rewoven-sample-v2"),
+  ),
+];
 type Fixture = {
   key: string;
   title: string;
-  file: string;
-  sha256: string;
+  sources: { key: string; file: string; sha256: string }[];
   sections: Record<
     OverviewSection,
-    { text: string; evidence: { page: number | null; quote: string }[] }[]
+    {
+      text: string;
+      evidence: { source: string; page: number | null; quote: string }[];
+    }[]
   >;
 };
 export async function loadSampleCatalog() {
@@ -50,29 +55,56 @@ export async function loadSampleCatalog() {
   if (
     fixtures.length !== 9 ||
     new Set(fixtures.map((f) => f.key)).size !== 9 ||
-    fixtures.some((f) => f.key === "10")
+    fixtures.some(
+      (f) =>
+        f.sources.length !== 3 ||
+        new Set(f.sources.map((s) => s.key)).size !== 3,
+    )
   )
     throw new Error(
       "The public sample catalog must contain nine unique project cases.",
     );
   return Promise.all(
     fixtures.map(async (fixture) => {
-      const bytes = new Uint8Array(
-        await readFile(new URL(`../${fixture.file}`, import.meta.url)),
+      const id = seedId(fixture.key);
+      const sources = await Promise.all(
+        fixture.sources.map(async (source) => {
+          const bytes = new Uint8Array(
+            await readFile(new URL(`../${source.file}`, import.meta.url)),
+          );
+          if (
+            createHash("sha256").update(bytes).digest("hex") !== source.sha256
+          )
+            throw new Error(
+              `Original checksum changed for sample ${fixture.key}/${source.key}. Review the source version first.`,
+            );
+          const format: SourceFormat = source.file.endsWith(".pdf")
+            ? "pdf"
+            : "md";
+          const extracted = await extractSource(bytes, format);
+          if (extracted.warnings.length || !extracted.text.trim())
+            throw new Error(
+              `Sample ${fixture.key}/${source.key} has incomplete extraction.`,
+            );
+          const sourceId = seedId(
+            `${fixture.key}/${source.key}/${source.sha256}`,
+          );
+          const filename = source.file.split("/").at(-1) ?? "source";
+          return {
+            ...source,
+            sourceId,
+            filename,
+            bytes,
+            format,
+            extracted,
+            path: `seeds/${id}/${sourceId}/${filename}`,
+          };
+        }),
       );
-      if (createHash("sha256").update(bytes).digest("hex") !== fixture.sha256)
-        throw new Error(
-          `Original checksum changed for sample ${fixture.key}. Review the source version first.`,
-        );
-      const format = fixture.file.endsWith(".pdf") ? "pdf" : "md";
-      const extracted = await extractSource(bytes, format);
-      const id = seedId(fixture.key),
-        sourceId = seedId(`${fixture.key}/${fixture.sha256}`);
-      const filename = fixture.file.split("/").at(-1) ?? "source";
       const overview = emptyOverview();
       overview.provenance = "curated";
       overview.classification = "project";
-      overview.sources = [{ id: sourceId, version: 1 }];
+      overview.sources = sources.map((s) => ({ id: s.sourceId, version: 1 }));
       for (const key of OVERVIEW_KEYS) {
         if (fixture.sections[key].length > 4)
           throw new Error("Sample section exceeds the finding limit.");
@@ -80,39 +112,42 @@ export async function loadSampleCatalog() {
           if (!finding.text.trim() || finding.text.length > 600)
             throw new Error("Invalid curated finding.");
           // The same exact-quote validator used by AI reading checks every fixture.
-          const validated = validateSuggestions(
-            {
-              title: { value: "", evidence: [] },
-              context: { value: finding.text, evidence: finding.evidence },
-              outcome: { value: "", evidence: [] },
-              lessons: { value: "", evidence: [] },
-            },
-            extracted.pages,
-            format === "pdf",
-          );
+          const evidence = finding.evidence.flatMap((reference) => {
+            const source = sources.find((s) => s.key === reference.source);
+            if (!source)
+              throw new Error("Curated finding references an unknown source.");
+            const validated = validateSuggestions(
+              {
+                title: { value: "", evidence: [] },
+                context: { value: finding.text, evidence: [reference] },
+                outcome: { value: "", evidence: [] },
+                lessons: { value: "", evidence: [] },
+              },
+              source.extracted.pages,
+              source.format === "pdf",
+            );
+            return validated.context.evidence.map((e) => ({
+              ...e,
+              sourceId: source.sourceId,
+              sourceTitle: source.filename,
+              sourceVersion: 1,
+            }));
+          });
+          if (!evidence.length)
+            throw new Error("A curated finding needs original evidence.");
           return {
             id: `${key}-${index + 1}`,
             text: finding.text,
             origin: "source" as const,
-            evidence: validated.context.evidence.map((e) => ({
-              ...e,
-              sourceId,
-              sourceTitle: filename,
-              sourceVersion: 1,
-            })),
+            evidence,
           };
         });
       }
       return {
         fixture,
         id,
-        sourceId,
-        filename,
-        bytes,
-        format: format as SourceFormat,
-        extracted,
+        sources,
         overview,
-        path: `seeds/${id}/${sourceId}/${filename}`,
       };
     }),
   );

@@ -6,7 +6,7 @@ async function verifyCitationViewer(page) {
   await page.goto(`${base}/case-library`);
   await page
     .getByRole("link", {
-      name: /Fictional sample Ready Harbor Route Planning Pilot/,
+      name: /Fictional sample Ready Office Purchasing Pilot/,
     })
     .click();
   const marker = page.getByRole("link", { name: /^Source 1:/ }).first();
@@ -15,7 +15,7 @@ async function verifyCitationViewer(page) {
   const { case: record } = await (
     await page.request.get(`${base}/api/cases/${caseId}`)
   ).json();
-  const finding = record.overview.sections.summary[0].evidence[0];
+  const finding = record.overview.sections.results[0].evidence[0];
   const source = record.sources.find((item) => item.id === finding.sourceId);
   const location = new URLSearchParams({
     version: String(source.version),
@@ -98,7 +98,7 @@ async function verifyCitationViewer(page) {
             {
               kind: "fact",
               heading: "",
-              text: "The pilot measured route preparation in two depots.",
+              text: "The fictional pilot delivered one-office manager review.",
               evidence: ["e1"],
             },
           ],
@@ -163,32 +163,36 @@ async function verifyCitationViewer(page) {
   }
 
   await chatCitation.click();
-  await staysRendered("Open Wren citation", 9);
+  await staysRendered("Open Wren citation", 1);
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Next page", exact: true }).click();
-  await staysRendered("Change page", 10);
+  await staysRendered("Change page", 2);
   await dialog.getByRole("button", { name: "Zoom in", exact: true }).click();
-  await staysRendered("Zoom", 10);
+  await staysRendered("Zoom", 2);
   await dialog
     .getByRole("button", { name: "Fit to width", exact: true })
     .click();
-  await staysRendered("Fit to width", 10);
+  await staysRendered("Fit to width", 2);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await staysRendered("Mobile resize", 10);
+  await staysRendered("Mobile resize", 2);
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "hidden" });
   await page.reload();
   await chatCitation.click();
-  await staysRendered("Reload and reopen Wren citation", 9);
+  await staysRendered("Reload and reopen Wren citation", 1);
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "hidden" });
 
   await page.goto(`${base}/case-library/${caseId}`);
-  await marker.click();
+  await page
+    .locator("#results")
+    .getByRole("link", { name: /^Source / })
+    .first()
+    .click();
   await page.waitForURL((url) => url.searchParams.has("finding"));
   await page.reload();
-  await staysRendered("Reload case with citation open", 9);
+  await staysRendered("Reload case with citation open", 1);
 
   await page.getByRole("tab", { name: "Extracted text", exact: true }).click();
   await page.getByRole("dialog").locator("mark").waitFor();

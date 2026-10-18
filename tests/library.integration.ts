@@ -166,10 +166,10 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
       9,
     );
     const seed = seeds.find(
-      (c: { title: string }) => c.title === "Harbor Route Planning Pilot",
+      (c: { title: string }) => c.title === "Office Purchasing Pilot",
     );
     assert.ok(seed);
-    for (const query of ["Har", "hArBoR route", "  Harbor  "]) {
+    for (const query of ["Off", "oFfIcE purch", "  Office  "]) {
       const response = await api(
         a,
         `/api/cases?q=${encodeURIComponent(query)}`,
@@ -181,7 +181,7 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
         `Title search should match ${JSON.stringify(query)}`,
       );
     }
-    for (const query of ["Har%", "Har_or"]) {
+    for (const query of ["Off%", "Off_ce"]) {
       const response = await api(
         a,
         `/api/cases?q=${encodeURIComponent(query)}`,
@@ -194,14 +194,14 @@ test("case library persists, isolates sessions, preserves evidence, and recovers
     );
     const seedDetail = (await (await api(a, `/api/cases/${seed.id}`)).json())
       .case;
-    assert.ok(seedDetail.sources.length === 1);
+    assert.ok(seedDetail.sources.length === 3);
     const pdf = seedDetail.sources.find(
       (s: { format: string }) => s.format === "pdf",
     );
     assert.equal(pdf.pages.length, 0);
     assert.match(
-      (await (await api(a, `/api/sources/${pdf.id}/text?page=3`)).json()).text,
-      /Two depots and six dispatchers/,
+      (await (await api(a, `/api/sources/${pdf.id}/text?page=1`)).json()).text,
+      /one-office pilot was accepted/,
     );
     const original = await api(a, `/api/sources/${pdf.id}/original`);
     assert.equal(original.status, 200);

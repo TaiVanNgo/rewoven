@@ -18,40 +18,40 @@ if (session.error || !session.data)
   throw new Error("Could not create evaluation session.");
 const examples = [
   [
-    "Import delivery manifests, approve run sheets and keep stop amendment history for dispatchers.",
-    "Harbor Route Planning Pilot",
+    "Purchase requests with manager approval bound to a specific revision and a stale-screen conflict.",
+    "Office Purchasing Pilot",
   ],
   [
-    "Review attendance workbook aliases and versioned payroll category mappings before generating a vendor-format draft.",
-    "Cedar Payroll Integration Design Review",
+    "Lost-response retries must return one expense claim using a stable operation key and a database unique constraint.",
+    "Expense Reimbursement Portal",
   ],
   [
-    "Migrate legacy identities with independent reconciliation and preserve historical author identifiers.",
-    "Prism Identity Cutover - Conflicting Closure Records",
+    "Collect supplier documents, complete versioned checklists and distinguish directory acceptance from spending authority.",
+    "Supplier Onboarding Workspace",
   ],
   [
-    "Buffer pump telemetry offline, deduplicate repeated sequence uploads and show coverage gaps.",
-    "Watershed Pump Telemetry - Offline Pilot Journal",
+    "Invoice matches used ambiguous supplier names and reused references; the pilot stopped and staff used manual fallback.",
+    "Invoice Matching Pilot",
   ],
   [
-    "Reconcile subscription event invoice drafts, block posting on mismatches and retain a billing rollback path.",
-    "Redwood Subscription Billing Rollback Report",
+    "Reject cross-branch direct links and forged branch identifiers while allowing an explicitly assigned central reviewer.",
+    "Branch Inventory Request Portal",
   ],
   [
-    "Prepare appointment reminders, recheck opt-out preferences and reconcile delivery receipts.",
-    "Compass Appointment Reminder Pilot",
+    "Export authorized event history with actor, timestamp, revision, cutoff and safe CSV cells.",
+    "Audit Export Dashboard",
   ],
   [
-    "Migrate searchable catalog attachments with checksums and human review while treating imported notes as untrusted content.",
-    "Lexicon Archive Migration and Untrusted Attachment",
+    "Temporary manager delegation for leave requests must expire and preserve the actual acting reviewer.",
+    "Staff Leave Approval Tool",
   ],
   [
-    "Track donated pantry food with stock movements, explicit units, correction reasons and a paper fallback.",
-    "Vườn Nhỏ - Nhật ký thiết kế kho thực phẩm cộng đồng",
+    "Editable marketing drafts, comments and publication scheduling use lightweight editorial review markers.",
+    "Marketing Content Approval Tool",
   ],
   [
-    "Reserve course seats under concurrent requests with transaction-enforced lease expiry and idempotent confirmation.",
-    "Summit Course Registration Engineering Journal",
+    "Unimplemented purchasing expansion proposed finance routing but had unresolved policy questions and no executed acceptance tests.",
+    "Purchasing Expansion Proposal",
   ],
   [
     "Calculate quantum gate error correction for a superconducting qubit array.",

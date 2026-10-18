@@ -1,90 +1,93 @@
 [
   {
-    "key": "01",
-    "title": "Harbor Route Planning Pilot",
-    "file": "output/pdf/rewoven-test-pack/pdf/01-harbor-route-planning.pdf",
-    "sha256": "6114daf496ac583d3acfe1a7e6548d5489e1d14304e4e5b964a474d83e691bd0",
+    "key": "01-office-purchasing",
+    "title": "Office Purchasing Pilot",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/01-office-purchasing/project-brief.md",
+        "sha256": "3eec2a383aeeda9f876b95510832603085ea7556759fd597d59db727a0833593"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/01-office-purchasing/implementation-notes.md",
+        "sha256": "e958627aae5e9d2eb9a305895d2c3630b2b0935da72bc9a76ce7013267d6b90c"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/01-office-purchasing/delivery-review.pdf",
+        "sha256": "6980e7b7ba82074948d7c7263cb25f56aa05a4248caf4490a3651a879d9fa009"
+      }
+    ],
     "sections": {
       "summary": [
         {
-          "text": "A two-depot pilot reduced route preparation time; the evidence is limited to ten business days.",
+          "text": "Threadline Delivery built a single-manager purchasing pilot for one office. Staff created purchase requests and managers approved a specific request revision.",
           "evidence": [
             {
-              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
-              "page": 9
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built a single-manager purchasing pilot for one office. Staff created purchase requests and managers approved a specific request revision."
             }
           ]
         }
       ],
       "problem": [
         {
-          "text": "Dispatchers rebuilt the same delivery routes in spreadsheets each morning, while depot supervisors could not distinguish a confirmed stop from a late customer amendment.",
+          "text": "Office staff previously emailed item lists to their manager. When a quantity changed, an old approval could remain attached to an outdated list. The client needed one place to see the requested items, the current total, and the revision that a manager had actually approved. The pilot covered office supplies only; it did not place orders or move money.",
           "evidence": [
             {
-              "quote": "Dispatchers rebuilt the same delivery routes in spreadsheets each morning, while depot supervisors could not distinguish a confirmed stop from a late customer amendment.",
-              "page": 1
+              "source": "brief",
+              "page": null,
+              "quote": "Office staff previously emailed item lists to their manager. When a quantity changed, an old approval could remain attached to an outdated list. The client needed one place to see the requested items, the current total, and the revision that a manager had actually approved. The pilot covered office supplies only; it did not place orders or move money."
             }
           ]
         }
       ],
       "approach": [
         {
-          "text": "A browser application calls an API backed by PostgreSQL. A background worker validates CSV manifests and prepares candidate groups. Redis holds short-lived job leases; an object bucket retains the accepted input file. Drivers receive an exported run sheet rather than a new mobile application.",
+          "text": "Approval was bound to a request revision rather than a mutable request row. A transaction inserted the decision and changed state only when the submitted revision still matched the manager's screen. A stale manager screen received a conflict and had to reload. The design deliberately kept rejected and superseded revisions rather than overwriting their item lists.",
           "evidence": [
             {
-              "quote": "A browser application calls an API backed by PostgreSQL. A background worker validates CSV manifests and prepares candidate groups. Redis holds short-lived job leases; an object bucket retains the accepted input file. Drivers receive an exported run sheet rather than a new mobile application.",
-              "page": 4
+              "source": "notes",
+              "page": null,
+              "quote": "Approval was bound to a request revision rather than a mutable request row. A transaction inserted the decision and changed state only when the submitted revision still matched the manager's screen. A stale manager screen received a conflict and had to reload. The design deliberately kept rejected and superseded revisions rather than overwriting their item lists."
             }
           ]
         }
       ],
       "results": [
         {
-          "text": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
+          "text": "The one-office pilot was accepted for request submission, single-manager review, revision checks, and inspection of request events. No finance approval stage was delivered.",
           "evidence": [
             {
-              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
-              "page": 9
+              "source": "review",
+              "page": 1,
+              "quote": "The one-office pilot was accepted for request submission, single-manager review, revision checks, and inspection of request events. No finance approval stage was delivered."
             }
           ]
         }
       ],
       "lessons": [
         {
-          "text": "Bind approval to a specific manifest revision.",
+          "text": "An approval must identify the exact request revision it authorizes. A later edit requires a new decision; preserving an old decision is not permission to reuse it.",
           "evidence": [
             {
-              "quote": "Bind approval to a specific manifest revision.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Keep the manual export path available during worker incidents.",
-          "evidence": [
-            {
-              "quote": "Keep the manual export path available during worker incidents.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Measure preparation time separately from delivery performance.",
-          "evidence": [
-            {
-              "quote": "Measure preparation time separately from delivery performance.",
-              "page": 10
+              "source": "review",
+              "page": 2,
+              "quote": "An approval must identify the exact request revision it authorizes. A later edit requires a new decision; preserving an old decision is not permission to reuse it."
             }
           ]
         }
       ],
       "gaps": [
         {
-          "text": "These pilot observations do not establish company-wide results.",
+          "text": "Approval-time savings, multi-branch behavior, and finance routing were not measured or implemented in this pilot. The client accepted a narrow workflow, not a general purchasing platform.",
           "evidence": [
             {
-              "quote": "Across ten observed business days, median route preparation time fell from 46 minutes to 29 minutes for the two pilot depots. Seventy-six of 80 sampled run sheets reconciled without a manual correction; the other four required address amendments. These are pilot observations, not company-wide results.",
-              "page": 9
+              "source": "review",
+              "page": 2,
+              "quote": "Approval-time savings, multi-branch behavior, and finance routing were not measured or implemented in this pilot. The client accepted a narrow workflow, not a general purchasing platform."
             }
           ]
         }
@@ -92,40 +95,723 @@
     }
   },
   {
-    "key": "02",
-    "title": "Cedar Payroll Integration Design Review",
-    "file": "output/pdf/rewoven-test-pack/pdf/02-cedar-payroll-design.pdf",
-    "sha256": "3ab6c5631e80e76bb47f946ea404ad8f213de534b30a8d5fca2e19a4f3407bce",
+    "key": "02-expense-reimbursement",
+    "title": "Expense Reimbursement Portal",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/02-expense-reimbursement/project-brief.md",
+        "sha256": "10bd09dbc7ad270bc11f14022ab2d71de176e2207bdb7f73907dc0acfa5129d0"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/02-expense-reimbursement/implementation-notes.md",
+        "sha256": "6f622904c899b8d12725ed4c3e38150d7382b21d3286380d9e998edffb72d9e7"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/02-expense-reimbursement/delivery-review.pdf",
+        "sha256": "b34f334f56cd5de5a72b5a34ce3c7cdc761bdc166acad41a1cd4f4e09071cafe"
+      }
+    ],
     "sections": {
       "summary": [
         {
-          "text": "This payroll integration remains a proposal. No implementation or measured result is recorded.",
+          "text": "Threadline Delivery built an expense-claim portal. Retry testing exposed duplicate claim creation, and a stable operation key plus a database constraint prevented the same operation from creating another claim.",
           "evidence": [
             {
-              "quote": "No implementation, deployment, payroll run, time-saving measurement, payment validation, or user acceptance result is recorded. The proposal targets reducing preparation effort by 40 percent, but that number is a planning hypothesis and has not been measured.",
-              "page": 9
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built an expense-claim portal. Retry testing exposed duplicate claim creation, and a stable operation key plus a database constraint prevented the same operation from creating another claim."
             }
           ]
         }
       ],
       "problem": [
         {
-          "text": "Local workshop administrators emailed different attendance spreadsheets to payroll, leaving analysts to resolve employee codes and overtime categories by hand before preparing a batch.",
+          "text": "Consultants submitted receipt details from mobile browsers. A slow response made it unclear whether the server had received a claim, so users pressed Send again or retried after reconnecting. An early prototype treated each HTTP request as a new claim. The business needed reliable recording of a claim before any separate human reimbursement process could begin.",
           "evidence": [
             {
-              "quote": "Local workshop administrators emailed different attendance spreadsheets to payroll, leaving analysts to resolve employee codes and overtime categories by hand before preparing a batch.",
-              "page": 1
+              "source": "brief",
+              "page": null,
+              "quote": "Consultants submitted receipt details from mobile browsers. A slow response made it unclear whether the server had received a claim, so users pressed Send again or retried after reconnecting. An early prototype treated each HTTP request as a new claim. The business needed reliable recording of a claim before any separate human reimbursement process could begin."
             }
           ]
         }
       ],
       "approach": [
         {
-          "text": "The proposed service uses a small web form, an API, and PostgreSQL mapping tables. A queue would handle workbook validation. The design calls for a private bucket with a short retention period and a vendor-format exporter; no banking integration is included.",
+          "text": "The stable operation key was scoped to the submitting employee. A unique database constraint on employee_id and operation_key serialized duplicate creation attempts. The server stored a normalized payload fingerprint with the claim. Reusing a key with a different payload returned a conflict instead of silently attaching changed receipt details to the first claim.",
           "evidence": [
             {
-              "quote": "The proposed service uses a small web form, an API, and PostgreSQL mapping tables. A queue would handle workbook validation. The design calls for a private bucket with a short retention period and a vendor-format exporter; no banking integration is included.",
-              "page": 4
+              "source": "notes",
+              "page": null,
+              "quote": "The stable operation key was scoped to the submitting employee. A unique database constraint on employee_id and operation_key serialized duplicate creation attempts. The server stored a normalized payload fingerprint with the claim. Reusing a key with a different payload returned a conflict instead of silently attaching changed receipt details to the first claim."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "After the repair, controlled lost-response and concurrent-retry checks produced one claim record per matching operation. A changed payload with the same operation key was rejected.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "After the repair, controlled lost-response and concurrent-retry checks produced one claim record per matching operation. A changed payload with the same operation key was rejected."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Keep one stable operation key across retries and enforce uniqueness in the database. A disabled button alone does not protect against duplicate server writes.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Keep one stable operation key across retries and enforce uniqueness in the database. A disabled button alone does not protect against duplicate server writes."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Production reliability, offline queuing, intentional duplicate-receipt detection, and a long-term operation-key retention policy were not established.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Production reliability, offline queuing, intentional duplicate-receipt detection, and a long-term operation-key retention policy were not established."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "03-supplier-onboarding",
+    "title": "Supplier Onboarding Workspace",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/03-supplier-onboarding/project-brief.md",
+        "sha256": "112d08be2285b1b800c1f4a40040b99272c40307b002abf7ba04deca527a0e40"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/03-supplier-onboarding/implementation-notes.md",
+        "sha256": "9f0844895f755db0d80bfc8f8b9adf63ceafeed6bd7aa64ef2905b987c6e7343"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/03-supplier-onboarding/delivery-review.pdf",
+        "sha256": "d411f62e4fa2cc271e650570bd99e23f9d3d120519572f96dd9b72b448799f85"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery built a workspace for checking supplier documents. It distinguished an incomplete checklist, a review in progress, and a supplier accepted for the client's directory.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built a workspace for checking supplier documents. It distinguished an incomplete checklist, a review in progress, and a supplier accepted for the client's directory."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Purchasing staff collected supplier contact details and business documents in email threads. A filled form was sometimes mistaken for a completed review. The client needed a visible checklist with the identity of the person who checked each document. The software was intended to organize the client's own process, not certify a supplier or perform independent due diligence.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Purchasing staff collected supplier contact details and business documents in email threads. A filled form was sometimes mistaken for a completed review. The client needed a visible checklist with the identity of the person who checked each document. The software was intended to organize the client's own process, not certify a supplier or perform independent due diligence."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "Document presence and supplier acceptance were stored as separate states. A required_document row described the item and checklist version, while document_check recorded reviewer, timestamp, source version, and result. The accept transition required completed checks for the active checklist. Upload success alone never set the supplier to accepted.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "Document presence and supplier acceptance were stored as separate states. A required_document row described the item and checklist version, while document_check recorded reviewer, timestamp, source version, and result. The accept transition required completed checks for the active checklist. Upload success alone never set the supplier to accepted."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The delivered workflow blocked directory acceptance while required document checks were incomplete and reopened the affected check after document replacement.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The delivered workflow blocked directory acceptance while required document checks were incomplete and reopened the affected check after document replacement."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Separate document collection, human review, and business authorization. A complete checklist is evidence that a process ran, not proof that every downstream action is permitted.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Separate document collection, human review, and business authorization. A complete checklist is evidence that a process ran, not proof that every downstream action is permitted."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Bank validation, supplier risk assessment, and purchase authorization were outside the delivered scope. No reduction in onboarding effort was measured.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Bank validation, supplier risk assessment, and purchase authorization were outside the delivered scope. No reduction in onboarding effort was measured."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "04-invoice-matching",
+    "title": "Invoice Matching Pilot",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/04-invoice-matching/project-brief.md",
+        "sha256": "a0a22cbefc3877e069f44fdb980e04a9fd8e583dd50dd4d0269cdb1474e6f595"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/04-invoice-matching/implementation-notes.md",
+        "sha256": "c95b80970e254e496fa49f02920c33a74b97edd1ddd54758ad151ee0d7d2ba5a"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/04-invoice-matching/delivery-review.pdf",
+        "sha256": "b2737e2cea8a953f50b03ee09d95040ea28ec5da85fc837c7ba2c14e881337e4"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery piloted invoice matching against purchase records. Unresolved matching errors caused the pilot to be stopped, and staff completed the cycle with the existing manual process.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery piloted invoice matching against purchase records. Unresolved matching errors caused the pilot to be stopped, and staff completed the cycle with the existing manual process."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Accounts staff compared supplier invoices with purchase references and received-item records. A prototype tried to match on supplier display name and a normalized purchase reference. Several references were missing or reused, and similar supplier names made an apparently convenient matching rule unsafe. The client wanted less manual reconciliation, but that benefit remained a goal rather than an observed result.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Accounts staff compared supplier invoices with purchase references and received-item records. A prototype tried to match on supplier display name and a normalized purchase reference. Several references were missing or reused, and similar supplier names made an apparently convenient matching rule unsafe. The client wanted less manual reconciliation, but that benefit remained a goal rather than an observed result."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "After reviewing the defects, the team required stable supplier identifiers, explicit purchase revisions, and a reason for every accepted exception. A batch could not advance while unresolved reconciliation items remained. These were corrective design decisions for a possible future iteration; they were not implemented and validated as a successful replacement pilot during this project.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "After reviewing the defects, the team required stable supplier identifiers, explicit purchase revisions, and a reason for every accepted exception. A batch could not advance while unresolved reconciliation items remained. These were corrective design decisions for a possible future iteration; they were not implemented and validated as a successful replacement pilot during this project."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The invoice-matching pilot was stopped because unresolved matching errors remained. Staff completed the cycle manually; no automated posting was performed.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The invoice-matching pilot was stopped because unresolved matching errors remained. Staff completed the cycle manually; no automated posting was performed."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Do not treat a populated match field or a completed manual fallback as proof that automation succeeded. Preserve unresolved exceptions and block dependent actions until the reconciliation rule is agreed.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Do not treat a populated match field or a completed manual fallback as proof that automation succeeded. Preserve unresolved exceptions and block dependent actions until the reconciliation rule is agreed."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "A repaired matching service, measured time savings, accepted tolerance rules, and production matching accuracy were not established.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "A repaired matching service, measured time savings, accepted tolerance rules, and production matching accuracy were not established."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "05-branch-inventory",
+    "title": "Branch Inventory Request Portal",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/05-branch-inventory/project-brief.md",
+        "sha256": "68d7c88ab049687f65a99b50008ec37c610b78117a7b567519e4dc526c87151f"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/05-branch-inventory/implementation-notes.md",
+        "sha256": "4a29c213cd56cad2413258f857af98ce35009ddb718b00331f85ebbeebbab318"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/05-branch-inventory/delivery-review.pdf",
+        "sha256": "bd4d2de4074219b1a33de41071038e1711493f02addf7eb7dd4e1d5138421070"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery built a branch inventory request portal. Branch staff saw their own records, while explicitly assigned central reviewers could inspect requests across branches.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built a branch inventory request portal. Branch staff saw their own records, while explicitly assigned central reviewers could inspect requests across branches."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Branch staff requested stock transfers using a shared spreadsheet. Filters were convenient for navigation but did not prevent someone from opening another branch's record. The client wanted clear branch ownership and a central review role. The project concerned internal stock-transfer requests, not purchasing new stock from suppliers or recording financial approval.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Branch staff requested stock transfers using a shared spreadsheet. Filters were convenient for navigation but did not prevent someone from opening another branch's record. The client wanted clear branch ownership and a central review role. The project concerned internal stock-transfer requests, not purchasing new stock from suppliers or recording financial approval."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "Authorization was enforced in server-side record queries and writes, not only in the list screen. The server resolved branch membership from the signed-in employee and checked the target record's stored branch. A central review capability was separate from a branch requester's assignment. This prevented a user from changing a URL or request body to obtain a different branch's records.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "Authorization was enforced in server-side record queries and writes, not only in the list screen. The server resolved branch membership from the signed-in employee and checked the target record's stored branch. A central review capability was separate from a branch requester's assignment. This prevented a user from changing a URL or request body to obtain a different branch's records."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The two-branch acceptance checks rejected unauthorized cross-branch reads and writes while allowing an explicitly assigned central reviewer to inspect both branches.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The two-branch acceptance checks rejected unauthorized cross-branch reads and writes while allowing an explicitly assigned central reviewer to inspect both branches."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Check the actor's current assignment against the record's stored branch on every server read and write. A filtered list does not establish authorization.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Check the actor's current assignment against the record's stored branch on every server read and write. A filtered list does not establish authorization."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Automatic directory synchronization, staff-transfer policy, purchasing authority, and real stock movement were outside the pilot's evidence.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Automatic directory synchronization, staff-transfer policy, purchasing authority, and real stock movement were outside the pilot's evidence."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "06-audit-export",
+    "title": "Audit Export Dashboard",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/06-audit-export/project-brief.md",
+        "sha256": "3b5d67825775c6487c22faaa301d939f1a4d7fccdab4c1a0be0c46db0d0c7ab0"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/06-audit-export/implementation-notes.md",
+        "sha256": "930108ce446acf5c2f814752ad4f0ac2b56e16711958a49a8b39676066cebdd7"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/06-audit-export/delivery-review.pdf",
+        "sha256": "53dfb9ea476e0819e44dc39fc90ce1955c82e2947c5bda5072898c8329ac831b"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery built an event-history export for internal reviewers. Each exported event identified its actor, server timestamp, action, record revision, and export scope.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built an event-history export for internal reviewers. Each exported event identified its actor, server timestamp, action, record revision, and export scope."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Reviewers could see a request's final state but could not reliably explain how it reached that state. A spreadsheet download sometimes changed while a reviewer paged through it, making row counts difficult to reconcile. The client needed a bounded event-history export and a visible statement of the filters and time range used to generate it.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Reviewers could see a request's final state but could not reliably explain how it reached that state. A spreadsheet download sometimes changed while a reviewer paged through it, making row counts difficult to reconcile. The client needed a bounded event-history export and a visible statement of the filters and time range used to generate it."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "Application users could append new events through normal state transitions but could not edit or delete earlier events through the dashboard. Corrections were new events referencing the earlier record. The team deliberately used append-only at the application layer rather than claiming that this design alone established immutable infrastructure or formal compliance.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "Application users could append new events through normal state transitions but could not edit or delete earlier events through the dashboard. Corrections were new events referencing the earlier record. The team deliberately used append-only at the application layer rather than claiming that this design alone established immutable infrastructure or formal compliance."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The pilot export included the selected authorized events through its cutoff, with actor, timestamp, action, revision, and a recorded export scope.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The pilot export included the selected authorized events through its cutoff, with actor, timestamp, action, revision, and a recorded export scope."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Record event provenance and export boundaries. Preserve corrections as new events, and avoid describing an application event log as tamper-proof or compliant without separate evidence.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Record event provenance and export boundaries. Preserve corrections as new events, and avoid describing an application event log as tamper-proof or compliant without separate evidence."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Retention policy, legal compliance, privileged-administrator tamper resistance, and maximum export capacity were not established.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Retention policy, legal compliance, privileged-administrator tamper resistance, and maximum export capacity were not established."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "07-staff-leave",
+    "title": "Staff Leave Approval Tool",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/07-staff-leave/project-brief.md",
+        "sha256": "eba1d7e0549fcfbb415fc5291893b72661ba417d34a764d2e3b47107262d30d3"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/07-staff-leave/implementation-notes.md",
+        "sha256": "e574110e8230cdc3abf73758262010e7f111c3d19e6eff156b0ab3c6b1df78dd"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/07-staff-leave/delivery-review.pdf",
+        "sha256": "81cddf4663c1b87ed5d96a17060703100dbb681d6510c728e93695e499f1271d"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery built leave-request review with time-bounded manager delegation. It recorded the acting reviewer and the manager on whose behalf a decision was made.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built leave-request review with time-bounded manager delegation. It recorded the acting reviewer and the manager on whose behalf a decision was made."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Leave requests waited when a manager was unavailable. Staff needed a named temporary reviewer instead of sharing manager credentials or treating an email reply as permanent permission. The team needed a way to explain who acted and why that person had authority at the time of the decision. This was a staffing workflow, with no financial spending limits.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Leave requests waited when a manager was unavailable. Staff needed a named temporary reviewer instead of sharing manager credentials or treating an email reply as permanent permission. The team needed a way to explain who acted and why that person had authority at the time of the decision. This was a staffing workflow, with no financial spending limits."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "A delegation was an explicit record with principal manager, delegate, allowed action, start, and expiry. The server evaluated it when approving, rather than caching a permanent delegate flag in the browser. Approval history recorded the actual actor and the principal. A delegate could not create another delegation to an additional person.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "A delegation was an explicit record with principal manager, delegate, allowed action, start, and expiry. The server evaluated it when approving, rather than caching a permanent delegate flag in the browser. Approval history recorded the actual actor and the principal. A delegate could not create another delegation to an additional person."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The manager-delegation pilot accepted decisions within an active assignment, rejected expired authority, and retained the actual acting reviewer in history.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The manager-delegation pilot accepted decisions within an active assignment, rejected expired authority, and retained the actual acting reviewer in history."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "Represent delegated authority explicitly, evaluate it at decision time, and retain the actual actor. Do not infer spending authority from an unrelated managerial role.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Represent delegated authority explicitly, evaluate it at decision time, and retain the actual actor. Do not infer spending authority from an unrelated managerial role."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Financial authorization, purchasing delegation policy, directory synchronization, and staffing benefits were not established.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Financial authorization, purchasing delegation policy, directory synchronization, and staffing benefits were not established."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "08-marketing-content",
+    "title": "Marketing Content Approval Tool",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/08-marketing-content/project-brief.md",
+        "sha256": "62846433abd900f2bdee3f203b4288b512cfce8094b9aa581f7b6ad3d13b59b6"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/08-marketing-content/implementation-notes.md",
+        "sha256": "b4ba8f6840cfee6617ae6d80f3a9115aebfb22d77f2d8ce37307b5ef6d8db71e"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/08-marketing-content/delivery-review.pdf",
+        "sha256": "3e7d5ba40b26902aeed9e70984da2e2ab3745edc7ec07e249d7ca736a87bf006"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery built an editorial approval tool for marketing drafts. It supported comments, review notifications, and publication scheduling; it did not authorize purchases or financial commitments.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery built an editorial approval tool for marketing drafts. It supported comments, review notifications, and publication scheduling; it did not authorize purchases or financial commitments."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "Editors exchanged campaign drafts through email and lost track of which comments needed a response. The client wanted a visible review queue and a notification when a draft needed attention. Content could continue changing during editorial review. The business intentionally preferred flexible collaboration over treating every text edit as a new financial authorization decision.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Editors exchanged campaign drafts through email and lost track of which comments needed a response. The client wanted a visible review queue and a notification when a draft needed attention. Content could continue changing during editorial review. The business intentionally preferred flexible collaboration over treating every text edit as a new financial authorization decision."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "The client chose editable drafts and lightweight review markers. A notification linked to the current draft, and the editor checked final text before scheduling. The team explicitly declined a revision-locked sign-off because that was not the agreed editorial workflow. This choice was suitable for the stated pilot but was never validated for authorization of money or goods.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "The client chose editable drafts and lightweight review markers. A notification linked to the current draft, and the editor checked final text before scheduling. The team explicitly declined a revision-locked sign-off because that was not the agreed editorial workflow. This choice was suitable for the stated pilot but was never validated for authorization of money or goods."
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "text": "The editorial pilot delivered draft comments, review notifications, and scheduling status. It did not deliver revision-bound financial approval.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 1,
+              "quote": "The editorial pilot delivered draft comments, review notifications, and scheduling status. It did not deliver revision-bound financial approval."
+            }
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "text": "A familiar approval label does not establish equivalent business authority. Reuse notification and work-queue ideas only after checking the new workflow's decision and revision requirements.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "A familiar approval label does not establish equivalent business authority. Reuse notification and work-queue ideas only after checking the new workflow's decision and revision requirements."
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        {
+          "text": "Financial authorization, amount thresholds, immutable approved revisions, and purchasing outcomes were outside this project's scope.",
+          "evidence": [
+            {
+              "source": "review",
+              "page": 2,
+              "quote": "Financial authorization, amount thresholds, immutable approved revisions, and purchasing outcomes were outside this project's scope."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "key": "09-purchasing-expansion",
+    "title": "Purchasing Expansion Proposal",
+    "sources": [
+      {
+        "key": "brief",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/09-purchasing-expansion/project-brief.md",
+        "sha256": "4c0ae991e23a641a5b0d0f061bd9a16418b24293bc4e0e07bef7acfc2bb76091"
+      },
+      {
+        "key": "notes",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/09-purchasing-expansion/implementation-notes.md",
+        "sha256": "0d92240f59329f735bdb7b05e2e57fc2e3eec5de2e191aff1325b1667baf89d2"
+      },
+      {
+        "key": "review",
+        "file": "output/pdf/rewoven-purchase-demo/upload/Historical cases/09-purchasing-expansion/delivery-review.pdf",
+        "sha256": "915c3a3ad88a1785247d7ed868a2b15f8a9e006a441763351824587eec3317e8"
+      }
+    ],
+    "sections": {
+      "summary": [
+        {
+          "text": "Threadline Delivery proposed a purchasing expansion with amount-based finance review. The client paused the proposal before implementation, so it supplies design discussion but no delivered precedent or achieved outcome.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "Threadline Delivery proposed a purchasing expansion with amount-based finance review. The client paused the proposal before implementation, so it supplies design discussion but no delivered precedent or achieved outcome."
+            }
+          ]
+        }
+      ],
+      "problem": [
+        {
+          "text": "After its one-office purchasing pilot, Meadow considered expansion to additional offices. The proposal described manager approval followed by finance review above a configurable threshold. The client had not agreed the threshold, finance assignment ownership, or handling of edits between stages. These were questions for discovery, not rules already operating in a delivered system.",
+          "evidence": [
+            {
+              "source": "brief",
+              "page": null,
+              "quote": "After its one-office purchasing pilot, Meadow considered expansion to additional offices. The proposal described manager approval followed by finance review above a configurable threshold. The client had not agreed the threshold, finance assignment ownership, or handling of edits between stages. These were questions for discovery, not rules already operating in a delivered system."
+            }
+          ]
+        }
+      ],
+      "approach": [
+        {
+          "text": "The design discussion favored a versioned approval-policy definition rather than a hard-coded finance flag. A proposed decision record would identify policy version, stage, actor, and request revision. The note explains a possible approach and alternatives; none of the proposed tables or endpoints was implemented under this project. The original pilot's delivered behavior was not changed.",
+          "evidence": [
+            {
+              "source": "notes",
+              "page": null,
+              "quote": "The design discussion favored a versioned approval-policy definition rather than a hard-coded finance flag. A proposed decision record would identify policy version, stage, actor, and request revision. The note explains a possible approach and alternatives; none of the proposed tables or endpoints was implemented under this project. The original pilot's delivered behavior was not changed."
             }
           ]
         }
@@ -133,654 +819,24 @@
       "results": [],
       "lessons": [
         {
-          "text": "The design review explicitly recorded that display names are unsafe identity keys.",
+          "text": "Treat an unimplemented proposal as an option to investigate, not a proven solution. Separate an intended workflow, a preliminary estimate, and an executed acceptance result.",
           "evidence": [
             {
-              "quote": "The design review explicitly recorded that display names are unsafe identity keys.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Reviewers documented the need to distinguish draft generation from payment approval.",
-          "evidence": [
-            {
-              "quote": "Reviewers documented the need to distinguish draft generation from payment approval.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "The review notes caution that proposed efficiency targets are not achieved outcomes.",
-          "evidence": [
-            {
-              "quote": "The review notes caution that proposed efficiency targets are not achieved outcomes.",
-              "page": 10
+              "source": "review",
+              "page": 2,
+              "quote": "Treat an unimplemented proposal as an option to investigate, not a proven solution. Separate an intended workflow, a preliminary estimate, and an executed acceptance result."
             }
           ]
         }
       ],
       "gaps": [
         {
-          "text": "The 40 percent preparation-effort reduction is a planning hypothesis, not an achieved outcome.",
+          "text": "The finance threshold, policy ownership, implementation, test execution, delivery estimate, and business outcomes were not established for this proposal.",
           "evidence": [
             {
-              "quote": "No implementation, deployment, payroll run, time-saving measurement, payment validation, or user acceptance result is recorded. The proposal targets reducing preparation effort by 40 percent, but that number is a planning hypothesis and has not been measured.",
-              "page": 9
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "03",
-    "title": "Prism Identity Cutover - Conflicting Closure Records",
-    "file": "output/pdf/rewoven-test-pack/pdf/03-prism-identity-conflict.pdf",
-    "sha256": "b158885e72699683dc95f756e1dcab5d91918edd60c77190f4376eed2b085383",
-    "sections": {
-      "summary": [
-        {
-          "text": "The identity cutover has conflicting closure records, so its overall outcome remains unresolved.",
-          "evidence": [
-            {
-              "quote": "The release summary states: \"All 240 accounts migrated successfully and no sign-in failures remained.\" A separate reconciliation note for the same cutover states: \"Only 228 accounts were verified; 12 account owners still could not sign in.\" Both refer to the same workgroup and closure window. No later authoritative correction is present. The overall outcome is unresolved.",
-              "page": 9
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "Staff used separate accounts for the knowledge portal and the service desk. The migration aimed to consolidate sign-in while preserving historical author identifiers and existing access restrictions.",
-          "evidence": [
-            {
-              "quote": "Staff used separate accounts for the knowledge portal and the service desk. The migration aimed to consolidate sign-in while preserving historical author identifiers and existing access restrictions.",
-              "page": 1
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "A migration worker reads two legacy exports and writes reviewed mappings to PostgreSQL. The portal validates canonical identifiers through an existing identity gateway. Historical authorship remains keyed to the original account, with a translation table used for display only.",
-          "evidence": [
-            {
-              "quote": "A migration worker reads two legacy exports and writes reviewed mappings to PostgreSQL. The portal validates canonical identifiers through an existing identity gateway. Historical authorship remains keyed to the original account, with a translation table used for display only.",
-              "page": 4
-            }
-          ]
-        }
-      ],
-      "results": [],
-      "lessons": [
-        {
-          "text": "Use the same inclusion rules in migration and reconciliation reports.",
-          "evidence": [
-            {
-              "quote": "Use the same inclusion rules in migration and reconciliation reports.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Preserve the source and scope of every closure claim.",
-          "evidence": [
-            {
-              "quote": "Preserve the source and scope of every closure claim.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Do not declare completion while an independently observed exception remains unresolved.",
-          "evidence": [
-            {
-              "quote": "Do not declare completion while an independently observed exception remains unresolved.",
-              "page": 10
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "The release summary claims 240 successes; reconciliation verifies 228 with 12 sign-in failures. No authoritative resolution is present.",
-          "evidence": [
-            {
-              "quote": "The release summary states: \"All 240 accounts migrated successfully and no sign-in failures remained.\" A separate reconciliation note for the same cutover states: \"Only 228 accounts were verified; 12 account owners still could not sign in.\" Both refer to the same workgroup and closure window. No later authoritative correction is present. The overall outcome is unresolved.",
-              "page": 9
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "04",
-    "title": "Watershed Pump Telemetry - Offline Pilot Journal",
-    "file": "output/pdf/rewoven-test-pack/pdf/04-watershed-sensor-pilot.pdf",
-    "sha256": "09a25ff150181bc841bfdd566ff21887c84c917f7f5db517946ad284326cb30d",
-    "sections": {
-      "summary": [
-        {
-          "text": "Bench replay avoided duplicate readings, with one supervised delayed field upload. Wider reliability is unknown.",
-          "evidence": [
-            {
-              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
-              "page": 10
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "Field crews recorded pump readings on paper during unreliable cellular coverage. The pilot explored buffered readings and technician-visible gaps without using sensor data to control equipment.",
-          "evidence": [
-            {
-              "quote": "Field crews recorded pump readings on paper during unreliable cellular coverage. The pilot explored buffered readings and technician-visible gaps without using sensor data to control equipment.",
-              "page": 1
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "A small edge recorder buffers readings in local storage. An HTTP ingestion service validates sequence numbers and writes observations to PostgreSQL. A browser dashboard shows uploaded readings and explicit gaps. The prototype has no remote actuation path and no predictive maintenance model.",
-          "evidence": [
-            {
-              "quote": "A small edge recorder buffers readings in local storage. An HTTP ingestion service validates sequence numbers and writes observations to PostgreSQL. A browser dashboard shows uploaded readings and explicit gaps. The prototype has no remote actuation path and no predictive maintenance model.",
-              "page": 4
-            }
-          ]
-        }
-      ],
-      "results": [
-        {
-          "text": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
-          "evidence": [
-            {
-              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
-              "page": 10
-            }
-          ]
-        }
-      ],
-      "lessons": [
-        {
-          "text": "Record device time and server receipt time separately.",
-          "evidence": [
-            {
-              "quote": "Record device time and server receipt time separately.",
-              "page": 11
-            }
-          ]
-        },
-        {
-          "text": "A successful delayed upload does not erase a coverage gap.",
-          "evidence": [
-            {
-              "quote": "A successful delayed upload does not erase a coverage gap.",
-              "page": 11
-            }
-          ]
-        },
-        {
-          "text": "Keep a telemetry pilot isolated from equipment control permissions.",
-          "evidence": [
-            {
-              "quote": "Keep a telemetry pilot isolated from equipment control permissions.",
-              "page": 11
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "Battery life, long-term reliability, and safe operation at additional sites are not established.",
-          "evidence": [
-            {
-              "quote": "In a controlled bench replay, the service accepted 1,800 distinct readings and stored zero duplicate observations after three repeated upload attempts. A technician completed one supervised field upload after a 22-minute connectivity gap. These observations do not establish battery life, long-term reliability, or safe operation at additional sites.",
-              "page": 10
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "05",
-    "title": "Redwood Subscription Billing Rollback Report",
-    "file": "output/pdf/rewoven-test-pack/pdf/05-redwood-billing-rollback.pdf",
-    "sha256": "ab0794b933441c6c63c803f7d00c8eb061ea2148337c68b1ea442200d32dbbdd",
-    "sections": {
-      "summary": [
-        {
-          "text": "The billing rollout failed reconciliation and was rolled back before any new-service invoices were posted.",
-          "evidence": [
-            {
-              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
-              "page": 9
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "The team attempted to replace a monthly invoice spreadsheet with a service that grouped subscription changes, generated draft invoices, and exported approved totals to an existing accounting system.",
-          "evidence": [
-            {
-              "quote": "The team attempted to replace a monthly invoice spreadsheet with a service that grouped subscription changes, generated draft invoices, and exported approved totals to an existing accounting system.",
-              "page": 1
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "A web console reviews drafts produced by a queue worker. PostgreSQL stores subscription events, line items, and export receipts. A private object bucket retains baseline exports. The accounting system remains the authority for posted invoices and is accessed through a batch-file interface.",
-          "evidence": [
-            {
-              "quote": "A web console reviews drafts produced by a queue worker. PostgreSQL stores subscription events, line items, and export receipts. A private object bucket retains baseline exports. The accounting system remains the authority for posted invoices and is accessed through a batch-file interface.",
-              "page": 4
-            }
-          ]
-        }
-      ],
-      "results": [
-        {
-          "text": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
-          "evidence": [
-            {
-              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
-              "page": 9
-            }
-          ]
-        }
-      ],
-      "lessons": [
-        {
-          "text": "Effective dates need a deterministic sequence when multiple events share a date.",
-          "evidence": [
-            {
-              "quote": "Effective dates need a deterministic sequence when multiple events share a date.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Block posting on unresolved reconciliation differences.",
-          "evidence": [
-            {
-              "quote": "Block posting on unresolved reconciliation differences.",
-              "page": 10
-            }
-          ]
-        },
-        {
-          "text": "Report fallback completion separately from feature rollout success.",
-          "evidence": [
-            {
-              "quote": "Report fallback completion separately from feature rollout success.",
-              "page": 10
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "The fallback spreadsheet completed billing, but that does not establish success or measured time savings for the new service.",
-          "evidence": [
-            {
-              "quote": "The rollout was stopped and rolled back after 37 of 400 contract drafts failed reconciliation. Zero invoices from the new service were posted to accounting. The fallback spreadsheet completed the billing period, but its completion does not count as a successful rollout of the new service. No measured time saving is recorded.",
-              "page": 9
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "06",
-    "title": "Compass Appointment Reminder Pilot",
-    "file": "output/pdf/rewoven-test-pack/markdown/06-compass-appointment-pilot.md",
-    "sha256": "8efcb78bbdafa154391bd6fec74f2be304bfc2b783b085612f65972d6f85a56e",
-    "sections": {
-      "summary": [
-        {
-          "text": "A three-week office pilot reduced reminder reconciliation time. Attendance effects were not measured.",
-          "evidence": [
-            {
-              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "Booking staff manually called people with upcoming administrative appointments and could not reliably tell whether a reminder was sent, declined, or awaiting a callback. The experiment concerns office scheduling only and contains no clinical records or medical guidance.",
-          "evidence": [
-            {
-              "quote": "Booking staff manually called people with upcoming administrative appointments and could not reliably tell whether a reminder was sent, declined, or awaiting a callback. The experiment concerns office scheduling only and contains no clinical records or medical guidance.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "A browser queue is backed by a small API and PostgreSQL. A background scheduler prepares reminder tasks, while a gateway adapter records delivery receipts from a fictional messaging sandbox. Appointment scheduling remains in an existing office system; the reminder service does not amend it.",
-          "evidence": [
-            {
-              "quote": "A browser queue is backed by a small API and PostgreSQL. A background scheduler prepares reminder tasks, while a gateway adapter records delivery receipts from a fictional messaging sandbox. Appointment scheduling remains in an existing office system; the reminder service does not amend it.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "results": [
-        {
-          "text": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
-          "evidence": [
-            {
-              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "lessons": [
-        {
-          "text": "Recheck changing preferences immediately before dispatch.",
-          "evidence": [
-            {
-              "quote": "Recheck changing preferences immediately before dispatch.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Treat gateway receipts as delivery evidence, never attendance evidence.",
-          "evidence": [
-            {
-              "quote": "Treat gateway receipts as delivery evidence, never attendance evidence.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Use opaque references when the workflow does not need sensitive content.",
-          "evidence": [
-            {
-              "quote": "Use opaque references when the workflow does not need sensitive content.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "Appointment attendance and no-show changes were not measured.",
-          "evidence": [
-            {
-              "quote": "Across the three-week office pilot, clerks spent a median 18 minutes per day reconciling the reminder queue, compared with a 31-minute baseline from the prior ten working days. In a separate 120-task sandbox replay, all seven opted-out references were suppressed. Appointment attendance and no-show changes were not measured.",
-              "page": null
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "07",
-    "title": "Lexicon Archive Migration and Untrusted Attachment",
-    "file": "output/pdf/rewoven-test-pack/markdown/07-lexicon-archive-untrusted-source.md",
-    "sha256": "2ceb5e24d7abe92ddf9c4bfd6b8db36eec2f13d4b4833aabef0eac8ab280fbf5",
-    "sections": {
-      "summary": [
-        {
-          "text": "No production catalog migration or model-resistance evaluation is recorded; throughput remains a target.",
-          "evidence": [
-            {
-              "quote": "No production migration, completeness audit, model resistance evaluation, throughput benchmark, or end-user result is recorded. An internal target of indexing 50,000 records per day is a proposed acceptance target, not an achieved measurement.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "A reading-room catalog mixed bibliographic descriptions with attachment notes from external contributors. The migration needed searchable records while preserving the distinction between trusted catalog fields and untrusted imported text.",
-          "evidence": [
-            {
-              "quote": "A reading-room catalog mixed bibliographic descriptions with attachment notes from external contributors. The migration needed searchable records while preserving the distinction between trusted catalog fields and untrusted imported text.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "An ingestion worker reads text-based attachments from a private bucket and produces candidate catalog entries. PostgreSQL stores reviewed fields and source markers. A reviewer-facing browser shows the original text next to proposed changes. A downstream assistant can summarize records, but imported attachment text never receives tool permissions.",
-          "evidence": [
-            {
-              "quote": "An ingestion worker reads text-based attachments from a private bucket and produces candidate catalog entries. PostgreSQL stores reviewed fields and source markers. A reviewer-facing browser shows the original text next to proposed changes. A downstream assistant can summarize records, but imported attachment text never receives tool permissions.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "results": [],
-      "lessons": [
-        {
-          "text": "The review notes explicitly require source text to remain separate from assistant instructions.",
-          "evidence": [
-            {
-              "quote": "The review notes explicitly require source text to remain separate from assistant instructions.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Retaining checksums helps reviewers distinguish revised attachments.",
-          "evidence": [
-            {
-              "quote": "Retaining checksums helps reviewers distinguish revised attachments.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "A successful text parse is not a successful migration or a factual accuracy audit.",
-          "evidence": [
-            {
-              "quote": "A successful text parse is not a successful migration or a factual accuracy audit.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "The 50,000-record daily throughput goal is unmeasured. Production completion and assistant robustness remain unestablished.",
-          "evidence": [
-            {
-              "quote": "No production migration, completeness audit, model resistance evaluation, throughput benchmark, or end-user result is recorded. An internal target of indexing 50,000 records per day is a proposed acceptance target, not an achieved measurement.",
-              "page": null
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "08",
-    "title": "Vườn Nhỏ - Nhật ký thiết kế kho thực phẩm cộng đồng",
-    "file": "output/pdf/rewoven-test-pack/markdown/08-vuon-nho-kho-cong-dong.md",
-    "sha256": "8947be75587677c6a5e7dcc915f9ebfb45af1adb1215763a57c6184b98f972c8",
-    "sections": {
-      "summary": [
-        {
-          "text": "Bản thiết kế kho thực phẩm cộng đồng chưa được triển khai và chưa có kết quả đo thực tế.",
-          "evidence": [
-            {
-              "quote": "Chưa có triển khai thực tế, chưa có dữ liệu trước-sau và chưa đo tỷ lệ thất thoát. Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết để kiểm chứng. Không được viết rằng nhóm đã đạt mục tiêu này.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "Volunteers recorded donated food in separate notebooks. The planned shared register should make quantity corrections visible while keeping household names and personal circumstances out of the inventory record.",
-          "evidence": [
-            {
-              "quote": "Volunteers recorded donated food in separate notebooks. The planned shared register should make quantity corrections visible while keeping household names and personal circumstances out of the inventory record.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "The proposed register uses a simple browser form, a small API, and PostgreSQL. Offline paper capture remains valid during volunteer shifts. A reviewed import would bring paper entries into the register, with original sheet references retained for reconciliation.",
-          "evidence": [
-            {
-              "quote": "The proposed register uses a simple browser form, a small API, and PostgreSQL. Offline paper capture remains valid during volunteer shifts. A reviewed import would bring paper entries into the register, with original sheet references retained for reconciliation.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "results": [],
-      "lessons": [
-        {
-          "text": "Ghi rõ đơn vị cạnh mỗi số lượng; không tự đổi hộp thành kilogram.",
-          "evidence": [
-            {
-              "quote": "Ghi rõ đơn vị cạnh mỗi số lượng; không tự đổi hộp thành kilogram.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Giữ lại lý do điều chỉnh thay vì ghi đè số cũ.",
-          "evidence": [
-            {
-              "quote": "Giữ lại lý do điều chỉnh thay vì ghi đè số cũ.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Không biến mong muốn cải thiện thành kết quả đã đạt được.",
-          "evidence": [
-            {
-              "quote": "Không biến mong muốn cải thiện thành kết quả đã đạt được.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết; chưa đo tỷ lệ thất thoát.",
-          "evidence": [
-            {
-              "quote": "Chưa có triển khai thực tế, chưa có dữ liệu trước-sau và chưa đo tỷ lệ thất thoát. Mục tiêu giảm 25 phần trăm thời gian kiểm kê chỉ là giả thuyết để kiểm chứng. Không được viết rằng nhóm đã đạt mục tiêu này.",
-              "page": null
-            }
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "key": "09",
-    "title": "Summit Course Registration Engineering Journal",
-    "file": "output/pdf/rewoven-test-pack/markdown/09-summit-course-registration.md",
-    "sha256": "994c1a556df3d141a08afed82892125a2a98214838ca1fa455734b9e4213ed0c",
-    "sections": {
-      "summary": [
-        {
-          "text": "Synthetic tests confirmed 20 reservations from 60 competing requests; production enrolment was not observed.",
-          "evidence": [
-            {
-              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "problem": [
-        {
-          "text": "The registration site checked seat availability before payment confirmation, allowing two applicants to see the same last seat. The engineering journal records a limited reservation experiment and the boundary between load testing and real enrolment.",
-          "evidence": [
-            {
-              "quote": "The registration site checked seat availability before payment confirmation, allowing two applicants to see the same last seat. The engineering journal records a limited reservation experiment and the boundary between load testing and real enrolment.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "approach": [
-        {
-          "text": "A Next.js browser flow talks to an API that performs reservation and confirmation inside PostgreSQL transactions. A scheduled worker cleans up expired reservations, but transaction checks enforce the lease even if the worker is late. A payment provider is represented by a local simulator in the documented experiment.",
-          "evidence": [
-            {
-              "quote": "A Next.js browser flow talks to an API that performs reservation and confirmation inside PostgreSQL transactions. A scheduled worker cleans up expired reservations, but transaction checks enforce the lease even if the worker is late. A payment provider is represented by a local simulator in the documented experiment.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "results": [
-        {
-          "text": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
-          "evidence": [
-            {
-              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "lessons": [
-        {
-          "text": "Check lease expiry inside the same transaction as confirmation.",
-          "evidence": [
-            {
-              "quote": "Check lease expiry inside the same transaction as confirmation.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Keep a stable idempotency key across client retries.",
-          "evidence": [
-            {
-              "quote": "Keep a stable idempotency key across client retries.",
-              "page": null
-            }
-          ]
-        },
-        {
-          "text": "Report synthetic concurrency separately from real enrolment outcomes.",
-          "evidence": [
-            {
-              "quote": "Report synthetic concurrency separately from real enrolment outcomes.",
-              "page": null
-            }
-          ]
-        }
-      ],
-      "gaps": [
-        {
-          "text": "These are engineering test results; no real student enrolment or production payment outcome is recorded.",
-          "evidence": [
-            {
-              "quote": "In the final synthetic concurrency run, 60 simultaneous requests competed for a course with 20 available seats. Exactly 20 reservations were confirmed and 40 were rejected as full. A separate expired-lease test was rejected after cleanup was paused. These are engineering test results; no real student enrolment or production payment outcome is recorded.",
-              "page": null
+              "source": "review",
+              "page": 2,
+              "quote": "The finance threshold, policy ownership, implementation, test execution, delivery estimate, and business outcomes were not established for this proposal."
             }
           ]
         }
