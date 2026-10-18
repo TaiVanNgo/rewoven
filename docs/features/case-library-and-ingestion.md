@@ -156,6 +156,20 @@ For structured AI review, contributor corrections, and safe sample replacement, 
 
 Stop Next.js with **Ctrl+C**. Supabase keeps running; `bun run db:stop` stops it while preserving local data. On later days, `bun run devx` starts Supabase and Next.js together. Reapply migrations after pulling schema changes; startup does not apply pending migrations to an existing database.
 
+### Reset the local demo
+
+For example, after rehearsing Northbank's request, use a fresh database to repeat the demo from its nine historical projects. Stop your running Next.js server with Ctrl+C, start your Docker-compatible runtime, and keep local Supabase credentials configured in `.env.local`. From the project root, run:
+
+```bash
+bun devrs
+```
+
+The `devrs` script in `package.json` runs these steps in order: start Supabase, run `supabase db reset --local`, provision the configured storage buckets, run the existing `db:seed` importer, and start `dev`. Each step must succeed before the next starts. Reset reapplies the checked-in migrations and SQL seed; `db:seed` separately restores the nine fictional cases and their 27 original documents using the existing local-only import guard.
+
+**Existing local cases, chats, saved plans, and embeddings are deleted.** Sample import makes no AI calls. The app can use keyword retrieval immediately; regenerate semantic embeddings separately with `bun run db:backfill --embed` when needed (billable OpenAI calls). Resetting the local database does not reset the hosted deployment. `bun run devx` remains the data-preserving startup command.
+
+Open the URL printed by Next.js, usually `http://localhost:3000`, and check that Case library contains nine fictional projects. Browser history may still contain links to deleted chats or plans; start a new chat. Stop Next.js with Ctrl+C; `bun run db:stop` stops the background database while preserving the newly seeded data.
+
 To inspect the production build, use:
 
 ```bash

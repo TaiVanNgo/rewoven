@@ -83,6 +83,14 @@ bun run devx
 
 `devx` waits for Supabase startup and bucket provisioning to succeed before starting Next.js. Supabase runs in background containers; Next.js stays attached to your terminal. Use `bun run dev` when you only need the frontend.
 
+For a fresh local demo, stop any running Next.js server with Ctrl+C, then run:
+
+```bash
+bun devrs
+```
+
+`devrs` starts local Supabase, resets its database and reapplies migrations/SQL seeds, provisions storage buckets, imports the nine fictional projects and their 27 originals, then starts Next.js. **This deletes existing local cases, chats, saved plans, and embeddings.** It explicitly targets the local database. Sample import makes no AI calls; semantic search needs the separate `bun run db:backfill --embed` command to rebuild embeddings. Use `bun run devx` for ordinary restarts that preserve data. See the [local reset guide](docs/features/case-library-and-ingestion.md#reset-the-local-demo).
+
 Open the URL printed by the dev server (usually `http://localhost:3000`). Edit
 `src/app/(workspace)/page.tsx` and save to see changes through Fast Refresh. Stop the server
 with Ctrl+C; Supabase remains running. To choose another port, use `bun run devx --port 3001` (or `bun run dev --port 3001` for the frontend alone).

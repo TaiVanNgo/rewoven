@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "bun scripts/prepare-pdf-assets.ts && next dev",
     "devx": "bun run db:start && bun run dev",
+    "devrs": "supabase start && supabase db reset --local && supabase seed buckets --local && bun run db:seed && bun run dev",
     "db:start": "supabase start && supabase seed buckets --local",
     "db:status": "supabase status",
     "db:stop": "supabase stop",
