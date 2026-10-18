@@ -198,5 +198,76 @@ async function verifyCitationViewer(page) {
   await page.getByRole("dialog").locator("mark").waitFor();
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
+
+  const markdownSource = record.sources.find((item) => item.format === "md");
+  const markdownFinding = Object.values(record.overview.sections)
+    .flat()
+    .flatMap((item) => item.evidence)
+    .find((item) => item.sourceId === markdownSource?.id);
+  if (!markdownSource || !markdownFinding)
+    throw new Error("The sample must include a cited Markdown source.");
+  const markdownPreview = await (
+    await page.request.get(
+      `${base}/api/sources/${markdownSource.id}/preview?${new URLSearchParams({
+        version: String(markdownSource.version),
+        quote: markdownFinding.quote,
+      })}`,
+    )
+  ).json();
+  if (!markdownPreview.highlight)
+    throw new Error("The Markdown quote could not be located.");
+  Object.assign(evidence, {
+    source_id: markdownSource.id,
+    source_title: markdownSource.title,
+    version: markdownSource.version,
+    page_number: null,
+    char_start: markdownPreview.start + markdownPreview.highlight.start,
+    char_end: markdownPreview.start + markdownPreview.highlight.end,
+    text: markdownPreview.text.slice(
+      markdownPreview.highlight.start,
+      markdownPreview.highlight.end,
+    ),
+  });
+  query.turns[0].answer.sections[0].text = "The brief records the pilot scope.";
+  await page.goto(`${base}/?query=${queryId}`);
+  await chatCitation.click();
+  const rendered = dialog.getByRole("region", {
+    name: "Rendered Markdown source",
+  });
+  await rendered.waitFor();
+  await rendered.locator("h1, h2").first().waitFor();
+  await rendered.locator("strong").first().waitFor();
+  await rendered.locator("mark").first().waitFor();
+  const rawQuote = evidence.text;
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value) => {
+        document.documentElement.classList.toggle("dark", value === "dark");
+      }, theme);
+      const overflow = await dialog.evaluate(
+        (element) => element.scrollWidth > element.clientWidth + 1,
+      );
+      if (overflow) throw new Error(`Markdown dialog overflows at ${width}px.`);
+      await dialog
+        .getByRole("tab", { name: "Markdown source", exact: true })
+        .click();
+      const raw = dialog.getByRole("region", { name: "Extracted source text" });
+      if ((await raw.locator("mark").textContent()) !== rawQuote)
+        throw new Error("Raw Markdown no longer has the exact cited passage.");
+      await dialog
+        .getByRole("tab", { name: "Rendered Markdown", exact: true })
+        .click();
+      await rendered.waitFor();
+    }
+  }
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+  if (
+    !(await chatCitation.evaluate(
+      (element) => element === document.activeElement,
+    ))
+  )
+    throw new Error("Closing the Markdown citation did not restore focus.");
   await page.unroute(chatPattern);
 }
