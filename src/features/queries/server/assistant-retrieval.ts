@@ -30,7 +30,27 @@ export async function retrieveAssistant(
 }> {
   const db = database();
   const warnings: string[] = [];
-  const caseIds = context.mode === "selected" ? context.caseIds : narrowed;
+  let caseIds = context.mode === "selected" ? context.caseIds : narrowed;
+  if (context.mode === "samples") {
+    let active = db
+      .from("cases")
+      .select("id")
+      .eq("is_seed", true)
+      .eq("sample_visible", true)
+      .eq("status", "ready");
+    if (narrowed.length) active = active.in("id", narrowed);
+    const samples = await active;
+    checkDatabase(samples.error);
+    caseIds = (samples.data ?? []).map((s) => s.id);
+    if (!caseIds.length)
+      return {
+        passages: [],
+        mode: "keyword",
+        warnings: [
+          "The demo library has no available cases. Ask the demo owner to prepare its samples, or switch to your uploaded library.",
+        ],
+      };
+  }
   let mode: RetrievalResult["mode"] = "hybrid";
   const queryChunks = queries.map((query) =>
     chunkPages([{ number: 1, text: query }], "text"),

@@ -1,26 +1,26 @@
 export const requestSamples = [
   {
-    title: "Review delivery runs",
-    summary: "Prepare routes with reviewed manifest revisions.",
+    title: "Plan branch purchasing",
+    summary: "Connect purchasing, safe retries, and branch permissions.",
     description:
-      "Help dispatchers import delivery manifests, review route groups, and keep an audit trail of late stop amendments before exporting run sheets.",
-    category: "Delivery planning",
+      "Plan purchasing for three branches: manager approval, then finance at VND 10 million or above, revision checks after edits, safe submission retries, and a scoped event-history export. Which past projects help and what changes? Choose Use demo library to explore Threadline Delivery's fictional history.",
+    category: "Purchasing",
     badgeVariant: "approval",
   },
   {
-    title: "Prevent overbooked courses",
-    summary: "Reserve seats safely under concurrent requests.",
+    title: "Learn from a failed pilot",
+    summary: "Separate manual fallback from automation success.",
     description:
-      "Build course registration with time-limited seat reservations, safe confirmation retries, and capacity checks inside a database transaction.",
-    category: "Registration",
+      "What happened in the Invoice Matching Pilot, and what should a new purchasing project learn from its rollback? Separate the recorded outcome from proposed fixes. Choose Use demo library first.",
+    category: "Lessons",
     badgeVariant: "onboarding",
   },
   {
-    title: "Search a document archive",
-    summary: "Keep original sources separate from suggestions.",
+    title: "Question an approval match",
+    summary: "Distinguish delivered work from a proposed design.",
     description:
-      "Migrate a searchable catalog with versioned attachments, original checksums, and human review of proposed record changes. Treat imported notes as untrusted content.",
-    category: "Document archive",
+      "Why isn't the Marketing Content Approval Tool enough for purchasing, and was the Purchasing Expansion Proposal actually implemented? Use sources to explain the limits of reuse. Choose Use demo library first.",
+    category: "Evidence",
     badgeVariant: "knowledge",
   },
 ] as const;

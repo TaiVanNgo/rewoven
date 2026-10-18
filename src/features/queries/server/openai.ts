@@ -4,8 +4,8 @@ import type { OpenAITransport } from "@/features/cases/server/openai";
 import {
   BRIEF_PROMPT,
   briefSchema,
+  createReusePlanSchema,
   REUSE_PLAN_PROMPT,
-  reusePlanSchema,
 } from "@/features/plans/model";
 import {
   REQUEST_READING_PROMPT,
@@ -165,7 +165,11 @@ export async function queryModel(
                 : kind === "reuse_brief"
                   ? briefSchema
                   : kind === "reuse_plan"
-                    ? reusePlanSchema
+                    ? createReusePlanSchema(
+                        (supplied?.evidence ?? []).flatMap((item) =>
+                          typeof item.id === "string" ? [item.id] : [],
+                        ),
+                      )
                     : kind === "assistant_plan"
                       ? scopedAssistantPlanSchema
                       : kind === "assistant_review"

@@ -165,7 +165,21 @@ test("bounded history preserves the original request and discloses excluded turn
       error_message: null,
       started_at: "",
     });
+  conversation.turns[10].answer = {
+    sections: [
+      {
+        kind: "fact",
+        heading: "Earlier answer",
+        text: "A previous project used a review stage.",
+        evidence: ["old_turn_e3"],
+      },
+    ],
+  };
   const context = conversationContext(conversation, conversation.turns[11]);
+  assert.ok(
+    !JSON.stringify(context.history).includes("old_turn_e3"),
+    "Historical citation IDs must not collide with the current evidence bundle",
+  );
   assert.equal(context.originalRequest.capabilities, "Audit log");
   assert.equal(context.history.length, 8);
   assert.equal(context.history.at(-1)?.question, "Question 11");

@@ -332,10 +332,15 @@ function QueryWorkspaceContent({
       thread.current.scrollTop = thread.current.scrollHeight;
   }, [conversation, pending]);
 
-  async function applyCases(cases: SelectedCase[]) {
-    const next: ChatContext = cases.length
-      ? { mode: "selected", caseIds: cases.map((c) => c.id) }
-      : EMPTY_CHAT_CONTEXT;
+  async function applyCases(
+    cases: SelectedCase[],
+    mode?: "library" | "samples",
+  ) {
+    const next: ChatContext = mode
+      ? { mode, caseIds: [] }
+      : cases.length
+        ? { mode: "selected", caseIds: cases.map((c) => c.id) }
+        : EMPTY_CHAT_CONTEXT;
     if (id && conversation) {
       const { query } = await caseApi<{ query: QueryConversation }>(
         `/api/queries/${id}/context`,
@@ -650,14 +655,23 @@ function QueryWorkspaceContent({
                   I’m Wren. Ask me about your past projects, explore what
                   happened, or work through a decision using their lessons. Add
                   cases for a closer look. Upload a brief or requirements file
-                  to compare your current problem with past work.
+                  to compare your current problem with past work. Choose Use
+                  demo library to explore nine projects from the fictional
+                  company Threadline Delivery.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    "What can I learn from my past projects?",
-                    "Help me compare the risks in these cases",
-                    "What should we do differently next time?",
-                  ].map((text) => (
+                  {(context.mode === "samples"
+                    ? [
+                        "Which past projects help us build branch purchasing?",
+                        "What went wrong in the Invoice Matching Pilot?",
+                        "Was the Purchasing Expansion Proposal implemented?",
+                      ]
+                    : [
+                        "What can I learn from my past projects?",
+                        "Help me compare the risks in these cases",
+                        "What should we do differently next time?",
+                      ]
+                  ).map((text) => (
                     <Button
                       key={text}
                       variant="outline"
@@ -693,7 +707,9 @@ function QueryWorkspaceContent({
                       <p className="mt-2 text-xs text-muted-foreground">
                         {turn.context_snapshot.mode === "selected"
                           ? `${turn.context_snapshot.caseIds.length} attached case(s)`
-                          : "My uploaded cases"}
+                          : turn.context_snapshot.mode === "samples"
+                            ? "Threadline Delivery demo library (fictional)"
+                            : "My uploaded cases"}
                       </p>
                     )}
                   </div>
@@ -875,9 +891,25 @@ function QueryWorkspaceContent({
               <span className="text-xs text-muted-foreground">
                 {context.mode === "library"
                   ? "Using my uploaded cases"
-                  : "Using only attached cases"}
+                  : context.mode === "samples"
+                    ? "Using Threadline Delivery's 9 fictional projects"
+                    : "Using only attached cases"}
               </span>
-              {context.mode === "selected" && (
+              {context.mode !== "samples" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy || !loaded}
+                  onClick={() =>
+                    void applyCases([], "samples").catch((e) =>
+                      setError(e.message),
+                    )
+                  }
+                >
+                  Use demo library
+                </Button>
+              )}
+              {context.mode !== "library" && (
                 <Button
                   variant="ghost"
                   size="sm"

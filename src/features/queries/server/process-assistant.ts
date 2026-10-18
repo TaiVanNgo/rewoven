@@ -7,7 +7,7 @@ import type { embedTexts } from "@/features/cases/server/embeddings";
 import { ApiError, validId } from "@/features/cases/server/http";
 import { accessibleCase } from "@/features/cases/server/repository";
 import { assistantPlanInput } from "../assistant";
-import { conversationContext } from "../context";
+import { conversationContext, namedCases } from "../context";
 import type { QueryWork } from "../types";
 import { queryText, validateAnswer } from "../validation";
 import { WREN_PROMPT_VERSION } from "./assistant-prompt";
@@ -111,7 +111,12 @@ export async function processAssistantTurn(
         ? catalogQuery
             .in("id", context.caseIds)
             .or(`is_seed.eq.true,session_id.eq.${sessionId}`)
-        : catalogQuery.eq("session_id", sessionId).eq("is_seed", false);
+        : context.mode === "samples"
+          ? catalogQuery
+              .eq("is_seed", true)
+              .eq("sample_visible", true)
+              .eq("status", "ready")
+          : catalogQuery.eq("session_id", sessionId).eq("is_seed", false);
     const catalogResult = await catalogQuery;
     checkDatabase(catalogResult.error);
     const catalog = (catalogResult.data ?? []).slice(0, 200);
@@ -185,10 +190,20 @@ export async function processAssistantTurn(
       return queryDetail(conversationId, sessionId);
     }
     await save({ phase: "reviewing" });
+    // A planner may repeat IDs from an earlier answer. Only explicit case names
+    // in this message may narrow collection-wide discovery. Attached cases keep
+    // their existing exclusive scope inside retrieveAssistant.
+    const explicitlyNamed = new Set(
+      namedCases(message, catalog).map((c) => c.id),
+    );
+    const narrowed =
+      context.mode === "selected"
+        ? plan.caseIds
+        : plan.caseIds.filter((id) => explicitlyNamed.has(id));
     const retrieved = await retrieveAssistant(
       plan.queries,
       context,
-      plan.caseIds,
+      narrowed,
       sessionId,
       dependencies.embedder,
     );
@@ -220,7 +235,7 @@ export async function processAssistantTurn(
         const more = await retrieveAssistant(
           [review.query],
           context,
-          plan.caseIds,
+          narrowed,
           sessionId,
           dependencies.embedder,
         );
