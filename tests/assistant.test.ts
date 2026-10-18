@@ -26,9 +26,9 @@ test("chat selection validates mode, five-case bound, duplicates and identifiers
   ])
     assert.throws(() => chatContextInput(value));
 });
-test("demo collection is an explicit empty-ID scope, separate from private uploads", () => {
+test("legacy demo scope is accepted as the unified library", () => {
   assert.deepEqual(chatContextInput({ mode: "samples", caseIds: [] }), {
-    mode: "samples",
+    mode: "library",
     caseIds: [],
   });
 });

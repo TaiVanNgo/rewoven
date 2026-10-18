@@ -11,6 +11,7 @@ export type QuerySummary = {
 };
 export type Evidence = Passage & { id: string; stale?: boolean };
 export type ChatContext = {
+  // "samples" remains readable in saved snapshots; new inputs use "library".
   mode: "library" | "selected" | "samples";
   caseIds: string[];
 };

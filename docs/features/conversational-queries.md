@@ -5,13 +5,13 @@ Wren is a conversational case advisor. You can greet it, ask about a project, co
 ## Try a conversation
 
 1. Open **New chat** and say “Hi Wren, what can you help me with?” A greeting needs no case search.
-2. Select **Add cases**. The **My cases** tab contains your uploads. To try fictional data, explicitly choose **Sample cases**, select **Harbor Route Planning Pilot**, and apply the selection.
-3. Ask “What happened during the pilot, and what limits should I keep in mind?” Wren searches the attached case’s original documents and links its answer to source passages. The fictional Harbor results cover a limited pilot; proposed expansion is not a measured company-wide outcome.
+2. The full Case library is available by default, including the nine preloaded Threadline projects and your session’s uploads. For a focused question, optionally select **Add cases**, choose **Office Purchasing Pilot**, and apply the selection.
+3. Ask “What happened during the pilot, and what limits should I keep in mind?” Wren searches the attached case’s original documents and links its answer to source passages. The fictional Office Purchasing results cover a limited pilot; proposed expansion is not a measured company-wide outcome.
 4. Follow up with “Based on those limits, what should we check before expanding?” Wren can suggest an application of recorded lessons and identify missing evidence. Suggestions are not historical facts.
-5. Add another case to compare them. Up to five cases can be attached. Wren searches only those cases until you select **Use my library**, which returns to your uploaded cases. Samples never enter automatic library discovery.
+5. Add another case to compare them. Up to five cases can be attached. Wren searches only those cases until you select **Search full library**, which restores discovery across the preloaded projects and your session’s uploads.
 6. Open a citation to inspect the original source and page. Use **Sources** to hide or reopen the evidence panel. **Recent queries** restores the chat, case selection, messages, and original evidence during the same demo session.
 
-The case picker references existing cases; it does not upload or duplicate documents. Cases with no readable sources cannot be attached. Partially indexed sources have a coverage warning. **Create a case** opens the existing Case library flow; create and process the case there, then attach it in chat. Wren does not create records or invent historical cases for you.
+The case picker shows one combined list of existing cases; it does not upload or duplicate documents. Cases with no readable sources cannot be attached. Partially indexed sources have a coverage warning. **Create a case** opens the existing Case library flow; create and process the case there, then attach it in chat. Wren does not create records or invent historical cases for you.
 
 **Recent queries** initially shows the eight most recently updated chats. Select **Load more** to reveal eight more at a time; the button disappears when all chats are shown. On desktop, the section fills the remaining sidebar space above **Demo session**, and only the list scrolls when needed. On smaller screens, the list has a bounded height. The history API still fetches the session's summaries together; this is a display limit rather than server pagination, and reloading resets it to eight.
 
@@ -27,7 +27,7 @@ To customize just Wren's bold color, change `--wren-emphasis` in `src/app/global
 
 ## Inspect an inline citation
 
-For example, ask Wren about Harbor's pilot, then hover a numbered marker such as **[1]**. The preview shows the case, document, saved version, physical PDF page, and the original quote. Focusing the marker with the keyboard shows the same preview. Hovering reads evidence already loaded with the answer; it does not fetch a document or call AI.
+For example, ask Wren about the Office Purchasing pilot, then hover a numbered marker such as **[1]**. The preview shows the case, document, saved version, physical PDF page, and the original quote. Focusing the marker with the keyboard shows the same preview. Hovering reads evidence already loaded with the answer; it does not fetch a document or call AI.
 
 Click or press Enter to open the source modal without leaving the conversation. PDFs open at the cited physical page. Use **Previous page**, **Next page**, the page input (Enter or blur applies it), zoom, and **Fit to width** to inspect the document. **Extracted text** shows a bounded passage of surrounding text with the citation highlighted. Plain text opens that text view directly. Markdown files open **Rendered Markdown**, described below. The saved quote remains above the viewer. **Open original** opens the retained file in a new tab; Escape closes the modal and returns focus to the citation.
 
@@ -97,7 +97,7 @@ The homepage remains a Next.js Server Component. Its Client Component chat owns 
 - `src/features/queries/server/assistant-retrieval.ts` searches authorized original chunks across all Ready source documents. Separate selected-case searches and an interleaved evidence budget prevent one large case from crowding out a comparison. Case overviews and previous answers do not substitute for original evidence.
 - `src/features/queries/query-history.tsx` fetches saved chat summaries and keeps the visible count in Client Component state. Clicking **Load more** expands that count without changing saved chats. `src/components/workspace/workspace-sidebar.tsx` lets history grow between the fixed navigation and Demo session card.
 
-Conversation creation accepts `assistant: true` and `chatContext: { mode: "library", caseIds: [] }` or selected mode with up to five case IDs. `PATCH /api/queries/[id]/context` saves a selection with `contextRevision`. `POST /api/queries/[id]/turns` submits the message, request key, and current revision. The server rejects stale selection updates and changes during an active turn. Each turn stores its own context snapshot, so retries use the original selection even after a later context change.
+Conversation creation defaults to `assistant: true` and `chatContext: { mode: "library", caseIds: [] }` for the combined library, or selected mode with up to five case IDs. Legacy `samples` inputs are accepted as an alias for library mode; stored snapshots and answers remain readable. `PATCH /api/queries/[id]/context` saves a selection with `contextRevision`. `POST /api/queries/[id]/turns` submits the message, request key, and current revision. The server rejects stale selection updates and changes during an active turn. Each turn stores its own context snapshot, so retries use the original selection even after a later context change.
 
 Migration `202610170006_wren_assistant.sql` adds conversation context, revision, per-turn snapshots, processing phases, and authorized retrieval. Existing chats and citations remain readable; legacy single-case focus becomes a selected case. The legacy query processor remains for older clients and saved-turn retries. A new message in the updated UI promotes an old chat to the assistant workflow.
 
@@ -105,7 +105,7 @@ Migration `202610170006_wren_assistant.sql` adds conversation context, revision,
 
 “Full RAG” means every Ready document in the allowed cases is eligible for search. It does **not** mean every document is loaded or read on each turn. There are up to two initial search queries and one additional targeted search, across two retrieval rounds. The final evidence bundle contains at most 30 original passages or 60,000 characters. Coverage and indexing limits are visible. Ask a narrower follow-up when important details are missing.
 
-Messages remain limited to 10,000 characters; optional constraints to 1,000 each. Recent conversational context includes up to eight earlier turns within 24,000 serialized characters, plus the original request. Older excluded history produces a warning. Case-name interpretation uses the first 200 uploaded catalog entries; the picker can explicitly select another case.
+Messages remain limited to 10,000 characters; optional constraints to 1,000 each. Recent conversational context includes up to eight earlier turns within 24,000 serialized characters, plus the original request. Older excluded history produces a warning. Case-name interpretation uses the first 200 library catalog entries; the picker can explicitly select another case.
 
 A search turn can use three model calls: intent planning, an evidence sufficiency check, and answer generation. A conversational turn uses only the planner. Planner and evidence-check timeouts are 30 seconds; the answer timeout is 60 seconds. Assistant embedding calls time out after 15 seconds and fall back to keywords. The model provider does not store responses (`store: false`).
 

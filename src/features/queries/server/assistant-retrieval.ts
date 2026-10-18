@@ -31,24 +31,23 @@ export async function retrieveAssistant(
   const db = database();
   const warnings: string[] = [];
   let caseIds = context.mode === "selected" ? context.caseIds : narrowed;
-  if (context.mode === "samples") {
-    let active = db
+  // A narrowed discovery request must still respect the visible library. An
+  // explicit attachment retains access to its original source, even if retired.
+  if (context.mode !== "selected" && narrowed.length) {
+    const active = await db
       .from("cases")
       .select("id")
-      .eq("is_seed", true)
-      .eq("sample_visible", true)
-      .eq("status", "ready");
-    if (narrowed.length) active = active.in("id", narrowed);
-    const samples = await active;
-    checkDatabase(samples.error);
-    caseIds = (samples.data ?? []).map((s) => s.id);
+      .or(
+        `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+      )
+      .in("id", narrowed);
+    checkDatabase(active.error);
+    caseIds = (active.data ?? []).map((s) => s.id);
     if (!caseIds.length)
       return {
         passages: [],
         mode: "keyword",
-        warnings: [
-          "The demo library has no available cases. Ask the demo owner to prepare its samples, or switch to your uploaded library.",
-        ],
+        warnings: ["The requested cases are not available in this library."],
       };
   }
   let mode: RetrievalResult["mode"] = "hybrid";
@@ -96,7 +95,10 @@ export async function retrieveAssistant(
     );
   sourcesQuery = caseIds.length
     ? sourcesQuery.in("case_id", caseIds)
-    : sourcesQuery.eq("cases.session_id", sessionId).eq("cases.is_seed", false);
+    : sourcesQuery.or(
+        `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+        { referencedTable: "cases" },
+      );
   const sources = await sourcesQuery;
   checkDatabase(sources.error);
   if (

@@ -143,9 +143,9 @@ bun run dev
 
 Open [the local library](http://localhost:3000/case-library), or use the port printed by Next.js. Try this walkthrough:
 
-1. Search for **Harbor** and open **Harbor Route Planning Pilot**.
+1. Search for **Office Purchasing** and open **Office Purchasing Pilot**.
 2. Read the pilot scope, then select a citation beside its recorded results.
-3. Check the supporting quote and open the original PDF at physical page 9.
+3. Check the supporting quote and open the delivery-review PDF at physical page 1.
 4. Open **Sources** to inspect extracted pages and processing details.
 5. Add the manual example described above, then open its dedicated case page.
 6. Refresh and inspect the retained original. Use **Write overview** to organize manual findings.

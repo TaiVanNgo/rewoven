@@ -20,10 +20,12 @@ export function chatContextInput(value: unknown): ChatContext {
       : item.caseIds.length === 0)
   )
     throw new QueryInputError(
-      "Choose up to five cases, your uploaded library, or the demo library.",
+      "Choose up to five cases, or use the full case library.",
     );
   return {
-    mode: item.mode as ChatContext["mode"],
+    // Older clients may still send the former demo-only mode.
+    mode:
+      item.mode === "samples" ? "library" : (item.mode as ChatContext["mode"]),
     caseIds: item.caseIds.map((id) => id.toLowerCase()),
   };
 }

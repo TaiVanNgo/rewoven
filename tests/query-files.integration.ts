@@ -211,7 +211,7 @@ test("query documents upload, resume full readings, isolate evidence, snapshot t
         if (kind === "assistant_plan")
           return {
             intent: "search",
-            queries: ["approval requirements"],
+            queries: ["qxzyrequestfixtureonly"],
             caseIds: [],
             reply: "",
           };

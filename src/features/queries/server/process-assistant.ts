@@ -111,19 +111,16 @@ export async function processAssistantTurn(
         ? catalogQuery
             .in("id", context.caseIds)
             .or(`is_seed.eq.true,session_id.eq.${sessionId}`)
-        : context.mode === "samples"
-          ? catalogQuery
-              .eq("is_seed", true)
-              .eq("sample_visible", true)
-              .eq("status", "ready")
-          : catalogQuery.eq("session_id", sessionId).eq("is_seed", false);
+        : catalogQuery.or(
+            `and(is_seed.eq.true,sample_visible.eq.true),session_id.eq.${sessionId}`,
+          );
     const catalogResult = await catalogQuery;
     checkDatabase(catalogResult.error);
     const catalog = (catalogResult.data ?? []).slice(0, 200);
     const warnings = [...history.warnings];
     if ((catalogResult.data?.length ?? 0) > 200)
       warnings.push(
-        "Case-name interpretation covers the first 200 uploads. Use Add cases to select another case directly.",
+        "Case-name interpretation covers the first 200 library cases. Use Add cases to select another case directly.",
       );
     if (config) {
       const reserved = await db.rpc("reserve_query_ai", {

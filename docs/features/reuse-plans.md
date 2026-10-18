@@ -20,7 +20,7 @@ bun run dev
 
 Open the printed URL, usually `http://localhost:3000`:
 
-1. Start a Wren chat and describe the new work. Choose **Use demo library** to discover the nine fictional Threadline Delivery projects, or **Add cases** to attach particular projects such as Office Purchasing Pilot. Library mode searches your uploads.
+1. Start a Wren chat and describe the new work. The default Case library includes the nine preloaded fictional Threadline Delivery projects plus your session’s uploads. Optionally use **Add cases** to narrow discovery to particular projects such as Office Purchasing Pilot.
 2. Choose **Draft reuse plan** after Wren finishes answering. Request preparation uses the original constraints and at most eight recent user messages / 24,000 characters. Active request documents and their source-linked findings are captured separately from historical cases. It does not use earlier AI answers as evidence. A notice identifies omitted older context; add any important missing details.
 3. Correct the title, requirements, deadline, technology, capabilities, and questions. Choose **Confirm request and generate plan**. If preparation fails or the key is absent, a manual review form remains available.
 4. Read the preview and open numbered citations. Their source list retains the original excerpts, document versions, and locations. The request describes proposed work and remains separate from historical evidence.

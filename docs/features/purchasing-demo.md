@@ -40,7 +40,7 @@ Open the printed URL, usually `http://localhost:3000`. Stop Next.js with Ctrl+C.
 
 ## Try the judge's journey
 
-1. Open a fresh demo session and choose **Use demo library** beside the chat composer. The scope label identifies Threadline Delivery's nine fictional projects. **Use my library** returns to session-owned uploads. **Add cases** still selects up to five specific cases as an exclusive scope.
+1. Open a fresh chat. The default **Searching Case library** scope already includes all nine Threadline projects and any historical cases uploaded in this session. No demo switch or manual case selection is needed. **Add cases** optionally narrows a question to up to five projects; **Search full library** returns to collection-wide discovery.
 2. Choose **Upload files** and select `client-brief.pdf` and `constraints.md` from the pack's `upload/Client input/` folder. These describe new work and belong in chat, not Case library.
 3. Send: “Which previous projects help with this request? Explain what we can reuse, what changes, and what is still unknown.” File reading begins on Send. The nine cases are eligible for discovery; the answer uses a bounded set of original passages, not every document in full.
 4. Inspect citations for the purchasing revision rule and the expense retry incident. A historical PDF citation opens its physical page; client citations are labelled as request documents.
@@ -52,7 +52,9 @@ For an optional upload demonstration, use a separate session: create ONE case fr
 
 ## What changed in the app
 
-The existing chat context adds `{ mode: "samples", caseIds: [] }` beside `library` and `selected`. No client IDs are accepted in samples mode. The existing create-chat and context-update endpoints accept the mode; saved turns and plans retain it in their snapshots. The server resolves only active Ready fictional samples, so users do not need to select nine individual cases through the five-case picker. Private uploaded cases are excluded from this mode; the default uploaded-library scope still excludes samples.
+The default `{ mode: "library", caseIds: [] }` now searches active seeded history and historical cases owned by the current session. Seeded records retain their shared, read-only ownership and fictional provenance; they are available in the same library rather than copied into every session. Other sessions’ uploads and retired samples remain excluded from discovery. The case picker shows a single combined list. Explicit attachments retain their exclusive scope and the five-case limit. Older `samples` inputs are accepted as an alias for library mode, and stored snapshots remain readable.
+
+Migration `202610180002_unified_case_library.sql` updates the database retrieval function, while `assistant-retrieval.ts` and `process-assistant.ts` apply the same collection boundaries to source coverage and the case-name catalog. The default has no five-case discovery limit. Pages remain Server Components; the existing chat and picker Client Components own interactive selection. This replaces the earlier opt-in demo scope. New turns and newly generated plans use the updated library; old answers are retained, not automatically regenerated.
 
 A planner's candidate list cannot silently lock a collection-wide follow-up to cases from an earlier answer. Only explicitly named projects may narrow discovery; attached cases retain their exclusive scope. The live rehearsal exposed this failure on a retry question, and the integration regression deliberately supplies a misleading three-case planner shortlist while checking that all nine remain eligible. The answer prompt also distinguishes revision checks from evidence of duplicate-create prevention. These safeguards improve evidence access and instructions; they do not prove factual entailment for every generated sentence.
 
@@ -104,5 +106,17 @@ bun run test:retrieval:live
 ```
 
 Tests cover nine three-source cases, original quote/page validation, new request extraction, interrupted/repeated import, retired citation access, uploaded-case preservation, nine-case discovery, private/retired-source exclusion, scope restoration, and plan scope inheritance. Mocked provider tests establish boundaries and persistence, not model quality. Live retrieval checks assess the small fictional corpus. See the pack's `presenter-only/verification.md` for the current run's measured results and limitations.
+
+The unified-library regression uploads both real Northbank inputs in a fresh session with no historical uploads or scope selection. It checks that Wren receives request evidence and all nine projects as eligible history, that the plan retains both kinds of evidence, and that another session's cases and retired records remain excluded. Adding a historical case joins it to the same library. Provider stages are mocked; extraction, storage, retrieval, snapshots, and plan persistence use local Supabase.
+
+For browser verification after starting the app, run:
+
+```bash
+bunx @playwright/cli --session unified-library open http://localhost:3000
+bunx @playwright/cli --session unified-library run-code --filename tests/unified-library.browser.js
+bunx @playwright/cli --session unified-library close
+```
+
+Use the port printed by Next.js. The browser check covers the default scope, all nine cases in one picker, optional five-case narrowing and returning to the full library, both client attachments, and the actual submission payload. It also checks desktop/mobile light/dark layouts. Submission is intercepted before AI processing; the integration test verifies the full persisted request-to-plan flow with mocked providers. Stop the server with Ctrl+C when finished. No onboarding flow is added by this change.
 
 The five-minute script excludes setup and assumes reasonable provider latency. It is a presentation budget, not a performance guarantee. Citation existence alone does not prove sentence support; manually inspect historical claims. The fictional pack cannot prove organizational demand, legal compliance, production reliability, or guaranteed delivery in four weeks.
