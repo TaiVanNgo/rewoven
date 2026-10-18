@@ -7,16 +7,35 @@ import {
   MessageSquareIcon,
   PaperclipIcon,
 } from "lucide-react";
+import { LayoutGroup, motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/workspace/brand-logo";
 import { ThemeToggle } from "@/components/workspace/theme-toggle";
+import { interactionTransition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { type OnboardingStarter, onboardingSteps } from "./model";
 import { useOnboarding } from "./onboarding-provider";
+
+const MotionButton = motion.create(Button);
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia(reducedMotionQuery);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia(reducedMotionQuery).matches;
+}
+
+function serverReducedMotion() {
+  return true;
+}
 
 function focusHeading(node: HTMLHeadingElement | null) {
   node?.focus();
@@ -28,10 +47,34 @@ export function OnboardingFlow({ steps }: { steps: ReactNode[] }) {
 }
 
 function OnboardingSteps({ steps }: { steps: ReactNode[] }) {
-  const [step, setStep] = useState(0);
+  const [{ step, direction }, setNavigation] = useState({
+    step: 0,
+    direction: 0,
+  });
+  // The installed Motion hook snapshots the preference at mount. Subscribe
+  // directly so a system setting change also affects an already-open guide.
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    prefersReducedMotion,
+    serverReducedMotion,
+  );
+  const layoutGroup = useId();
   const { dismiss, returnTo } = useOnboarding();
   const router = useRouter();
   const final = step === onboardingSteps.length - 1;
+  const transition = {
+    ...interactionTransition,
+    duration: reducedMotion ? 0 : 0.28,
+  };
+  const press = reducedMotion ? undefined : { scale: 0.97 };
+
+  function goTo(next: number) {
+    setNavigation((current) =>
+      current.step === next
+        ? current
+        : { step: next, direction: next > current.step ? 1 : -1 },
+    );
+  }
 
   function finish(starter?: OnboardingStarter) {
     dismiss();
@@ -61,10 +104,14 @@ function OnboardingSteps({ steps }: { steps: ReactNode[] }) {
             No sign-in required
           </Badge>
           <ThemeToggle />
-          <Button variant="outline" onClick={() => finish()}>
+          <MotionButton
+            variant="outline"
+            whileTap={press}
+            onClick={() => finish()}
+          >
             Skip
             <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-          </Button>
+          </MotionButton>
         </div>
       </header>
 
@@ -81,39 +128,50 @@ function OnboardingSteps({ steps }: { steps: ReactNode[] }) {
               Your team has been here before.
             </p>
           </div>
-          <nav aria-label="Onboarding steps">
-            <ol className="flex justify-between gap-2 lg:flex-col lg:gap-1">
-              {onboardingSteps.map((title, index) => (
-                <li key={title}>
-                  <button
-                    type="button"
-                    aria-label={`Step ${index + 1}: ${title}`}
-                    aria-current={step === index ? "step" : undefined}
-                    onClick={() => setStep(index)}
-                    className={cn(
-                      "flex min-h-11 items-center gap-3 rounded-control p-1 text-left text-sm lg:w-full lg:p-2",
-                      step === index && "bg-card text-card-foreground",
-                    )}
-                  >
-                    <span
+          <LayoutGroup id={layoutGroup}>
+            <nav aria-label="Onboarding steps">
+              <ol className="flex justify-between gap-2 lg:flex-col lg:gap-1">
+                {onboardingSteps.map((title, index) => (
+                  <li key={title}>
+                    <motion.button
+                      type="button"
+                      aria-label={`Step ${index + 1}: ${title}`}
+                      aria-current={step === index ? "step" : undefined}
+                      onClick={() => goTo(index)}
+                      whileTap={press}
                       className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold",
-                        step === index &&
-                          "border-primary bg-primary text-primary-foreground",
+                        "relative isolate flex min-h-11 items-center gap-3 rounded-control p-1 text-left text-sm lg:w-full lg:p-2",
+                        step === index && "text-card-foreground",
                       )}
                     >
-                      {index < step ? (
-                        <CheckIcon aria-hidden="true" className="size-4" />
-                      ) : (
-                        index + 1
+                      {step === index && (
+                        <motion.span
+                          aria-hidden="true"
+                          layoutId={reducedMotion ? undefined : "active-step"}
+                          transition={transition}
+                          className="absolute inset-0 rounded-control bg-card"
+                        />
                       )}
-                    </span>
-                    <span className="hidden lg:inline">{title}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
+                      <span
+                        className={cn(
+                          "relative flex size-8 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold",
+                          step === index &&
+                            "border-primary bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {index < step ? (
+                          <CheckIcon aria-hidden="true" className="size-4" />
+                        ) : (
+                          index + 1
+                        )}
+                      </span>
+                      <span className="relative hidden lg:inline">{title}</span>
+                    </motion.button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </LayoutGroup>
           <div className="mt-auto hidden flex-col items-center gap-2 lg:flex">
             <Image
               src="/images/wren.png"
@@ -135,68 +193,105 @@ function OnboardingSteps({ steps }: { steps: ReactNode[] }) {
         </aside>
 
         <main className="flex min-w-0 flex-col gap-7 p-6 md:p-10 lg:min-h-[680px]">
-          <header className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground" aria-live="polite">
               Step {step + 1} of {onboardingSteps.length}
             </p>
+            <div
+              aria-hidden="true"
+              className="h-1 overflow-hidden rounded-full bg-border"
+            >
+              <motion.div
+                data-onboarding-progress
+                initial={false}
+                animate={{ scaleX: (step + 1) / onboardingSteps.length }}
+                transition={transition}
+                style={{ originX: 0 }}
+                className="h-full bg-primary"
+              />
+            </div>
+          </div>
+          <motion.div
+            key={step}
+            data-onboarding-step={step}
+            initial={
+              direction === 0 || reducedMotion
+                ? false
+                : { opacity: 0, x: direction * 16 }
+            }
+            animate={{ opacity: 1, x: 0 }}
+            transition={transition}
+            className="flex flex-1 flex-col gap-7"
+          >
             <h1
               id="onboarding-heading"
-              key={step}
               ref={focusHeading}
               tabIndex={-1}
               className="max-w-2xl font-heading text-2xl leading-tight font-bold tracking-tight outline-none md:text-4xl"
             >
               {onboardingSteps[step]}
             </h1>
-          </header>
-          <div className="flex flex-1 flex-col gap-6 text-base leading-relaxed [&_p]:max-w-prose">
-            {steps[step]}
-            {final && (
-              <div className="flex flex-col gap-3">
-                <p className="font-heading font-semibold">
-                  Where would you like to start?
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => finish("history")}>
-                    <MessageSquareIcon
-                      aria-hidden="true"
-                      data-icon="inline-start"
-                    />
-                    Ask about past projects
-                  </Button>
-                  <Button variant="outline" onClick={() => finish("request")}>
-                    <PaperclipIcon
-                      aria-hidden="true"
-                      data-icon="inline-start"
-                    />
-                    Bring a new request
-                  </Button>
+            <div className="flex flex-1 flex-col gap-6 text-base leading-relaxed [&_p]:max-w-prose">
+              {steps[step]}
+              {final && (
+                <div className="flex flex-col gap-3">
+                  <p className="font-heading font-semibold">
+                    Where would you like to start?
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <MotionButton
+                      whileTap={press}
+                      onClick={() => finish("history")}
+                    >
+                      <MessageSquareIcon
+                        aria-hidden="true"
+                        data-icon="inline-start"
+                      />
+                      Ask about past projects
+                    </MotionButton>
+                    <MotionButton
+                      variant="outline"
+                      whileTap={press}
+                      onClick={() => finish("request")}
+                    >
+                      <PaperclipIcon
+                        aria-hidden="true"
+                        data-icon="inline-start"
+                      />
+                      Bring a new request
+                    </MotionButton>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We’ll open an editable prompt. Nothing is sent until you
+                    choose Send.
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  We’ll open an editable prompt. Nothing is sent until you
-                  choose Send.
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </motion.div>
           <footer className="flex items-center justify-between gap-3 border-t border-border pt-5">
-            <Button
+            <MotionButton
               variant="ghost"
+              whileTap={press}
               disabled={step === 0}
-              onClick={() => setStep((value) => value - 1)}
+              onClick={() => goTo(step - 1)}
             >
               <ArrowLeftIcon aria-hidden="true" data-icon="inline-start" />
               Back
-            </Button>
+            </MotionButton>
             {final ? (
-              <Button variant="ghost" onClick={() => finish()}>
+              <MotionButton
+                variant="ghost"
+                whileTap={press}
+                onClick={() => finish()}
+              >
                 Return to workspace
-              </Button>
+              </MotionButton>
             ) : (
-              <Button onClick={() => setStep((value) => value + 1)}>
+              <MotionButton whileTap={press} onClick={() => goTo(step + 1)}>
                 Next
                 <ArrowRightIcon aria-hidden="true" data-icon="inline-end" />
-              </Button>
+              </MotionButton>
             )}
           </footer>
         </main>

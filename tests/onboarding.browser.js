@@ -17,6 +17,22 @@ async function verifyOnboarding(page) {
   const next = (tab) => tab.getByRole("button", { name: "Next", exact: true });
   const step = (tab, index) =>
     tab.getByRole("button", { name: new RegExp(`^Step ${index}:`) });
+  const settled = (tab) =>
+    tab.waitForFunction(() => {
+      const content = document.querySelector("[data-onboarding-step]");
+      const style = getComputedStyle(content);
+      const progress = getComputedStyle(
+        document.querySelector("[data-onboarding-progress]"),
+      );
+      return (
+        Number(style.opacity) === 1 &&
+        Math.abs(new DOMMatrixReadOnly(style.transform).m41) < 0.01 &&
+        Math.abs(
+          new DOMMatrixReadOnly(progress.transform).a -
+            (Number(content.dataset.onboardingStep) + 1) / 5,
+        ) < 0.001
+      );
+    });
   const requests = [];
   const errors = [];
   fresh.on("request", (request) => {
@@ -69,6 +85,89 @@ async function verifyOnboarding(page) {
       (await heading.textContent()) === "Meet Threadline Delivery",
       "Back did not restore step one.",
     );
+    // Sample rendered frames inside the browser so assertions observe real
+    // motion rather than just checking the component's configured props.
+    async function sampleMotion(target, frames = 24) {
+      return tab.evaluate(
+        async ({ target, frames }) => {
+          document.querySelector(`[aria-label^="Step ${target}:"]`).click();
+          const samples = [];
+          for (let frame = 0; frame < frames; frame++) {
+            await new Promise(requestAnimationFrame);
+            const content = document.querySelector("[data-onboarding-step]");
+            const style = getComputedStyle(content);
+            const progress = getComputedStyle(
+              document.querySelector("[data-onboarding-progress]"),
+            );
+            const highlight = new DOMMatrixReadOnly(
+              getComputedStyle(
+                document.querySelector('[aria-current="step"] > [aria-hidden]'),
+              ).transform,
+            );
+            samples.push({
+              x: new DOMMatrixReadOnly(style.transform).m41,
+              opacity: Number(style.opacity),
+              progress: new DOMMatrixReadOnly(progress.transform).a,
+              highlightOffset:
+                Math.abs(highlight.m41) + Math.abs(highlight.m42),
+            });
+          }
+          return samples;
+        },
+        { target, frames },
+      );
+    }
+    await tab.emulateMedia({ reducedMotion: "no-preference" });
+    const forward = await sampleMotion(3);
+    check(
+      forward.some((frame) => frame.x > 0.1 && frame.opacity < 1),
+      "Forward navigation did not animate in from the right.",
+    );
+    check(
+      forward.some((frame) => frame.progress > 0.2 && frame.progress < 0.6),
+      "Progress did not animate between steps.",
+    );
+    check(
+      forward.some((frame) => frame.highlightOffset > 0.1),
+      "The active-step highlight did not move between buttons.",
+    );
+    const backward = await sampleMotion(1);
+    check(
+      backward.some((frame) => frame.x < -0.1 && frame.opacity < 1),
+      "Back navigation did not animate in from the left.",
+    );
+    await tab.emulateMedia({ reducedMotion: "reduce" });
+    const reduced = await sampleMotion(4, 8);
+    check(
+      reduced.every(
+        (frame) =>
+          Math.abs(frame.x) < 0.01 &&
+          frame.opacity === 1 &&
+          frame.highlightOffset < 0.01,
+      ),
+      "Reduced motion still moved or faded the story.",
+    );
+    check(
+      Math.abs(reduced.at(-1).progress - 0.8) < 0.001,
+      "Reduced-motion progress did not update immediately.",
+    );
+    await tab.emulateMedia({ reducedMotion: "no-preference" });
+    await tab.evaluate(async () => {
+      for (const target of [5, 2, 4]) {
+        document.querySelector(`[aria-label^="Step ${target}:"]`).click();
+        await new Promise(requestAnimationFrame);
+      }
+    });
+    check(
+      (await heading.textContent()) === "Northbank brings a new request",
+      "Rapid selection did not keep the latest step.",
+    );
+    check(
+      (await heading.count()) === 1 &&
+        (await heading.evaluate((node) => node === document.activeElement)),
+      "Interrupted transitions duplicated headings or lost focus.",
+    );
+    await step(tab, 1).click();
     for (const width of [1440, 768, 390, 320]) {
       await tab.setViewportSize({ width, height: 900 });
       for (const colorScheme of ["light", "dark"]) {
@@ -96,11 +195,13 @@ async function verifyOnboarding(page) {
       reducedMotion: "no-preference",
     });
     await step(tab, 1).click();
+    await settled(tab);
     await tab.screenshot({
       path: "output/playwright/onboarding-desktop.png",
       fullPage: true,
     });
     await step(tab, 2).click();
+    await settled(tab);
     await tab.screenshot({
       path: "output/playwright/onboarding-projects.png",
       fullPage: true,
@@ -108,6 +209,7 @@ async function verifyOnboarding(page) {
     await tab.setViewportSize({ width: 390, height: 844 });
     await tab.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
     await step(tab, 4).click();
+    await settled(tab);
     await tab.screenshot({
       path: "output/playwright/onboarding-mobile-dark.png",
       fullPage: true,
@@ -314,7 +416,7 @@ async function verifyOnboarding(page) {
     );
     check(requests.length === 0, "Onboarding automatically submitted a chat.");
     check(errors.length === 0, `Browser runtime errors: ${errors.join("; ")}`);
-    return "PASS: onboarding, 40 responsive/theme step checks, starters, drafts, deep links, blocked storage, and isolated/shared session cookies. No chat submitted.";
+    return "PASS: forward/back animation frames, animated progress, reduced motion, onboarding, 40 responsive/theme step checks, starters, drafts, deep links, blocked storage, and isolated/shared session cookies. No chat submitted.";
   } finally {
     await fresh.close();
     await second.close();

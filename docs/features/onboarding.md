@@ -33,6 +33,16 @@ Open the printed URL, normally `http://localhost:3000`. The first homepage visit
 
 Pages remain Server Components by default. Buttons, browser storage, focus, and URL handoff need Client Components. The workspace entry uses a Suspense boundary around URL-dependent client behavior, following the installed Next.js documentation. No caching or runtime setting changes are required.
 
+## Animations between steps
+
+Choose Next: the next story fades in while moving 16px from the right. Back brings the previous story in from the left. The active navigation highlight moves to the selected step and the lime progress bar fills to match. Buttons give a small press response. The step and progress transitions take 280ms and use the app’s shared easing.
+
+These interactions use the existing `motion` dependency in `onboarding-flow.tsx`. A scoped `LayoutGroup` connects the active-step backgrounds; the story has a new React key for each step. Only the incoming story remains mounted, so there are no duplicate headings or old controls during transitions. The heading receives focus immediately, and rapid step selection can replace an animation without waiting for an outgoing screen. Initial content stays visible without an entrance animation, including before hydration.
+
+The shared Motion provider honors system reduced motion. The onboarding also subscribes to the browser’s `prefers-reduced-motion` media query with React’s `useSyncExternalStore` to remove slide, fade, highlight movement, progress tweening, and press scaling. This subscription handles setting changes while the guide is already open; the installed Motion hook only reads the preference at mount. With reduced motion enabled, navigation still updates the story and progress immediately. This follows [Motion’s accessibility guidance](https://motion.dev/docs/react-accessibility).
+
+The browser walkthrough samples actual rendered frames for both slide directions, progress fill, and highlight movement. It also switches reduced motion while the page is open, interrupts transitions with rapid selections, and verifies that the latest story has the only heading and retains keyboard focus. Screenshots wait for the animations to finish. These checks pass in local development and the compiled production app; no AI request is needed.
+
 ## Browser preference and demo sessions
 
 The onboarding preference is `rewoven-onboarding-v1=dismissed` in local storage. Finishing or skipping stores it; completing it in one tab also updates other open tabs. Closing and reopening the same browser preserves the preference until browser data is cleared. Opening another browser or private browsing profile normally starts with its own preference.
