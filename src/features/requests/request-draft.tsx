@@ -25,10 +25,16 @@ const emptyDraft: RequestDraft = {
 const RequestDraftContext = createContext<{
   draft: RequestDraft;
   updateDraft: (patch: Partial<RequestDraft>) => void;
+  chatDrafts: Record<string, string>;
+  updateChatDraft: (id: string, text: string) => void;
 } | null>(null);
 
 export function RequestDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState(emptyDraft);
+  const [chatDrafts, setChatDrafts] = useState<Record<string, string>>({});
+  const updateChatDraft = useCallback((id: string, text: string) => {
+    setChatDrafts((current) => ({ ...current, [id]: text }));
+  }, []);
   const updateDraft = useCallback(
     (patch: Partial<RequestDraft>) =>
       setDraft((current) => ({ ...current, ...patch })),
@@ -40,6 +46,8 @@ export function RequestDraftProvider({ children }: { children: ReactNode }) {
       value={{
         draft,
         updateDraft,
+        chatDrafts,
+        updateChatDraft,
       }}
     >
       {children}

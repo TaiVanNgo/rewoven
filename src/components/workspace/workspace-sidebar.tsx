@@ -3,6 +3,7 @@
 import {
   ArchiveIcon,
   BookmarkIcon,
+  BookOpenIcon,
   FilePlus2Icon,
   LightbulbIcon,
   PanelLeftCloseIcon,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/workspace/brand-logo";
+import { useOnboarding } from "@/features/onboarding/onboarding-provider";
 import { RecentQueries } from "@/features/queries/query-history";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { sidebarTransition } from "@/lib/motion";
@@ -31,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 export function WorkspaceSidebar() {
   const { updateDraft } = useRequestDraft();
+  const { restart } = useOnboarding();
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
@@ -106,6 +109,11 @@ export function WorkspaceSidebar() {
             { href: "/", label: "New chat", icon: FilePlus2Icon },
             { href: "/case-library", label: "Case library", icon: ArchiveIcon },
             { href: "/saved-plans", label: "Saved plans", icon: BookmarkIcon },
+            {
+              href: "/onboarding",
+              label: "How to use Rewoven",
+              icon: BookOpenIcon,
+            },
           ].map(({ href, label, icon: NavigationIcon }) => (
             <Link
               key={href}
@@ -119,7 +127,9 @@ export function WorkspaceSidebar() {
                         technology: "",
                         capabilities: "",
                       })
-                  : undefined
+                  : href === "/onboarding"
+                    ? restart
+                    : undefined
               }
               aria-current={
                 pathname === href ||

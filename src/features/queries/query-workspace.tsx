@@ -35,6 +35,11 @@ import {
   passageCitation,
   requestCitation,
 } from "@/features/citations/types";
+import {
+  type OnboardingStarter,
+  starterPrompts,
+} from "@/features/onboarding/model";
+import { useOnboarding } from "@/features/onboarding/onboarding-provider";
 import { ChatPlans } from "@/features/plans/chat-plans";
 import {
   type PendingQueryUpload,
@@ -82,6 +87,7 @@ export function QueryWorkspace(
 function QueryWorkspaceContent({
   id,
   initialCaseId,
+  starter,
   companion,
   onCreateStart,
   onCreated,
@@ -91,6 +97,7 @@ function QueryWorkspaceContent({
 }: {
   id: string | null;
   initialCaseId?: string | null;
+  starter?: OnboardingStarter | null;
   companion?: ReactNode;
   onCreateStart?: () => AbortSignal;
   onCreated?: (id: string) => void;
@@ -99,15 +106,26 @@ function QueryWorkspaceContent({
   onLoadError?: (id: string) => void;
 }) {
   const router = useRouter();
-  const { draft: requestDraft, updateDraft } = useRequestDraft();
+  const {
+    draft: requestDraft,
+    updateDraft,
+    chatDrafts,
+    updateChatDraft,
+  } = useRequestDraft();
+  const { dismiss } = useOnboarding();
   const { refresh } = useQueryHistory();
   const [conversation, setConversation] = useState<QueryConversation | null>(
     null,
   );
   const [context, setContext] = useState<ChatContext>(EMPTY_CHAT_CONTEXT);
   const [selected, setSelected] = useState<SelectedCase[]>([]);
-  const [localDraft, setLocalDraft] = useState("");
-  const draft = id ? localDraft : requestDraft.request;
+  const draft = id ? (chatDrafts[id] ?? "") : requestDraft.request;
+  const setLocalDraft = useCallback(
+    (text: string) => {
+      if (id) updateChatDraft(id, text);
+    },
+    [id, updateChatDraft],
+  );
   function setDraft(value: string) {
     if (id) setLocalDraft(value);
     else updateDraft({ request: value });
@@ -119,6 +137,31 @@ function QueryWorkspaceContent({
   const [loaded, setLoaded] = useState(!id && !initialCaseId);
   const [showEvidence, setShowEvidence] = useState(true);
   const input = useRef<HTMLTextAreaElement>(null);
+  const appliedStarter = useRef<OnboardingStarter | null>(null);
+  const [showFileHint, setShowFileHint] = useState(false);
+  useEffect(() => {
+    if (!starter) {
+      appliedStarter.current = null;
+      return;
+    }
+    if (id || initialCaseId || appliedStarter.current === starter) return;
+    appliedStarter.current = starter;
+    if (!requestDraft.request.trim())
+      updateDraft({ request: starterPrompts[starter] });
+    setShowFileHint(starter === "request");
+    dismiss();
+    input.current?.focus();
+    // A starter is a one-time handoff, not a saved or submitted conversation.
+    router.replace("/", { scroll: false });
+  }, [
+    starter,
+    id,
+    initialCaseId,
+    requestDraft.request,
+    updateDraft,
+    dismiss,
+    router,
+  ]);
   const thread = useRef<HTMLDivElement>(null);
   const followBottom = useRef(true);
   const draftRef = useRef(draft);
@@ -316,7 +359,7 @@ function QueryWorkspaceContent({
     }
     void load();
     return () => controller.abort();
-  }, [id, initialCaseId, refresh, restore, updateFile]);
+  }, [id, initialCaseId, refresh, restore, updateFile, setLocalDraft]);
   useEffect(() => {
     if (!id || (!processing && !pending)) return;
     const controller = new AbortController();
@@ -540,6 +583,7 @@ function QueryWorkspaceContent({
     if (failures.length) throw new Error(failures.join(" "));
   }
   function newChat() {
+    setShowFileHint(false);
     updateDraft({
       request: "",
       deadline: "",
@@ -985,6 +1029,13 @@ function QueryWorkspaceContent({
                 <ArrowUpIcon aria-hidden="true" />
               </Button>
             </div>
+            {showFileHint && (
+              <p role="note" className="mt-3 text-sm text-muted-foreground">
+                Before sending, choose Upload files to attach your supplied
+                client-brief.pdf and constraints.md. You can also describe your
+                own request here.
+              </p>
+            )}
             {!id && (
               <details className="mt-3 text-xs text-muted-foreground">
                 <summary className="cursor-pointer">
