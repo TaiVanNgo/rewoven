@@ -2,6 +2,8 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { unlinkSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { seedTarget } from "../scripts/seed-target";
+import { generatedMarkdown } from "../src/features/plans/content";
+import { registrationPlan } from "./fixtures/reuse-plan";
 
 const { url, secret } = seedTarget(false);
 const db = createClient(url, secret);
@@ -21,11 +23,13 @@ if (process.argv.includes("--generate")) {
     .eq("id", fixture.planId)
     .single();
   if (result.error) throw result.error;
-  const { evidence, generated_markdown, confirmed_request } = result.data;
+  const { evidence, generated, generated_markdown, confirmed_request } =
+    result.data;
   const updated = await db
     .from("reuse_plans")
     .update({
       evidence,
+      generated,
       generated_markdown,
       confirmed_request,
       title: confirmed_request.title,
@@ -49,6 +53,7 @@ const token = randomBytes(32).toString("hex"),
   sourceId = randomUUID(),
   chunkId = randomUUID(),
   planId = randomUUID(),
+  legacyId = randomUUID(),
   reviewId = randomUUID(),
   turnId = randomUUID();
 async function insert(table: string, data: Record<string, unknown>) {
@@ -145,8 +150,10 @@ const snapshot = {
   throughTurnId: turnId,
   warnings: [],
 };
-const markdown =
+const legacyMarkdown =
   "## Relevant precedent and important differences\n\n- **Recorded evidence:** The fictional pilot used transaction-enforced seat leases; its outcome was not recorded. [S1]\n\n## What to reuse\n\n- **Suggested action:** Evaluate transaction-enforced seat reservations. [S1]\n\n## Required adaptations\n\n- **Suggested action:** Confirm the required reservation duration.\n\n## Lessons and risks\n\n- **Recorded evidence:** The journal records a duplicate confirmation issue. [S1]\n\n## Clarification questions\n\n- What capacity and reservation duration are required?\n\n## Suggested next steps\n\n- Review the proposed concurrency behavior with the project lead.";
+const generated = registrationPlan();
+const markdown = generatedMarkdown(generated, evidence);
 await insert("reuse_plans", {
   id: planId,
   session_id: sessionId,
@@ -157,7 +164,23 @@ await insert("reuse_plans", {
   confirmed_request: brief,
   status: "ready",
   evidence,
+  generated,
   generated_markdown: markdown,
+});
+await insert("reuse_plans", {
+  id: legacyId,
+  session_id: sessionId,
+  conversation_id: queryId,
+  title: "Legacy registration plan",
+  snapshot,
+  brief,
+  confirmed_request: brief,
+  status: "ready",
+  evidence,
+  generated_markdown: legacyMarkdown,
+  saved_markdown: legacyMarkdown,
+  saved_title: "Legacy registration plan",
+  saved_at: new Date().toISOString(),
 });
 await insert("reuse_plans", {
   id: reviewId,
@@ -170,7 +193,15 @@ await insert("reuse_plans", {
 });
 writeFileSync(
   file,
-  JSON.stringify({ token, sessionId, queryId, planId, reviewId }),
+  JSON.stringify({
+    token,
+    sessionId,
+    queryId,
+    planId,
+    reviewId,
+    legacyId,
+    legacyMarkdown,
+  }),
   { mode: 0o600 },
 );
 console.log("Browser fixture prepared.");

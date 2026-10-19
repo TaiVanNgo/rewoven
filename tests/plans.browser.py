@@ -35,6 +35,12 @@ with sync_playwright() as p:
     expect(visual).to_be_visible()
     expect(page.get_by_role('button', name='Export Markdown', exact=True)).to_be_disabled()
     original = page.request.get(base + '/api/plans/' + fixture['reviewId']).json()['plan']['generated_markdown']
+    preview = page.get_by_label('Plan preview')
+    expect(preview.get_by_role('heading', name='Proposed outcome', exact=True)).to_be_visible()
+    expect(preview.locator('ol > li')).to_have_count(3)
+    expect(preview.locator('ol > li').first).to_contain_text('Done when:')
+    assert 'Recorded evidence:' not in preview.inner_text()
+    assert 'Suggested action:' not in preview.inner_text()
     page.get_by_role('tab', name='Markdown', exact=True).click()
     editor = page.get_by_label('Edit Markdown', exact=True)
     expect(editor).to_have_value(original)
@@ -155,6 +161,9 @@ with sync_playwright() as p:
         page.get_by_role('button', name='Export Markdown', exact=True).click()
     assert '**' + phrase + '**' in Path(visual_download.value.path()).read_text()
     page.screenshot(path=str(out / 'visual-desktop.png'), full_page=True)
+    page.emulate_media(color_scheme='dark')
+    page.screenshot(path=str(out / 'visual-desktop-dark.png'), full_page=True)
+    page.emulate_media(color_scheme='light')
 
     # Unsupported source must remain exact, including after reload.
     page.get_by_role('tab', name='Markdown', exact=True).click()
@@ -240,6 +249,16 @@ with sync_playwright() as p:
     page.screenshot(path=str(out / 'mobile.png'), full_page=True)
     page.emulate_media(color_scheme='dark', reduced_motion='reduce')
     page.screenshot(path=str(out / 'mobile-dark.png'), full_page=True)
+    # Legacy saved text is never regenerated or normalized on load/export.
+    page.goto(base + '/saved-plans/' + fixture['legacyId'])
+    page.wait_for_load_state('networkidle')
+    legacy = page.request.get(base + '/api/plans/' + fixture['legacyId']).json()['plan']
+    assert legacy['saved_markdown'] == fixture['legacyMarkdown']
+    page.get_by_role('button', name='Preview', exact=True).click()
+    expect(preview.get_by_role('heading', name='Relevant precedent and important differences', exact=True)).to_be_visible()
+    with page.expect_download() as legacy_download:
+        page.get_by_role('button', name='Export Markdown', exact=True).click()
+    assert fixture['legacyMarkdown'] in Path(legacy_download.value.path()).read_text()
     page.once('dialog', lambda dialog: dialog.accept())
     page.goto(base + '/?query=' + fixture['queryId'])
     page.wait_for_load_state('networkidle')

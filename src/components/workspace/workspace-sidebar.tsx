@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/workspace/brand-logo";
+import { ApiKeySettings } from "@/features/ai-key/api-key-settings";
 import { useOnboarding } from "@/features/onboarding/onboarding-provider";
 import { RecentQueries } from "@/features/queries/query-history";
 import { useRequestDraft } from "@/features/requests/request-draft";
@@ -155,6 +156,9 @@ export function WorkspaceSidebar() {
             </Link>
           ))}
         </nav>
+        <div className="shrink-0">
+          <ApiKeySettings collapsed={collapsed} />
+        </div>
         <RecentQueries collapsed={collapsed} />
       </div>
       <div

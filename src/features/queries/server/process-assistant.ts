@@ -273,7 +273,7 @@ export async function processAssistantTurn(
     if (!config)
       throw new ApiError(
         503,
-        "Configure OPENAI_API_KEY on the server to chat with Wren. Keyword excerpts remain available below.",
+        "Add your OpenAI key in API key settings to chat with Wren. Keyword excerpts remain available below.",
       );
     if (!evidence.length && !requestDocuments.evidence.length) {
       await save({

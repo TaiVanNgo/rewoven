@@ -18,7 +18,7 @@ bun run dev
 
 1. Open the URL printed by Next.js, usually `http://localhost:3000`.
 2. Keep the default Case library scope to discover relevant projects across the nine preloaded projects and your own historical cases. **Add cases** is optional and narrows the search to specific projects.
-3. Choose **Upload files**, or drop files onto the composer. Add a brief and supporting checklist. Type a question if useful, then choose **Send**. Selecting a file alone does not start AI processing.
+3. Choose **Upload files**, or drag files anywhere over the Ask Wren workspace. A **Drop files here** overlay appears over the chat, composer, and evidence panel. For example, drop `client-brief.pdf` and `constraints.md`, then check their pending attachment chips. Type a question if useful, then choose **Send**. Dropping or selecting files alone does not upload them or start AI processing.
 4. Watch each file's upload, extraction, and reading progress. Wren starts comparison after the accepted files finish reading; there is no mandatory request-review screen.
 5. Open a numbered reference to inspect its original PDF page or highlighted text. Request citations say **Request document**; historical citations retain the case title.
 6. Send a follow-up with or without more files. Earlier active documents remain available even after their original messages fall outside the recent-message window.
@@ -35,6 +35,12 @@ Stop Next.js with Ctrl+C; use `bun run db:stop` to stop Supabase while preservin
 - `supabase/migrations/202610170009_query_files.sql` creates the isolated document records, attempt accounting, and processing functions. `202610170010_plan_request_evidence.sql` retains the passages used during plan generation. `supabase/config.toml` declares the private `query-files` bucket.
 
 Each document retains immutable original bytes, extracted pages, text offsets, processing progress, and source-linked findings. PDF extraction advances ten pages at a time. Reading advances twenty excerpts at a time and combines at most four intermediate findings sets. Completed stages are saved; retry does not reread them. Summaries help find cases, while original excerpts support displayed claims. Both request and historical evidence are limited to selected passages on each answer, rather than sending every original document repeatedly.
+
+### Dragging files into a message
+
+The Client Component uses `src/features/query-files/use-query-file-drop.ts` to listen for file drags at the workspace boundary. A ref counts nested drag entries so moving over text, controls, or the evidence panel does not flicker the overlay. Dropping passes the browser's files to the same validation and pending-attachment flow as **Upload files**; the composer no longer handles a second copy of the drop. Text and link drags keep their normal browser behavior.
+
+The overlay uses the current light or dark theme, adds no layout space, and does not take focus or intercept pointer events. Leaving the workspace, dropping, pressing Escape, ending the drag, or switching away from the browser clears it. The sidebar and other routes are outside the drop area. While a chat is opening or Wren is processing, both dropping and picking files are disabled; dropping there does not open the file in the browser or change the pending attachments. On touch devices, use **Upload files** when dragging is unavailable.
 
 The database serializes reservations and context changes within a conversation. Each turn freezes its enabled document IDs alongside the existing case-selection snapshot. Request documents have their own table and bucket and never enter historical search or automatically create a case. Ownership and session expiry are checked for processing, previews, original downloads, and plan creation. Browser database roles cannot read these records directly.
 
@@ -67,4 +73,8 @@ bun run build
 bun run test:integration
 ```
 
-The request-file integration test uses mocked AI responses and real local storage/database operations. It covers complete reading beyond 50,000 characters, a requirement near a document's end, checkpoint retry, file-only answers without historical matches, session isolation, PDF gaps, immutable turn snapshots, saved-plan references, and export. Existing extraction tests cover corrupt, scanned, encrypted, non-UTF-8 and over-limit sources. Browser verification should also check upload selection, file-only Send, follow-ups, source inspection, exclusion/restoration, keyboard access, narrow layouts, themes, and reduced motion. Full-capacity latency and hosted deployment behavior require separate measurements.
+The request-file integration test uses mocked AI responses and real local storage/database operations. It covers complete reading beyond 50,000 characters, a requirement near a document's end, checkpoint retry, file-only answers without historical matches, session isolation, PDF gaps, immutable turn snapshots, saved-plan references, and export. Existing extraction tests cover corrupt, scanned, encrypted, non-UTF-8 and over-limit sources.
+
+With the local app open in Playwright CLI, run `run-code --filename tests/query-file-drop.browser.js` for the focused file-drop check. It uses mocked saved chats and browser drag events to check new and saved chats, evidence-panel drops, nested drag entries, cancellation and navigation, validation errors, picker selection, loading and processing states, unchanged drafts, focus, themes, narrow layouts, and reduced motion. It asserts that dropping files does not submit them. Chromium's native file-drag path was also checked locally with a real Markdown fixture; this does not establish behavior in every browser or on the hosted app.
+
+Browser verification should also check file-only Send, follow-ups, source inspection, exclusion/restoration, and keyboard access. Full-capacity latency and hosted deployment behavior require separate measurements.

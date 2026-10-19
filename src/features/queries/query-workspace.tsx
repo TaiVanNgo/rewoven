@@ -3,6 +3,7 @@
 import {
   ArrowUpIcon,
   BookOpenIcon,
+  FileUpIcon,
   LoaderCircleIcon,
   PlusIcon,
   SparklesIcon,
@@ -56,6 +57,7 @@ import {
   FILE_ONLY_MESSAGE,
   type QueryFile,
 } from "@/features/query-files/types";
+import { useQueryFileDrop } from "@/features/query-files/use-query-file-drop";
 import { useRequestDraft } from "@/features/requests/request-draft";
 import { AnswerText } from "./answer-text";
 import { CasePicker, type SelectedCase } from "./case-picker";
@@ -189,7 +191,7 @@ function QueryWorkspaceContent({
     if (id && !opened && error) onLoadError?.(id);
   }, [id, opened, error, onLoadError]);
   function addFiles(files: File[]) {
-    if (busy) return;
+    if (busy || !loaded) return;
     try {
       if (uploads.length + files.length > 5)
         throw new Error("Choose up to five files per message.");
@@ -211,6 +213,10 @@ function QueryWorkspaceContent({
       setError((e as Error).message);
     }
   }
+  const { isDragging, dropHandlers } = useQueryFileDrop({
+    disabled: busy || !loaded,
+    onFiles: addFiles,
+  });
   const updateFile = useCallback((file: QueryFile) => {
     setConversation((previous) =>
       previous
@@ -603,7 +609,24 @@ function QueryWorkspaceContent({
     <div
       className="query-workspace"
       data-evidence={hasEvidence && showEvidence}
+      {...dropHandlers}
     >
+      {isDragging && (
+        <div className="query-file-drop-overlay">
+          <output className="query-file-drop-message">
+            <FileUpIcon
+              aria-hidden="true"
+              className="size-10 text-knowledge-ink"
+            />
+            <span className="font-heading text-2xl font-bold">
+              Drop files here
+            </span>
+            <span className="text-sm text-muted-foreground">
+              PDF, TXT or MD · Up to 5 files per message · 5 MB each
+            </span>
+          </output>
+        </div>
+      )}
       <header className="query-toolbar">
         <div>
           <h1
@@ -884,15 +907,6 @@ function QueryWorkspaceContent({
           </div>
           <form
             className="query-chat-form"
-            onDragOver={(e) => {
-              if (e.dataTransfer.types.includes("Files")) e.preventDefault();
-            }}
-            onDrop={(e) => {
-              if (e.dataTransfer.files.length) {
-                e.preventDefault();
-                addFiles(Array.from(e.dataTransfer.files));
-              }
-            }}
             onSubmit={(e) => {
               e.preventDefault();
               void send(draft);

@@ -1,3 +1,4 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import {
   apiError,
   boundedJson,
@@ -11,7 +12,7 @@ import {
   processQueryFile,
 } from "@/features/query-files/server/repository";
 export const maxDuration = 90;
-export async function POST(
+export const POST = withOpenAIKey(async function POST(
   request: Request,
   context: RouteContext<"/api/query-files/[id]/process">,
 ) {
@@ -32,4 +33,4 @@ export async function POST(
   } catch (error) {
     return apiError(error);
   }
-}
+});

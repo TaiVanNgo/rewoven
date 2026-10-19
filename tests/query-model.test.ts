@@ -151,6 +151,13 @@ test("reuse plans restrict generated references to historical excerpts, not requ
         payload.text.format.schema.properties.sections.items.properties.items
           .items.properties.evidence;
       assert.deepEqual(refs.items.enum, ["e1"]);
+      assert.deepEqual(
+        payload.text.format.schema.properties.formatVersion.enum,
+        [2],
+      );
+      assert.match(payload.instructions, /project lead/);
+      assert.match(payload.instructions, /doneWhen/);
+      assert.equal(payload.max_output_tokens, 4500);
       return Response.json({
         status: "completed",
         output: [

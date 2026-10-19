@@ -40,6 +40,16 @@
 .plan-prose li + li {
   margin-top: 0.6em;
 }
+.plan-prose ol > li + li {
+  margin-top: 1.2em;
+}
+.plan-prose ol > li::marker {
+  font-weight: 700;
+  color: var(--color-knowledge-ink);
+}
+.plan-prose li > p + p {
+  margin-top: 0.4em;
+}
 .plan-prose a {
   text-decoration: underline;
 }

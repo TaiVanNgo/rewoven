@@ -1,3 +1,4 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import { advanceCaseReading } from "@/features/cases/server/case-reading";
 import {
   apiError,
@@ -6,7 +7,7 @@ import {
   json,
 } from "@/features/cases/server/http";
 import { requireSession } from "@/features/cases/server/session";
-export async function POST(
+export const POST = withOpenAIKey(async function POST(
   request: Request,
   context: RouteContext<"/api/cases/[id]/read">,
 ) {
@@ -25,4 +26,4 @@ export async function POST(
   } catch (error) {
     return apiError(error);
   }
-}
+});

@@ -1,4 +1,5 @@
 import "server-only";
+import { openAIKey, providerError } from "@/features/ai-key/server";
 import { createSuggestionsSchema, SuggestionError } from "../case-suggestions";
 import type { SourcePage } from "../types";
 import { ApiError } from "./http";
@@ -25,11 +26,11 @@ function limit(name: string, fallback: number) {
   return number;
 }
 export function caseAIConfig() {
-  const key = process.env.OPENAI_API_KEY;
+  const key = openAIKey();
   if (!key || key === "your-api-key")
     throw new ApiError(
       503,
-      "AI reading is not configured. Configure OPENAI_API_KEY on the server, or enter the details manually.",
+      "AI reading is not configured. Add your OpenAI key in API key settings, or enter the details manually.",
     );
   const development = process.env.NODE_ENV === "development";
   return {
@@ -102,22 +103,8 @@ export async function suggestExcerpts(
         },
       }),
     });
-    if (!response.ok) {
-      if (response.status === 429)
-        throw new ApiError(
-          429,
-          "OpenAI's usage limit was reached. Check API billing or wait before retrying. Manual entry is still available.",
-        );
-      if (response.status === 401 || response.status === 403)
-        throw new ApiError(
-          503,
-          "The server's OpenAI key cannot access AI reading. Check the key and model access, or enter details manually.",
-        );
-      throw new ApiError(
-        502,
-        "OpenAI could not read this source. Try again or enter the details manually.",
-      );
-    }
+    if (!response.ok)
+      throw providerError(response.status, "read these documents");
     const body = await response.json();
     if (body.status !== "completed" || !Array.isArray(body.output))
       throw new SuggestionError(

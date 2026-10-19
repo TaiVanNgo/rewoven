@@ -99,7 +99,7 @@ export async function processPlan(
       if (!ai)
         throw new ApiError(
           503,
-          "Configure OPENAI_API_KEY on the server to generate a plan. Your request is preserved.",
+          "Add your OpenAI key in API key settings to generate a plan. Your request is preserved.",
         );
       const reservation = await db.rpc("reserve_plan_ai", {
         p_session: sessionId,
