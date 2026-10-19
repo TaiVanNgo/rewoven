@@ -2,14 +2,15 @@
 
 ## Start with the repository
 
-- Read `README.md` for setup, the first-use checklist, and development versus
-  production commands. Check `package.json` and the relevant configuration before
-  choosing commands or adding dependencies.
+- Read `README.md` for the product introduction and `docs/development.md` for
+  setup, the first-use checklist, and development versus production commands.
+  Check `package.json` and the relevant configuration before choosing commands
+  or adding dependencies.
 - Inspect the current code and Git diff; preserve changes already made by the user.
 - Determine whether the task changes this reusable starter or a project created
   from it. Keep starter changes broadly reusable; use the project's brief for
   product-specific content and dependencies.
-- When asked to initialize a new project, follow the README's first-use checklist.
+- When asked to initialize a new project, follow the development guide's first-use checklist.
   Complete items supported by the user's brief and identify missing decisions;
   avoid inventing names, branding, credentials, or deployment details.
 
@@ -62,8 +63,47 @@
 
 ## SEO changes
 
-- Read the README's SEO setup before changing metadata or adding public routes. Use `src/lib/site.ts` for shared identity and `createPageMetadata` for each page's title, description, canonical, and social metadata. Add actual public routes to the sitemap and keep modification dates tied to content changes.
+- Read the development guide's SEO setup before changing metadata or adding public routes. Use `src/lib/site.ts` for shared identity and `createPageMetadata` for each page's title, description, canonical, and social metadata. Add actual public routes to the sitemap and keep modification dates tied to content changes.
 - Configure the real site origin and indexing policy for each deployment. Verify emitted HTML, `/robots.txt`, `/sitemap.xml`, and social image responses; distinguish local verification from deployed behavior and search-engine indexing.
+
+## Project documentation
+
+- Keep `README.md` focused on introducing Rewoven to users: the problem, Wren,
+  supported workflows, the fictional demo, current limits, and how to get started.
+- Keep detailed setup, commands, architecture, and UI conventions in
+  `docs/development.md`; keep feature walkthroughs in `docs/features/`.
+- Record unresolved information below instead of adding guessed facts or empty
+  placeholders to the README. Move confirmed information into the appropriate
+  public guide when the decision is made and verified.
+- Preserve the existing Wren artwork at `public/images/wren.png` and its README
+  image reference. Generated video assets and their guide remain local-only.
+
+## Unresolved project information
+
+These items remain open as of 19 October 2026. They are decisions or verification
+tasks, not promises of future features.
+
+- **License and redistribution:** no root `LICENSE` file exists. The owner needs
+  to choose a license and confirm terms for the Wren artwork and bundled demo
+  material before the README makes open-source or redistribution claims. Review
+  separately licensed imported agent skills before redistributing them.
+- **Public demo link and deployment:** the deployment guide names
+  `https://rewoven.dev`, but live access could not be verified during the README
+  update. Confirm the public URL and test hosted onboarding, seeded cases,
+  original-source access, request uploads, chat, citations, and plan save/export
+  before adding a live-demo link or claiming a verified production release.
+- **Production configuration and indexing:** verify the deployed `SITE_URL`,
+  indexing policy, emitted metadata, robots, sitemap, migration state, private
+  buckets, and semantic-index coverage. Local code and tests do not establish
+  production configuration or behavior. Follow
+  `docs/features/ci-cd-and-production.md`.
+- **Data retention:** sessions expire after 24 hours, but expiry does not delete
+  stored records or files. A retention policy and automatic expiry cleanup are
+  unresolved; do not promise either. Case deletion has its own explicit cleanup
+  workflow documented in `docs/features/case-library-and-ingestion.md`.
+- **Accounts and collaboration:** account sign-in and shared team workspaces are
+  not implemented. Confirm scope before describing durable accounts,
+  organization-wide access, or collaboration as available features.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
