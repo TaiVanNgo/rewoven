@@ -162,10 +162,14 @@ test("reuse plans restrict generated references to historical excerpts, not requ
     config,
     async (_url, init) => {
       const payload = JSON.parse(String(init.body));
+      const branches = payload.text.format.schema.properties.draft.anyOf;
       const refs =
-        payload.text.format.schema.properties.sections.items.properties.items
-          .items.properties.evidence;
+        branches[0].properties.sections.properties["What to reuse and change"]
+          .items.anyOf[0].properties.evidence;
       assert.deepEqual(refs.items.enum, ["e1"]);
+      assert.equal(refs.minItems, 1);
+      assert.deepEqual(branches[0].properties.kind.enum, ["reuse"]);
+      assert.deepEqual(branches[1].properties.kind.enum, ["clarification"]);
       assert.deepEqual(
         payload.text.format.schema.properties.formatVersion.enum,
         [2],

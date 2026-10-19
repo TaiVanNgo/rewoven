@@ -9,6 +9,7 @@ import {
   type ActionablePlan,
   type GeneratedPlan,
   PLAN_HEADINGS,
+  PLAN_ITEM_LIMITS,
   type PlanBrief,
   type ReusePlan,
 } from "./types";
@@ -44,7 +45,24 @@ export function validateGenerated(
   value: unknown,
   evidence: Evidence[],
 ): ActionablePlan {
-  const plan = value as ActionablePlan;
+  // The provider returns required named sections so it cannot repeat or omit
+  // headings. Persist the existing ordered-array format for editors and exports.
+  const response = value as {
+    formatVersion?: unknown;
+    draft?: { kind?: unknown; sections?: Record<string, unknown> };
+  } | null;
+  const plan = (
+    response?.draft
+      ? {
+          formatVersion: response.formatVersion,
+          kind: response.draft.kind,
+          sections: PLAN_HEADINGS.map((heading) => ({
+            heading,
+            items: response.draft?.sections?.[heading],
+          })),
+        }
+      : value
+  ) as ActionablePlan;
   if (
     !plan ||
     plan.formatVersion !== 2 ||
@@ -54,7 +72,6 @@ export function validateGenerated(
   )
     throw new Error("Wren returned an invalid plan. Retry generation.");
   const ids = new Set(evidence.map((e) => e.id));
-  const maxima = [2, 4, 5, 3, 4];
   for (const [index, section] of plan.sections.entries()) {
     if (
       !section ||
@@ -63,7 +80,7 @@ export function validateGenerated(
       ((!index || index === 2 || (index === 1 && plan.kind === "reuse")) &&
         !section.items.length) ||
       (index === 1 && plan.kind === "clarification" && section.items.length) ||
-      section.items.length > maxima[index]
+      section.items.length > PLAN_ITEM_LIMITS[index]
     )
       throw new Error("The plan has missing sections. Retry generation.");
     for (const item of section.items) {

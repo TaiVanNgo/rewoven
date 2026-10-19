@@ -34,6 +34,8 @@ if (process.argv.includes("--generate")) {
       confirmed_request,
       title: confirmed_request.title,
       status: "ready",
+      failed_stage: null,
+      error_message: null,
     })
     .eq("id", fixture.reviewId);
   if (updated.error) throw updated.error;
@@ -182,6 +184,7 @@ await insert("reuse_plans", {
   saved_title: "Legacy registration plan",
   saved_at: new Date().toISOString(),
 });
+const reviewFailed = process.env.PLAN_BROWSER_START_FAILED === "true";
 await insert("reuse_plans", {
   id: reviewId,
   session_id: sessionId,
@@ -189,7 +192,14 @@ await insert("reuse_plans", {
   title: "Review request",
   snapshot,
   brief,
-  status: "review",
+  status: reviewFailed ? "failed" : "review",
+  ...(reviewFailed
+    ? {
+        failed_stage: "generate",
+        error_message: "The plan has missing sections. Retry generation.",
+        confirmed_request: brief,
+      }
+    : {}),
 });
 writeFileSync(
   file,
@@ -199,6 +209,7 @@ writeFileSync(
     queryId,
     planId,
     reviewId,
+    reviewFailed,
     legacyId,
     legacyMarkdown,
   }),
