@@ -4,6 +4,44 @@ Imagine a new branch purchasing project. Your team has a fictional purchasing pi
 
 The result is a starting plan for human review. A cited requirement or design proposal does not establish delivered functionality. Missing outcomes remain unknown, and recommendations describe proposed work.
 
+## Read the plan from outcome to action
+
+New drafts are written for a project lead preparing a client discussion or engineering brief. Wren aims for 400–650 words, with room to preserve important requirements. That length is writing guidance, not a reason to cut an access rule or approval condition.
+
+The plan uses these sections in order:
+
+| Section                      | What to look for                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| **Proposed outcome**         | The proposed solution and an illustrative workflow based on the confirmed request.        |
+| **What to reuse and change** | A few relevant historical approaches, why they help, and the adaptation needed this time. |
+| **Implementation steps**     | Ordered actions, each with a **Done when** condition that someone can check.              |
+| **Risks and limits**         | Material limitations, conflicts, or dependencies. Omitted when empty.                     |
+| **Decisions to confirm**     | Unanswered questions and the work each answer affects. Omitted when empty.                |
+
+For example, the older format could say:
+
+> **Suggested action:** Reuse the immutable revision-bound approval model.
+
+A clearer reuse item explains the behavior and the boundary:
+
+> The purchasing pilot recorded approvals tied to the exact request version. For this request, adapt that pattern to both review stages so changes require approval again. The pilot does not establish that the combined two-stage flow works. [S1]
+
+An implementation step then makes the action reviewable:
+
+1. Add manager review, then finance review when the confirmed spending rule requires it.
+
+   **Done when:** tests below, at, and above the threshold take the correct stages, and changing a price after approval restarts manager review.
+
+The citation above is illustrative: real draft markers resolve to that draft's retrieved evidence. Wren keeps the evidence kind internally, but uses natural wording instead of prefixing every bullet with “Recorded evidence” or “Suggested action.” Numbered steps and completion conditions use ordinary Markdown, so they work in the visual editor, preview, and exported file.
+
+Current requirements come from the reviewed request and request documents. Historical citations support claims about past work and proposed reuse. For example, Northbank's inclusive VND 10 million threshold is a client requirement; an unimplemented purchasing proposal cannot establish that the threshold was delivered successfully. Full historical excerpts remain under **Original AI draft and evidence**, and exports retain request-document references separately.
+
+During request review, check exact amounts, stage order, who can act, which edits restart approval, retry/access rules, exclusions, and delivery constraints. Preparation is instructed to preserve them explicitly and surface unresolved conflicts. This instruction does not guarantee that a model will retain every requirement: review the summary before confirming it. A requested four-week window remains a constraint, not a verified delivery estimate.
+
+When no suitable precedent is available, the clarification draft explains the gap, lists discovery steps with completion conditions, and asks for relevant records. It omits reuse claims rather than filling the plan with unrelated cases. Partial evidence should produce fewer reuse items, and conflicting evidence should retain both references.
+
+Existing plans keep their original saved text and headings. To get the new structure, create a separate draft from the chat; old plans are never automatically rewritten.
+
 ## Set up and try it
 
 Use Node.js 20.19+ and the Bun version in `package.json`. Start the Docker-compatible runtime and configure ignored `.env.local` using the README. Keep server credentials and `OPENAI_API_KEY` there, never in browser code.
@@ -41,6 +79,10 @@ Next.js maps folders under `app` to URLs: `/saved-plans` lists saved plans, and 
 The server captures the originating chat and case-selection scope. Confirmation freezes the reviewed request. Generation searches original source passages afresh with the existing evidence budget of 30 passages / 60,000 characters. Attached documents' opening paragraphs are not automatically added to establish precedent. The model returns typed findings and server-resolved evidence IDs; validation runs before Markdown is published.
 
 Each generation creates a separate draft. Retries resume that draft and confirmed request. To change the confirmed request, return to the chat and create another plan. The original generation stays separate from the latest explicit save; there is no full save history or automatic merging.
+
+The generated JSON now carries `formatVersion: 2`, five ordered sections, and a `doneWhen` string for every item. Only implementation steps use a nonempty `doneWhen`; validation requires an observable-condition field for every step. Required sections cannot be empty in a reuse draft, and every reuse choice must reference historical evidence. Risks and decisions may have empty arrays and are omitted from Markdown. The schema keeps the existing fact/inference/recommendation/unknown kinds. Structural validation cannot determine whether a completion condition is useful or whether a passage entails a claim.
+
+The `generated` field supports legacy unversioned records alongside version 2. Existing generated and saved Markdown remain authoritative for those records; reading, editing, saving, and exporting them does not regenerate their content. No database migration, new endpoint, model change, or additional model call is required.
 
 ## Editing, evidence, and export
 
@@ -109,6 +151,28 @@ bun --env-file=.env.local tests/plans.browser-fixture.ts --cleanup
 ```
 
 Set `TEST_BASE_URL` when the app uses a port other than 3000. The fixture script rejects hosted Supabase targets and creates only its own fictional session records. Always run cleanup afterward, including after a failed browser check. Screenshots are written under `/tmp/rewoven-plans-browser/`.
+
+### Opt-in writing-quality review
+
+The version 2 update was locally verified on 19 October 2026: 145 unit tests, 21 integration tests across 14 files, formatting, lint, type checking, and the production build passed. Browser checks at 1440 px and 390 px in light/dark themes covered the new headings and numbered completion conditions, citations, editing, save/reload, export, recovery, conflicts, and legacy-plan display/export. Provider output was mocked. The live evaluation below was not run; its explicit opt-in guard was checked without making a provider call.
+
+To inspect an actual model response separately from mocked tests:
+
+```bash
+bun --conditions=react-server --env-file=.env.local scripts/evaluate-plans.ts --live
+```
+
+This makes **one billable OpenAI plan-generation call**, using the configured chat model and `OPENAI_API_KEY`. Without `--live` it exits before making a provider call. It supplies the local fictional Northbank constraints and selected historical implementation notes, validates the versioned structure, and writes `plan.md` and `plan.json` into a new `/tmp/rewoven-plan-quality-*` directory. The sample includes original source excerpts for manual comparison, without app citation-viewer links. No database records are changed, and this standalone script does not apply the app's usage counters.
+
+Review the sample against these questions:
+
+- Can a project lead identify the outcome, first action, reused approach, and main unanswered decision without interpreting unexplained jargon?
+- Does each step have an observable completion condition, with dependencies in a sensible order and no repeated questions?
+- Are the inclusive VND 10 million threshold, review order, distinct actors, approval invalidation, retries, branch permissions, scoped event export, and exclusions preserved?
+- Are proposals distinguished from delivered behavior, and is four weeks still a requested constraint?
+- Do the cited excerpts support the historical claims, including any conflicting evidence?
+
+This is a fixed-evidence writing review, not a retrieval benchmark, a request-preparation test, or a production-quality certification. Word count is reported for review; it does not automatically pass or fail quality. Mocked fixtures verify structure, source-marker preservation, persistence, and export, but cannot establish how consistently a live model writes clear or complete plans. Broader live evaluation remains separate.
 
 ### Developing in a separate worktree
 
