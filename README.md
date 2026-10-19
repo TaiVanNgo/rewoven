@@ -116,6 +116,7 @@ Rewoven uses **Next.js App Router**, **React**, **TypeScript**, and **Tailwind C
 - [Architecture and RAG](docs/architecture.md) — follow the implementation from source ingestion to cited answers and saved plans.
 - [Welcome walkthrough](docs/features/onboarding.md) — learn the demo’s story and first steps.
 - [Conversations with Wren](docs/features/conversational-queries.md) — ask questions, focus your search, and inspect citations.
+- [Deeper engineering evidence](docs/features/engineering-case-evidence.md) — explore worked architectures, code examples, diagrams, and fictional case boundaries.
 - [Request document uploads](docs/features/query-file-uploads.md) — attach current requirements and understand file processing.
 - [Case library](docs/features/case-library-and-ingestion.md) — add, review, edit, and delete historical cases.
 - [Reuse plans](docs/features/reuse-plans.md) — review, generate, edit, save, and export a plan.

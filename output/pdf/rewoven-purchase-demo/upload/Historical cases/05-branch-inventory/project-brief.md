@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Branch Inventory Request Portal  
 **Period:** March 2026  
 **Status:** Delivered branch-scoped pilot  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 

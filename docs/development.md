@@ -113,6 +113,8 @@ For a hosted deployment, provision the same bucket using the declared configurat
 
 ## Formatting and Tailwind class sorting
 
+For the authored engineering corpus and technical replies, follow [deeper case evidence](features/engineering-case-evidence.md). `bun run test:wren:live` is a separate billable, local-only rehearsal of Wren's actual planner, retrieval, review, and answer flow; it is not part of the ordinary test suite.
+
 Prettier handles formatting through the official `prettier-plugin-tailwindcss` plugin. Biome's formatter is disabled; Biome still checks code quality and import organization. Run `bun run format` to format the project, or `bunx prettier --write 'src/app/(workspace)/page.tsx'` to format one file.
 
 In VS Code or Cursor, install the recommended **Prettier - Code formatter** and **Biome** extensions. The committed `.vscode/settings.json` enables Prettier on save and Biome import organization on explicit saves. The CLI commands work without editor extensions.

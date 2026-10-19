@@ -107,6 +107,8 @@ export function validateAnswer(
       typeof item.text !== "string" ||
       !item.text.trim() ||
       item.text.length > 2000 ||
+      (["unknown", "conversation"].includes(String(item.kind)) &&
+        item.text.includes("```")) ||
       !Array.isArray(item.evidence) ||
       item.evidence.length > 6 ||
       item.evidence.some((id) => typeof id !== "string" || !ids.has(id)) ||

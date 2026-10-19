@@ -84,7 +84,7 @@ test("default library discovers nine projects, excludes other sessions and retir
       );
       const source = randomUUID();
       const text =
-        "Threadline request review history private or retired sentinel.";
+        "Threadline request review history private or retired sessionuploadsentinel.";
       assert.ifError(
         (
           await db.from("source_documents").insert({
@@ -202,9 +202,13 @@ test("default library discovers nine projects, excludes other sessions and retir
             };
           if (kind === "assistant_review") return { query: "" };
           assert.ok(payload.evidence?.length);
-          assert.deepEqual(
-            new Set(payload.evidence.map((e) => e.case_id)),
-            ids,
+          assert.ok(payload.evidence.every((e) => ids.has(e.case_id)));
+          // A larger corpus need not put every case into one ranked bundle.
+          // The planner's unsolicited shortlist must still not limit discovery.
+          assert.ok(
+            payload.evidence.some(
+              (e) => ![...ids].slice(0, 3).includes(e.case_id),
+            ),
           );
           return {
             sections: [
@@ -230,9 +234,10 @@ test("default library discovers nine projects, excludes other sessions and retir
     assert.equal(query.turns[0].context_snapshot?.mode, "library");
     assert.equal(query.turns[0].request_file_ids?.length, 2);
     assert.ok(query.turns[0].work?.requestEvidence?.length);
-    assert.equal(
-      new Set(query.turns[0].work?.evidence.map((e) => e.case_id)).size,
-      9,
+    assert.ok(
+      query.turns[0].work?.evidence.some(
+        (e) => ![...ids].slice(0, 3).includes(e.case_id),
+      ),
     );
     const restored = await fetch(`${base}/api/queries/${query.id}`, {
       headers: { Cookie: `rewoven-session=${token}` },
@@ -267,6 +272,22 @@ test("default library discovers nine projects, excludes other sessions and retir
     assert.ok(
       direct.data.every((p: { case_id: string }) => ids.has(p.case_id)),
     );
+    // Verify each project's eligibility independently of the global top-60 cap.
+    for (const item of catalog) {
+      const eligible = await db.rpc("retrieve_assistant_passages", {
+        p_session: sessionId,
+        p_query: item.fixture.title,
+        p_cases: [item.id],
+      });
+      assert.ifError(eligible.error);
+      assert.ok(
+        eligible.data.length,
+        `${item.fixture.title} has no eligible passages`,
+      );
+      assert.ok(
+        eligible.data.every((p: { case_id: string }) => p.case_id === item.id),
+      );
+    }
 
     const plan = await createPlan(
       query.id,
@@ -325,7 +346,7 @@ test("default library discovers nine projects, excludes other sessions and retir
       ).error,
     );
     const combined = await retrieveAssistant(
-      ["Threadline request review history"],
+      ["Threadline", "sessionuploadsentinel"],
       { mode: "library", caseIds: [] },
       [],
       sessionId,
@@ -353,3 +374,159 @@ test("default library discovers nine projects, excludes other sessions and retir
     if (paths.length) await db.storage.from("query-files").remove(paths);
   }
 }, 30000);
+
+test("irrelevant keyword overlap yields a scoped unknown without generating unsupported claims", async () => {
+  assert.ok(
+    ["localhost", "127.0.0.1"].includes(
+      new URL(process.env.SUPABASE_URL ?? "").hostname,
+    ),
+  );
+  const session = await db
+    .from("demo_sessions")
+    .insert({ token_hash: hashSessionToken(newSessionToken()) })
+    .select("id")
+    .single();
+  assert.ifError(session.error);
+  const priorKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "mock-engineering-evidence";
+  const calls: string[] = [];
+  try {
+    const question =
+      "What quantum gate error correction did the team implement?";
+    const created = await createQuery(
+      { requestKey: randomUUID(), request: question, assistant: true },
+      session.data.id,
+    );
+    const result = await processAssistantTurn(
+      created.id,
+      {
+        requestKey: randomUUID(),
+        message: question,
+        contextRevision: 0,
+      },
+      session.data.id,
+      {
+        embedder: async () => {
+          throw new Error("keyword mode");
+        },
+        model: async (kind) => {
+          calls.push(kind);
+          if (kind === "assistant_plan")
+            return {
+              intent: "search",
+              queries: ["architecture implemented"],
+              caseIds: [],
+              reply: "",
+            };
+          if (kind === "assistant_review")
+            return { query: "", support: "none" };
+          throw new Error("An unsupported answer must not be generated");
+        },
+      },
+    );
+    const turn = result.turns[0];
+    assert.equal(turn.status, "ready", turn.error_message ?? "");
+    assert.ok(
+      turn.work?.evidence.length,
+      "The test must exercise irrelevant matches, not an empty search",
+    );
+    assert.deepEqual(calls, ["assistant_plan", "assistant_review"]);
+    assert.equal(turn.answer?.sections[0].kind, "unknown");
+    assert.match(turn.answer?.sections[0].text ?? "", /current search/);
+    assert.deepEqual(turn.answer?.sections[0].evidence, []);
+  } finally {
+    if (priorKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = priorKey;
+    await db.from("demo_sessions").delete().eq("id", session.data.id);
+  }
+});
+
+test("new-project rules get one bounded draft revision and only the final answer is saved", async () => {
+  assert.ok(
+    ["localhost", "127.0.0.1"].includes(
+      new URL(process.env.SUPABASE_URL ?? "").hostname,
+    ),
+  );
+  const session = await db
+    .from("demo_sessions")
+    .insert({ token_hash: hashSessionToken(newSessionToken()) })
+    .select("id")
+    .single();
+  assert.ifError(session.error);
+  const priorKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "mock-engineering-revision";
+  let answers = 0;
+  try {
+    const question = "Build purchasing. Finance must be a different actor.";
+    const created = await createQuery(
+      { requestKey: randomUUID(), request: question, assistant: true },
+      session.data.id,
+    );
+    const result = await processAssistantTurn(
+      created.id,
+      { requestKey: randomUUID(), message: question, contextRevision: 0 },
+      session.data.id,
+      {
+        embedder: async () => {
+          throw new Error("keyword mode");
+        },
+        model: async (kind, input) => {
+          if (kind === "assistant_plan")
+            return {
+              intent: "search",
+              queries: ["approval revision"],
+              caseIds: [],
+              reply: "",
+              explicitRequirements: ["Finance must be a different actor."],
+            };
+          if (kind === "assistant_review")
+            return { query: "", support: "supported" };
+          answers++;
+          const payload = input as {
+            evidence: Evidence[];
+            explicitRequirements: string[];
+            draftToReview?: { sections: { text: string }[] };
+          };
+          assert.deepEqual(payload.explicitRequirements, [
+            "Finance must be a different actor.",
+          ]);
+          if (answers === 2)
+            assert.equal(
+              payload.draftToReview?.sections[0].text,
+              "Draft to verify",
+            );
+          return {
+            sections: [
+              {
+                kind: "recommendation",
+                heading: "",
+                text:
+                  answers === 1
+                    ? "Draft to verify"
+                    : "Final: enforce distinct actors and revision-bound review.",
+                evidence: [payload.evidence[0].id],
+              },
+            ],
+          };
+        },
+      },
+    );
+    assert.equal(answers, 2);
+    assert.equal(
+      result.turns[0].status,
+      "ready",
+      result.turns[0].error_message ?? "",
+    );
+    assert.equal(
+      result.turns[0].answer?.sections[0].text,
+      "Final: enforce distinct actors and revision-bound review.",
+    );
+    assert.ok(
+      !JSON.stringify(result.turns[0].answer).includes("Draft to verify"),
+    );
+  } finally {
+    if (priorKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = priorKey;
+    await db.from("demo_sessions").delete().eq("id", session.data.id);
+  }
+});

@@ -21,7 +21,13 @@ export const LEGACY_TITLES = [
   "Customer Import Tool",
   "Release Checklist",
 ];
-export function seedId(value: string, namespace = "rewoven-threadline-v1") {
+export const SAMPLE_NAMESPACE = "rewoven-threadline-v2";
+export function catalogNamespace(fixtures: readonly unknown[]) {
+  // Source edits create a new complete catalog instead of attaching extra Ready
+  // documents to an already-published three-source case. Old citations survive.
+  return `${SAMPLE_NAMESPACE}:${createHash("sha256").update(JSON.stringify(fixtures)).digest("hex")}`;
+}
+export function seedId(value: string, namespace = SAMPLE_NAMESPACE) {
   const hash = createHash("sha256")
     .update(`${namespace}:${value}`)
     .digest("hex");
@@ -32,6 +38,17 @@ export const legacySampleIds = [
   ...Array.from({ length: 9 }, (_, i) =>
     seedId(String(i + 1).padStart(2, "0"), "rewoven-sample-v2"),
   ),
+  ...[
+    "01-office-purchasing",
+    "02-expense-reimbursement",
+    "03-supplier-onboarding",
+    "04-invoice-matching",
+    "05-branch-inventory",
+    "06-audit-export",
+    "07-staff-leave",
+    "08-marketing-content",
+    "09-purchasing-expansion",
+  ].map((key) => seedId(key, "rewoven-threadline-v1")),
 ];
 type Fixture = {
   key: string;
@@ -64,9 +81,10 @@ export async function loadSampleCatalog() {
     throw new Error(
       "The public sample catalog must contain nine unique project cases.",
     );
+  const namespace = catalogNamespace(fixtures);
   return Promise.all(
     fixtures.map(async (fixture) => {
-      const id = seedId(fixture.key);
+      const id = seedId(fixture.key, namespace);
       const sources = await Promise.all(
         fixture.sources.map(async (source) => {
           const bytes = new Uint8Array(
@@ -88,6 +106,7 @@ export async function loadSampleCatalog() {
             );
           const sourceId = seedId(
             `${fixture.key}/${source.key}/${source.sha256}`,
+            namespace,
           );
           const filename = source.file.split("/").at(-1) ?? "source";
           return {

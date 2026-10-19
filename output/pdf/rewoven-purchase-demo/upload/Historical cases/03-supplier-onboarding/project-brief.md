@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Supplier Onboarding Workspace  
 **Period:** February 2026  
 **Status:** Delivered checklist workflow  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 
