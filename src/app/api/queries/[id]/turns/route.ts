@@ -1,3 +1,4 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import {
   apiError,
   boundedJson,
@@ -11,7 +12,7 @@ import { queryDetail } from "@/features/queries/server/repository";
 import { QueryInputError } from "@/features/queries/validation";
 
 export const maxDuration = 240;
-export async function POST(
+export const POST = withOpenAIKey(async function POST(
   request: Request,
   context: RouteContext<"/api/queries/[id]/turns">,
 ) {
@@ -35,4 +36,4 @@ export async function POST(
       ? json({ error: error.message }, 400)
       : apiError(error);
   }
-}
+});

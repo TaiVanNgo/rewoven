@@ -237,7 +237,7 @@ export async function processQueryFile(
     if (!config)
       throw new ApiError(
         503,
-        "Configure OPENAI_API_KEY to read request documents. Your uploads are preserved.",
+        "Add your OpenAI key in API key settings to read request documents. Your uploads are preserved.",
       );
     function limit(name: string, fallback: number) {
       if (process.env.NODE_ENV === "development") return null;

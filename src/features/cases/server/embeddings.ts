@@ -1,4 +1,5 @@
 import "server-only";
+import { openAIKey, providerError } from "@/features/ai-key/server";
 import {
   EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
@@ -17,11 +18,11 @@ export async function embedTexts(
   sessionId: string | null,
   transport: (url: string, init?: RequestInit) => Promise<Response> = fetch,
 ): Promise<number[][]> {
-  const key = process.env.OPENAI_API_KEY;
+  const key = openAIKey();
   if (!key || key.includes("your-api-key"))
     throw new ApiError(
       503,
-      "Semantic indexing needs OPENAI_API_KEY. Original text and keyword search remain available.",
+      "Semantic indexing needs an OpenAI key. Add yours in API key settings. Original text and keyword search remain available.",
     );
   if (texts.length > 16 || texts.some((t) => !t.trim() || t.length > 2000))
     throw new ApiError(
@@ -67,11 +68,7 @@ export async function embedTexts(
       "Embedding request timed out. Completed passages are preserved; retry indexing.",
     );
   }
-  if (!response.ok)
-    throw new ApiError(
-      response.status === 429 ? 429 : 502,
-      "OpenAI could not create embeddings. Check API access or billing, then retry indexing.",
-    );
+  if (!response.ok) throw providerError(response.status, "create embeddings");
   const body = await response.json();
   const data = Array.isArray(body.data)
     ? body.data.toSorted(

@@ -1,7 +1,8 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import { apiError, checkOrigin, json } from "@/features/cases/server/http";
 import { processCase } from "@/features/cases/server/ingestion";
 import { requireSession } from "@/features/cases/server/session";
-export async function POST(
+export const POST = withOpenAIKey(async function POST(
   request: Request,
   context: RouteContext<"/api/cases/[id]/retry">,
 ) {
@@ -13,4 +14,4 @@ export async function POST(
   } catch (error) {
     return apiError(error);
   }
-}
+});

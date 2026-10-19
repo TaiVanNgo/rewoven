@@ -1,3 +1,4 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import {
   apiError,
   boundedJson,
@@ -8,7 +9,7 @@ import { requireSession } from "@/features/cases/server/session";
 import { processPlan } from "@/features/plans/server/process";
 import { createPlan } from "@/features/plans/server/repository";
 export const maxDuration = 120;
-export async function POST(
+export const POST = withOpenAIKey(async function POST(
   request: Request,
   context: RouteContext<"/api/queries/[id]/plans">,
 ) {
@@ -27,4 +28,4 @@ export async function POST(
   } catch (error) {
     return apiError(error);
   }
-}
+});

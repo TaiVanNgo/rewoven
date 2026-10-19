@@ -1,3 +1,4 @@
+import { withOpenAIKey } from "@/features/ai-key/server";
 import {
   apiError,
   boundedJson,
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     return apiError(error);
   }
 }
-export async function POST(request: Request) {
+export const POST = withOpenAIKey(async function POST(request: Request) {
   try {
     checkOrigin(request);
     const session = await requireSession();
@@ -37,4 +38,4 @@ export async function POST(request: Request) {
       ? json({ error: error.message }, 400)
       : apiError(error);
   }
-}
+});

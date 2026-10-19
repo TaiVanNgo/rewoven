@@ -93,7 +93,7 @@ export async function processQueryTurn(
     const config = queryAIConfig();
     if (!config) {
       context.warnings.push(
-        "Wren's answers need OPENAI_API_KEY on the server. Showing original passages only.",
+        "Add your OpenAI key in API key settings to chat with Wren. Showing original passages only.",
       );
     } else {
       const reserved = await db.rpc("reserve_query_ai", {

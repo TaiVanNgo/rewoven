@@ -1,4 +1,5 @@
 import "server-only";
+import { openAIKey, providerError } from "@/features/ai-key/server";
 import { ApiError } from "@/features/cases/server/http";
 import type { OpenAITransport } from "@/features/cases/server/openai";
 import {
@@ -27,7 +28,7 @@ export type QueryAIConfig = {
   dailyLimit: number | null;
 };
 export function queryAIConfig(): QueryAIConfig | null {
-  const key = process.env.OPENAI_API_KEY;
+  const key = openAIKey();
   if (!key || key.includes("your-api-key")) return null;
   function limit(name: string, fallback: number) {
     if (process.env.NODE_ENV === "development") return null;
@@ -183,13 +184,7 @@ export async function queryModel(
         },
       }),
     });
-    if (!response.ok)
-      throw new ApiError(
-        response.status === 429 ? 429 : 502,
-        response.status === 429
-          ? "Wren's provider usage limit was reached. Wait before retrying."
-          : "Wren could not reach the answer service. Check the server's API key and model access, then retry.",
-      );
+    if (!response.ok) throw providerError(response.status, "answer with Wren");
     const body = await response.json();
     if (body.status !== "completed" || !Array.isArray(body.output))
       throw new ApiError(

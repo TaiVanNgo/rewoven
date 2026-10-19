@@ -292,7 +292,7 @@ test("reuse plans preserve evidence, explicit saves, export, retries and session
     });
     assert.equal(manual.status, "review");
     assert.ok(manual.brief);
-    assert.match(manual.error_message ?? "", /OPENAI_API_KEY/);
+    assert.match(manual.error_message ?? "", /API key settings/);
     const empty = await processPlan(other.id, "generate", brief, a.id, {
       retrieve: async () => ({ passages: [], mode: "keyword", warnings: [] }),
     });
