@@ -1,5 +1,17 @@
 import type { ActionablePlan } from "../../src/features/plans/types";
 
+export function providerPlan(plan: ActionablePlan) {
+  return {
+    formatVersion: plan.formatVersion,
+    draft: {
+      kind: plan.kind,
+      sections: Object.fromEntries(
+        plan.sections.map((section) => [section.heading, section.items]),
+      ),
+    },
+  };
+}
+
 // Mocked writing samples exercise formatting and persistence, not model quality.
 export function registrationPlan(): ActionablePlan {
   return {

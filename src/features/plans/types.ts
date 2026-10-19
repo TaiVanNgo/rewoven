@@ -29,6 +29,7 @@ export const PLAN_HEADINGS = [
   "Risks and limits",
   "Decisions to confirm",
 ] as const;
+export const PLAN_ITEM_LIMITS = [2, 4, 5, 3, 4] as const;
 export type PlanItem = {
   kind: "fact" | "inference" | "recommendation" | "unknown";
   text: string;

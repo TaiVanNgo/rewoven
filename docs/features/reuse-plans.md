@@ -115,6 +115,16 @@ Session expiry ends access to saved plans and sources. It does not automatically
 - Interrupted processing can be retried after the five-minute processing lease expires. An in-flight server request may finish even after the page closes. Reopen the draft to check its status.
 - Double-clicks and repeated operation identifiers do not duplicate completed model work. Failed or uncertain calls retain budget reservations; a new processing attempt counts again.
 
+### Recover from “The plan has missing sections”
+
+This message comes from the generated-plan validator, not from missing case files. For example, the old provider contract allowed three proposed-outcome items even though the editor's plan format allowed only two. It also allowed repeated or reordered headings. A response could satisfy the provider's JSON schema and still fail the application's checks.
+
+The generation contract now requires five named section arrays, with section-specific item limits, completion conditions, and historical citation rules. Separate reuse and clarification shapes keep unsupported reuse claims out of clarification drafts. `src/features/plans/model.ts` defines that contract; `content.ts` converts the named sections into the existing ordered format, checks the content, and creates Markdown. Saved plans and exports keep their existing format, and this fix needs no database migration.
+
+The contract uses required object properties and nested alternatives supported by [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs). The application still validates the returned content and citations before publishing a draft.
+
+For an existing failed draft, keep its confirmed request and choose **Retry generation** after the updated app is running. A successful retry replaces the failure with an editable AI draft; it does not explicitly save your plan. Choose **Save** when you have reviewed it. Provider timeouts, insufficient evidence, and unsupported citations still have their own checks. The structural fix does not establish that every generated recommendation follows from its sources.
+
 Plan stages use the configured chat model (`OPENAI_CHAT_MODEL`, then `OPENAI_CASE_MODEL`, then the existing default). Optional server-only settings:
 
 ```dotenv
@@ -149,6 +159,10 @@ bun --env-file=.env.local tests/plans.browser-fixture.ts
 python3 tests/plans.browser.py
 bun --env-file=.env.local tests/plans.browser-fixture.ts --cleanup
 ```
+
+Set `PLAN_BROWSER_START_FAILED=true` on the fixture-creation command to start with the missing-sections failure and exercise **Retry generation** through to editing, saving, reloading, citations, and export. The browser test mocks the provider response; `tests/plans.integration.ts` separately checks the actual processing and retry logic with named-section model fixtures.
+
+The section-contract fix was verified locally on 19 October 2026: 156 unit tests, the plan lifecycle integration test, failed-draft browser recovery, lint, types, formatting, and a production build passed. Retrying the reported local failed draft through the actual model and processing pipeline produced a valid five-section draft while preserving its confirmed request and explicit-save state. This checks structural recovery, not sentence-level source support or hosted deployment.
 
 Set `TEST_BASE_URL` when the app uses a port other than 3000. The fixture script rejects hosted Supabase targets and creates only its own fictional session records. Always run cleanup afterward, including after a failed browser check. Screenshots are written under `/tmp/rewoven-plans-browser/`.
 

@@ -20,6 +20,8 @@ The downloadable pack lives in [`output/pdf/rewoven-purchase-demo/`](../../outpu
 
 Each project contains `project-brief.md`, `implementation-notes.md`, and a two-page `delivery-review.pdf`. The brief explains intended scope, the notes describe decisions and examples, and the review records outcomes and limits. A requirement in a brief is not proof that it shipped. For the proposal, all implementation and test discussion remains explicitly prospective.
 
+The version 2 archive adds engineering reconstructions: component diagrams, data relationships, API contracts, SQL/pseudocode, concrete success and failure traces, and operational tradeoffs. See [deeper case evidence and technical replies](engineering-case-evidence.md) for examples, source authoring, safe code/diagram display, and local verification. These additions remain fictional and do not turn illustrative snippets into tested application source.
+
 ## Prepare local development
 
 Use the Node.js and Bun versions in the README. Configure ignored `.env.local` for **local** Supabase and OpenAI; start a Docker-compatible runtime. Do not copy hosted credentials into local configuration.
@@ -76,9 +78,9 @@ bun run format
 bun test tests/sample-catalog.test.ts
 ```
 
-The generator uses `scripts/demo/purchase-projects.json`, produces deterministic PDFs, and updates the manifest and two ZIP files. Rebuilding is an intentional source change: inspect the generated diff and revalidate PDF layout and citations. Use the PDF skill's render-and-inspect workflow. No Python package is added to the app's runtime dependencies.
+The generator uses `scripts/demo/purchase-projects.json` and the authored Markdown under `scripts/demo/engineering/`, produces deterministic PDFs, and updates the manifest and two ZIP files. Rebuilding is an intentional source change: inspect the generated diff and revalidate PDF layout and citations. Use the PDF skill's render-and-inspect workflow. No Python package is added to the app's runtime dependencies.
 
-An unchanged rebuild preserves source identities. For an intentional change to historical originals, version the catalog namespace before reseeding; do not overwrite retained originals or edit an already-applied migration. The activation guard requires exactly the three intended Ready documents per project. Keep older citation targets available when publishing the new version.
+An unchanged rebuild preserves source identities. The version 2 importer combines its catalog namespace with a deterministic manifest digest: intentional source edits create a fresh catalog rather than overwriting retained originals or adding extra documents to an existing three-source case. Do not edit an already-applied migration. The activation guard requires exactly the three intended Ready documents per project. Older citation targets remain available after publishing the new version.
 
 - `rewoven-purchasing-inputs.zip` contains only the 29 source/input files, grouped by project.
 - `rewoven-purchasing-complete-pack.zip` also contains the README and clearly separated presenter material.

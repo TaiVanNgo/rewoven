@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Office Purchasing Pilot  
 **Period:** January 2026  
 **Status:** Delivered limited pilot  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 

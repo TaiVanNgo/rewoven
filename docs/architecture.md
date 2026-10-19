@@ -97,17 +97,19 @@ For a passage, `RRF = 1 / (50 + semantic_rank) + 1 / (50 + keyword_rank)`. A mis
 
 With selected cases, separate retrieval calls keep one large case from exhausting the candidate pool before evidence budgeting. Original opening passages are also eligible to support broad attached-case summaries. If query embedding fails, Wren uses keyword matches and exposes a coverage warning.
 
-Code: [`assistant-retrieval.ts`](../src/features/queries/server/assistant-retrieval.ts), [`embedding-math.ts`](../src/features/retrieval/embedding-math.ts), and the [current Wren retrieval SQL](../supabase/migrations/202610180002_unified_case_library.sql).
+Code: [`assistant-retrieval.ts`](../src/features/queries/server/assistant-retrieval.ts), [`embedding-math.ts`](../src/features/retrieval/embedding-math.ts), and the [current Wren retrieval SQL](../supabase/migrations/202610190001_assistant_keyword_lexemes.sql). The query is normalized with the English dictionary once, then its OR expression is parsed with the simple dictionary to avoid double-stemming existing lexemes.
 
 ### 3. Review and bound the evidence
 
 The server deduplicates chunks, interleaves passages across cases, and assigns turn-local evidence IDs. Historical context is limited to **30 passages / 60,000 characters**. Request context has its own budget; the historical limit is not a total prompt-size limit.
 
-An AI review can ask for one targeted extra search. The server then rebudgets the combined results before generating the answer. This is a bounded workflow with explicit stages. Warnings identify incomplete indexes, evidence-budget limits, and attached cases that supplied no readable passages.
+An AI review can ask for one targeted extra search. It can also report that the retrieved subject does not support the question; the server then records a scoped unknown answer without generating unsupported claims. The server rebudgets additional search results before generating the answer. This is a bounded workflow with explicit stages. Warnings identify incomplete indexes, evidence-budget limits, and attached cases that supplied no readable passages.
 
 ### 4. Generate, validate, and expose sources
 
 OpenAI returns a structured answer with fact, inference, recommendation, unknown, and conversation sections. Fact, inference, and recommendation sections must reference supplied evidence IDs; greetings and clarification can be uncited. The provider schema limits citation choices to the supplied IDs, and server validation checks the returned structure and references again.
+
+The planner can extract short current-requirement quotes, which the server retains only when they occur verbatim in current typed input or request excerpts. For new-project turns with retained explicit rules, one bounded draft revision compares the generated answer against the current request and original passages before validation and saving. It adds one model request for those turns; it is not a deterministic entailment or policy checker. Technical sections support cited code and safe static diagrams; see [engineering case evidence](features/engineering-case-evidence.md).
 
 Before saving a generated answer, `evidenceIsCurrent()` rechecks historical case access, chunk identity, source version, Ready status, and exact text. The source viewer uses preserved page/offset information to open the original location.
 

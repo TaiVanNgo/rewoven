@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Marketing Content Approval Tool  
 **Period:** May 2026  
 **Status:** Delivered editorial review workflow  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 

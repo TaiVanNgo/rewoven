@@ -2,7 +2,11 @@ import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { legacySampleIds, loadSampleCatalog } from "../scripts/sample-catalog";
+import {
+  legacySampleIds,
+  loadSampleCatalog,
+  seedId,
+} from "../scripts/sample-catalog";
 import { seedSamples } from "../scripts/seed-cases";
 import {
   hashSessionToken,
@@ -22,7 +26,7 @@ test("catalog replacement is resumable and preserves user cases, chunk IDs, orig
     ),
   );
   const catalog = await loadSampleCatalog();
-  const legacyId = legacySampleIds[0];
+  const legacyId = seedId(catalog[0].fixture.key, "rewoven-threadline-v1");
   const legacy = await db
     .from("cases")
     .select("id")

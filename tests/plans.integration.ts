@@ -8,7 +8,7 @@ import {
 } from "../src/features/cases/session-token";
 import type { ReusePlan } from "../src/features/plans/types";
 import type { Evidence } from "../src/features/queries/types";
-import { registrationPlan } from "./fixtures/reuse-plan";
+import { providerPlan, registrationPlan } from "./fixtures/reuse-plan";
 
 mock.module("server-only", () => ({}));
 const { createQuery, updateChatContext } =
@@ -129,7 +129,7 @@ test("reuse plans preserve evidence, explicit saves, export, retries and session
       model: async (kind: string) => {
         calls++;
         if (kind === "reuse_brief") return brief;
-        return registrationPlan();
+        return providerPlan(registrationPlan());
       },
       retrieve: async (
         _queries: string[],
@@ -313,6 +313,41 @@ test("reuse plans preserve evidence, explicit saves, export, retries and session
       mode: "keyword" as const,
       warnings: [],
     });
+    const sectionRetry = await createPlan(
+      q.id,
+      { requestKey: randomUUID(), contextRevision: 1 },
+      a.id,
+    );
+    await processPlan(sectionRetry.id, "prepare", {}, a.id, dependencies);
+    const oversized = registrationPlan();
+    oversized.sections[0].items.push({ ...oversized.sections[0].items[0] });
+    const malformed = await processPlan(
+      sectionRetry.id,
+      "generate",
+      brief,
+      a.id,
+      {
+        retrieve: currentRetrieve,
+        model: async () => providerPlan(oversized),
+      },
+    );
+    assert.equal(malformed.status, "failed");
+    assert.match(malformed.error_message ?? "", /missing sections/);
+    const recovered = await processPlan(
+      sectionRetry.id,
+      "generate",
+      brief,
+      a.id,
+      {
+        retrieve: currentRetrieve,
+        model: async () => providerPlan(registrationPlan()),
+      },
+    );
+    assert.equal(recovered.id, sectionRetry.id);
+    assert.equal(recovered.status, "ready", recovered.error_message ?? "");
+    assert.deepEqual(recovered.confirmed_request, brief);
+    assert.equal(recovered.error_message, null);
+    assert.equal(recovered.generated?.sections.length, 5);
     const invalid = await processPlan(retryDraft.id, "generate", brief, a.id, {
       retrieve: currentRetrieve,
       model: async () => ({ kind: "reuse", sections: [] }),
