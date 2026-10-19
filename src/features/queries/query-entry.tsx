@@ -1,6 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useRef } from "react";
+import { parseStarter } from "@/features/onboarding/model";
 import { WrenCompanion } from "@/features/requests/wren-companion";
 import { QueryWorkspace } from "./query-workspace";
 import { useWrenTransition } from "./use-wren-transition";
@@ -9,6 +10,10 @@ export function QueryEntry() {
   const params = useSearchParams();
   const id = params.get("query");
   const caseId = params.get("case");
+  const starter =
+    !params.has("query") && !params.has("case")
+      ? parseStarter(params.get("starter"))
+      : null;
   const portrait = useRef<HTMLDivElement>(null);
   const { transition, begin, open, ready, loadFailed, fail } =
     useWrenTransition(id);
@@ -32,6 +37,7 @@ export function QueryEntry() {
           key={id ?? caseId ?? "new"}
           id={id}
           initialCaseId={caseId}
+          starter={starter}
           companion={
             <WrenCompanion
               imageRef={portrait}

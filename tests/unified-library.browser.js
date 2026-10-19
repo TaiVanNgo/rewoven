@@ -3,6 +3,10 @@
 // biome-ignore lint/correctness/noUnusedVariables: Playwright CLI evaluates and invokes this named function.
 async function verifyUnifiedLibrary(page) {
   const base = new URL(page.url()).origin;
+  // This checks the workspace; onboarding has a separate browser walkthrough.
+  await page.evaluate(() =>
+    localStorage.setItem("rewoven-onboarding-v1", "dismissed"),
+  );
   await page.goto(base);
   const scope = page.getByText("Searching Case library", { exact: true });
   await scope.waitFor();
