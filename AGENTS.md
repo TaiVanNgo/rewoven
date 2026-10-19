@@ -69,9 +69,12 @@
 ## Project documentation
 
 - Keep `README.md` focused on introducing Rewoven to users: the problem, Wren,
-  supported workflows, the fictional demo, current limits, and how to get started.
-- Keep detailed setup, commands, architecture, and UI conventions in
-  `docs/development.md`; keep feature walkthroughs in `docs/features/`.
+  supported workflows, the fictional demo, a concise architecture/RAG overview,
+  current limits, and how to get started.
+- Keep the detailed implementation architecture and RAG explanation in
+  `docs/architecture.md`, setup and UI conventions in `docs/development.md`, and
+  feature walkthroughs in `docs/features/`. Verify architecture claims against
+  current code and distinguish Wren's retrieval path from standalone evaluation.
 - Record unresolved information below instead of adding guessed facts or empty
   placeholders to the README. Move confirmed information into the appropriate
   public guide when the decision is made and verified.

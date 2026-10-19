@@ -2,6 +2,8 @@
 
 This guide covers local setup, commands, project structure, UI conventions, and deployment configuration. For the product introduction and a first walkthrough, start with the [README](../README.md).
 
+For source ingestion, hybrid retrieval, evidence validation, and plan generation, read the [architecture and RAG guide](architecture.md).
+
 ## First-use checklist
 
 - Install the Node.js and Bun versions below, the Supabase CLI, and a Docker-compatible runtime.

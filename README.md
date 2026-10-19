@@ -56,6 +56,32 @@ Wren is Rewoven’s conversational case advisor and illustrated team archivist. 
 
 Her substantive answers and recommendations use retrieved project evidence with clickable citations. Search combines keyword matching with semantic retrieval when embeddings are available. Each answer uses a bounded selection of passages, so it may not cover every relevant document. Citations make claims inspectable; you should still check whether a source supports the conclusion.
 
+## Architecture and RAG
+
+Rewoven uses a single Next.js application for the interface and server API. Supabase stores project records, original files, extracted passages, and vectors. OpenAI provides embeddings and structured AI responses. The production deployment configuration targets Vercel.
+
+```mermaid
+flowchart LR
+  User[Browser] --> App[Next.js UI and Route Handlers]
+  App --> DB[(Supabase PostgreSQL and pgvector)]
+  App --> Files[Supabase private Storage]
+  User -->|Signed file uploads| Files
+  App --> AI[OpenAI embeddings and generation]
+```
+
+**Retrieval-augmented generation (RAG)** means Wren retrieves relevant source passages before generating a substantive answer. The current workflow is:
+
+1. **Index past work.** Extract historical PDF/TXT/MD sources into passages of up to 2,000 characters, preserving document identity, PDF page, and text offsets. Store keyword indexes and 1,536-dimensional `text-embedding-3-small` vectors alongside the original text.
+2. **Understand the request.** Read client attachments in resumable stages, retaining their own citations separately from historical evidence. Wren prepares up to two search queries for a substantive question.
+3. **Retrieve evidence.** Search authorized historical passages using PostgreSQL keyword search and pgvector cosine similarity, combining their ranks with reciprocal rank fusion. The user’s case selection controls the search scope.
+4. **Check coverage.** Wren can request one additional targeted search. The server deduplicates and interleaves historical evidence across cases, with a final budget of 30 passages or 60,000 characters.
+5. **Answer with references.** Generate a structured answer, validate its citation IDs, and recheck historical source versions and text before saving. Numbered citations open the original source location.
+6. **Turn evidence into a plan.** After the user reviews the request, retrieve fresh evidence for plan generation. Keep the generated draft and saved edits separate, with explicit Save and Markdown export.
+
+Keyword search remains available when semantic retrieval fails. Valid citations establish traceable references; they do not guarantee that every conclusion follows from its source.
+
+Read the [architecture and RAG guide](docs/architecture.md) for the data model, ranking algorithm, implementation files, design tradeoffs, safeguards, and verification limits.
+
 ## Before you begin
 
 Rewoven is a demo MVP with these current boundaries:
@@ -87,6 +113,7 @@ Rewoven uses **Next.js App Router**, **React**, **TypeScript**, and **Tailwind C
 
 ## Learn more
 
+- [Architecture and RAG](docs/architecture.md) — follow the implementation from source ingestion to cited answers and saved plans.
 - [Welcome walkthrough](docs/features/onboarding.md) — learn the demo’s story and first steps.
 - [Conversations with Wren](docs/features/conversational-queries.md) — ask questions, focus your search, and inspect citations.
 - [Request document uploads](docs/features/query-file-uploads.md) — attach current requirements and understand file processing.

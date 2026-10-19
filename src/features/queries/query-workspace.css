@@ -1,8 +1,37 @@
 .query-workspace {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
+}
+.query-file-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  padding: 1rem;
+  border: 2px dashed var(--knowledge-ink);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  pointer-events: none;
+}
+.query-file-drop-message {
+  position: sticky;
+  top: max(1rem, calc(50dvh - 7rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 30rem;
+  min-height: 12rem;
+  margin-inline: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  text-align: center;
 }
 .query-toolbar {
   display: flex;
