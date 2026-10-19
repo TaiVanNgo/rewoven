@@ -6,6 +6,7 @@ import {
 import type { Evidence } from "@/features/queries/types";
 import { requestInput } from "@/features/queries/validation";
 import {
+  type ActionablePlan,
   type GeneratedPlan,
   PLAN_HEADINGS,
   type PlanBrief,
@@ -42,22 +43,27 @@ export function briefInput(value: unknown, allowEmpty = false): PlanBrief {
 export function validateGenerated(
   value: unknown,
   evidence: Evidence[],
-): GeneratedPlan {
-  const plan = value as GeneratedPlan;
+): ActionablePlan {
+  const plan = value as ActionablePlan;
   if (
     !plan ||
+    plan.formatVersion !== 2 ||
     !["reuse", "clarification"].includes(plan.kind) ||
     !Array.isArray(plan.sections) ||
     plan.sections.length !== PLAN_HEADINGS.length
   )
     throw new Error("Wren returned an invalid plan. Retry generation.");
   const ids = new Set(evidence.map((e) => e.id));
+  const maxima = [2, 4, 5, 3, 4];
   for (const [index, section] of plan.sections.entries()) {
     if (
+      !section ||
       section.heading !== PLAN_HEADINGS[index] ||
       !Array.isArray(section.items) ||
-      !section.items.length ||
-      section.items.length > 6
+      ((!index || index === 2 || (index === 1 && plan.kind === "reuse")) &&
+        !section.items.length) ||
+      (index === 1 && plan.kind === "clarification" && section.items.length) ||
+      section.items.length > maxima[index]
     )
       throw new Error("The plan has missing sections. Retry generation.");
     for (const item of section.items) {
@@ -69,11 +75,19 @@ export function validateGenerated(
         typeof item.text !== "string" ||
         !item.text.trim() ||
         item.text.length > 1500 ||
-        /\[S\d+\]/i.test(item.text) ||
+        typeof item.doneWhen !== "string" ||
+        item.doneWhen.length > 500 ||
+        (index === 2
+          ? !item.doneWhen.trim() || item.kind !== "recommendation"
+          : !!item.doneWhen) ||
+        (index === 0 && !["recommendation", "unknown"].includes(item.kind)) ||
+        (index === 4 && item.kind !== "unknown") ||
+        /\[(?:S\d+|R\d+|r_[^\]]+)\]/i.test(item.text + item.doneWhen) ||
         !Array.isArray(item.evidence) ||
         item.evidence.length > 6 ||
         item.evidence.some((id) => !ids.has(id)) ||
         (["fact", "inference"].includes(item.kind) && !item.evidence.length) ||
+        (index === 1 && !item.evidence.length) ||
         (plan.kind === "clarification" &&
           (["fact", "inference"].includes(item.kind) || item.evidence.length))
       )
@@ -93,27 +107,48 @@ export function validateGenerated(
     );
   return plan;
 }
-export function clarificationPlan(): GeneratedPlan {
-  const texts = [
-    "No suitable historical precedent was found in the allowed cases. This is a clarification draft.",
-    "Identify past work with readable sources before deciding what to reuse.",
-    "Confirm the new requirements and constraints before choosing adaptations.",
-    "Recorded outcomes and relevant lessons have not been established for this request.",
-    "Which requirements are essential, what would success look like, and which uncertainties need investigation?",
-    "Collect relevant project records, confirm the requirements, and generate a new plan when evidence is available.",
-  ];
+export function clarificationPlan(): ActionablePlan {
   return {
+    formatVersion: 2,
     kind: "clarification",
-    sections: PLAN_HEADINGS.map((heading, i) => ({
-      heading,
-      items: [
-        {
-          kind: i < 5 ? "unknown" : "recommendation",
-          text: texts[i],
-          evidence: [],
-        },
-      ],
-    })),
+    sections: [
+      {
+        heading: PLAN_HEADINGS[0],
+        items: [
+          {
+            kind: "unknown",
+            text: "No suitable historical precedent was found in the allowed cases. This clarification draft identifies discovery work before proposing reuse.",
+            evidence: [],
+            doneWhen: "",
+          },
+        ],
+      },
+      { heading: PLAN_HEADINGS[1], items: [] },
+      {
+        heading: PLAN_HEADINGS[2],
+        items: [
+          {
+            kind: "recommendation",
+            text: "Collect relevant project records, review their original sources, and generate a new plan when evidence is available.",
+            evidence: [],
+            doneWhen:
+              "The selected records contain readable passages relevant to the confirmed request, or the remaining evidence gap is documented.",
+          },
+        ],
+      },
+      { heading: PLAN_HEADINGS[3], items: [] },
+      {
+        heading: PLAN_HEADINGS[4],
+        items: [
+          {
+            kind: "unknown",
+            text: "Which relevant project records can the team provide? Their availability determines whether a reuse recommendation can be supported.",
+            evidence: [],
+            doneWhen: "",
+          },
+        ],
+      },
+    ],
   };
 }
 export function escapeMarkdown(value: string) {
@@ -126,11 +161,33 @@ export function generatedMarkdown(plan: GeneratedPlan, evidence: Evidence[]) {
     recommendation: "Suggested action",
     unknown: "Gap or question",
   };
+  // Existing unversioned drafts retain their original headings and wording.
+  if (plan.formatVersion !== 2)
+    return plan.sections
+      .map(
+        (section) =>
+          `## ${section.heading}\n\n${section.items.map((item) => `- **${labels[item.kind]}:** ${escapeMarkdown(item.text)}${item.evidence.map((id) => ` [S${evidence.findIndex((e) => e.id === id) + 1}]`).join(",")}`).join("\n\n")}`,
+      )
+      .join("\n\n");
+  const numbers = new Map(evidence.map((item, i) => [item.id, i + 1]));
   return plan.sections
-    .map(
-      (section) =>
-        `## ${section.heading}\n\n${section.items.map((item) => `- **${labels[item.kind]}:** ${escapeMarkdown(item.text)}${item.evidence.map((id) => ` [S${evidence.findIndex((e) => e.id === id) + 1}]`).join(",")}`).join("\n\n")}`,
-    )
+    .filter((section) => section.items.length)
+    .map((section) => {
+      const steps = section.heading === "Implementation steps";
+      const paragraphs = section.heading === "Proposed outcome";
+      const items = section.items.map((item, index) => {
+        const refs = [...new Set(item.evidence)]
+          .map((id) => `[S${numbers.get(id)}]`)
+          .join(", ");
+        const text = `${escapeMarkdown(item.text.trim())}${refs ? ` ${refs}` : ""}`;
+        if (paragraphs) return text;
+        const prefix = steps ? `${index + 1}. ` : "- ";
+        const indent = " ".repeat(prefix.length);
+        const body = text.replace(/\r\n?/g, "\n").replace(/\n/g, `\n${indent}`);
+        return `${prefix}${body}${steps ? `\n\n${indent}**Done when:** ${escapeMarkdown(item.doneWhen.trim()).replace(/\r\n?/g, "\n").replace(/\n/g, `\n${indent}`)}` : ""}`;
+      });
+      return `## ${section.heading}\n\n${items.join("\n\n")}`;
+    })
     .join("\n\n");
 }
 export function validateMarkdown(markdown: unknown, evidence: Evidence[]) {

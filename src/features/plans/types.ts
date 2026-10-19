@@ -14,7 +14,7 @@ export type PlanSnapshot = {
   throughTurnId: string | null;
   warnings: string[];
 };
-export const PLAN_HEADINGS = [
+export const LEGACY_PLAN_HEADINGS = [
   "Relevant precedent and important differences",
   "What to reuse",
   "Required adaptations",
@@ -22,17 +22,35 @@ export const PLAN_HEADINGS = [
   "Clarification questions",
   "Suggested next steps",
 ] as const;
-export type GeneratedPlan = {
+export const PLAN_HEADINGS = [
+  "Proposed outcome",
+  "What to reuse and change",
+  "Implementation steps",
+  "Risks and limits",
+  "Decisions to confirm",
+] as const;
+export type PlanItem = {
+  kind: "fact" | "inference" | "recommendation" | "unknown";
+  text: string;
+  evidence: string[];
+};
+export type LegacyGeneratedPlan = {
+  formatVersion?: never;
+  kind: "reuse" | "clarification";
+  sections: {
+    heading: (typeof LEGACY_PLAN_HEADINGS)[number];
+    items: PlanItem[];
+  }[];
+};
+export type ActionablePlan = {
+  formatVersion: 2;
   kind: "reuse" | "clarification";
   sections: {
     heading: (typeof PLAN_HEADINGS)[number];
-    items: {
-      kind: "fact" | "inference" | "recommendation" | "unknown";
-      text: string;
-      evidence: string[];
-    }[];
+    items: (PlanItem & { doneWhen: string })[];
   }[];
 };
+export type GeneratedPlan = LegacyGeneratedPlan | ActionablePlan;
 export type ReusePlan = {
   request_evidence?: RequestEvidence[];
   id: string;

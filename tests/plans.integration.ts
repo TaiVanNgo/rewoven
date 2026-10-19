@@ -6,9 +6,9 @@ import {
   hashSessionToken,
   newSessionToken,
 } from "../src/features/cases/session-token";
-import { clarificationPlan } from "../src/features/plans/content";
 import type { ReusePlan } from "../src/features/plans/types";
 import type { Evidence } from "../src/features/queries/types";
+import { registrationPlan } from "./fixtures/reuse-plan";
 
 mock.module("server-only", () => ({}));
 const { createQuery, updateChatContext } =
@@ -129,19 +129,7 @@ test("reuse plans preserve evidence, explicit saves, export, retries and session
       model: async (kind: string) => {
         calls++;
         if (kind === "reuse_brief") return brief;
-        const generated = clarificationPlan();
-        generated.kind = "reuse";
-        generated.sections[0].items[0] = {
-          kind: "fact",
-          text: "The pilot used seat leases; its outcome was not recorded.",
-          evidence: ["e1"],
-        };
-        generated.sections[2].items[0] = {
-          kind: "recommendation",
-          text: "Adapt the lease approach to the confirmed registration requirements.",
-          evidence: ["e1"],
-        };
-        return generated;
+        return registrationPlan();
       },
       retrieve: async (
         _queries: string[],
@@ -179,6 +167,10 @@ test("reuse plans preserve evidence, explicit saves, export, retries and session
       "generation keeps captured selection",
     );
     assert.match(plan.generated_markdown ?? "", /\[S1\]/);
+    assert.equal(plan.generated?.formatVersion, 2);
+    assert.match(plan.generated_markdown ?? "", /## Proposed outcome/);
+    assert.match(plan.generated_markdown ?? "", /\n1\. Agree/);
+    assert.match(plan.generated_markdown ?? "", /\*\*Done when:\*\*/);
     assert.equal(
       (await listPlans(a.id)).length,
       0,

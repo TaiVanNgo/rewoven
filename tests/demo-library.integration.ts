@@ -296,10 +296,19 @@ test("default library discovers nine projects, excludes other sessions and retir
         const generated = clarificationPlan();
         generated.kind = "reuse";
         generated.sections[0].items[0] = {
-          kind: "fact",
-          text: "The history records request review decisions.",
-          evidence: [evidence[0].id],
+          kind: "recommendation",
+          text: "For the confirmed request, build request review with a history of decisions.",
+          evidence: [],
+          doneWhen: "",
         };
+        generated.sections[1].items = [
+          {
+            kind: "recommendation",
+            text: "The history records request review decisions.",
+            evidence: [evidence[0].id],
+            doneWhen: "",
+          },
+        ];
         return generated;
       },
     });
