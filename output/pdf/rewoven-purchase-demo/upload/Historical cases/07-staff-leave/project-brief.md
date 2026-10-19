@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Staff Leave Approval Tool  
 **Period:** April 2026  
 **Status:** Delivered manager delegation pilot  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 

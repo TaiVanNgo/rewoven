@@ -19,6 +19,7 @@ PRESENTER = PACK / "presenter-only"
 COMPANY = "Threadline Delivery"
 DISCLAIMER = "Fictional demonstration material. All organizations, people, events, and results are invented."
 PROJECTS = json.loads((Path(__file__).parent / "purchase-projects.json").read_text())
+ENGINEERING = Path(__file__).parent / "engineering"
 STYLES = getSampleStyleSheet()
 STYLES.add(ParagraphStyle(name="PackTitle", fontName="Helvetica-Bold", fontSize=22, leading=27, textColor=colors.HexColor("#203C3A"), spaceAfter=14))
 STYLES.add(ParagraphStyle(name="PackSub", fontName="Helvetica-Bold", fontSize=12, leading=16, textColor=colors.HexColor("#28665C"), spaceBefore=15, spaceAfter=8))
@@ -30,18 +31,18 @@ def para(text, style="PackBody"):
     return Paragraph(escape(text), STYLES[style])
 
 
-def footer(canvas, doc):
+def footer(canvas, doc, version=1):
     canvas.saveState()
     canvas.setStrokeColor(colors.HexColor("#B9CFC6"))
     canvas.line(20 * mm, 18 * mm, 190 * mm, 18 * mm)
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.HexColor("#4B615B"))
-    canvas.drawString(20 * mm, 12 * mm, "Threadline Delivery | Fictional demo | Version 1")
+    canvas.drawString(20 * mm, 12 * mm, f"Threadline Delivery | Fictional demo | Version {version}")
     canvas.drawRightString(190 * mm, 12 * mm, f"Page {doc.page}")
     canvas.restoreState()
 
 
-def pdf(path, title, subtitle, pages):
+def pdf(path, title, subtitle, pages, version=1):
     path.parent.mkdir(parents=True, exist_ok=True)
     story = []
     for i, sections in enumerate(pages):
@@ -52,13 +53,18 @@ def pdf(path, title, subtitle, pages):
             story.append(para(heading, "PackSub"))
             story.extend(para(p) for p in paragraphs)
         story.append(Spacer(1, 5 * mm))
-    SimpleDocTemplate(str(path), pagesize=(210 * mm, 297 * mm), rightMargin=20 * mm, leftMargin=20 * mm, topMargin=17 * mm, bottomMargin=24 * mm, title=title, author=COMPANY, invariant=1).build(story, onFirstPage=footer, onLaterPages=footer)
+    def page_footer(canvas, doc):
+        footer(canvas, doc, version)
+    SimpleDocTemplate(str(path), pagesize=(210 * mm, 297 * mm), rightMargin=20 * mm, leftMargin=20 * mm, topMargin=17 * mm, bottomMargin=24 * mm, title=title, author=COMPANY, invariant=1).build(story, onFirstPage=page_footer, onLaterPages=page_footer)
 
 
-def markdown(path, title, project, sections):
-    text = f"# {title}\n\n{DISCLAIMER}\n\n**Delivery company:** {COMPANY}  \n**Client:** {project['client']} (fictional)  \n**Project:** {project['title']}  \n**Period:** {project['period']}  \n**Status:** {project['status']}  \n**Document version:** 1\n"
+def markdown(path, title, project, sections, engineering=None):
+    text = f"# {title}\n\n{DISCLAIMER}\n\n**Delivery company:** {COMPANY}  \n**Client:** {project['client']} (fictional)  \n**Project:** {project['title']}  \n**Period:** {project['period']}  \n**Status:** {project['status']}  \n**Document version:** 2\n"
     for heading, paragraphs in sections:
         text += f"\n## {heading}\n\n" + "\n\n".join(paragraphs) + "\n"
+    if engineering:
+        text += "\n## How to read the engineering reconstruction\n\nThe following diagrams, API contracts, SQL, and pseudocode deepen this fictional history. They are explanatory reconstructions, not runnable application source or independently executed tests. Proposed work stays prospective; the delivery review defines the recorded outcome. External technical references support patterns, never proof of Threadline delivery.\n\n"
+        text += re.sub(r"^## (.+)$", lambda m: f"## {project['title']}: {m[1]}", engineering, flags=re.MULTILINE)
     path.write_text(text)
 
 
@@ -81,17 +87,18 @@ for p in PROJECTS:
         ("Boundaries and constraints", [p["constraints"]]),
         ("How to read this brief", ["This brief records the agreed scope or, where explicitly marked, the proposed scope. It is not by itself a delivery certificate. The implementation notes explain decisions and examples; the separate delivery review records what was actually delivered, tested, paused, or left unresolved. Read those documents together before describing a requirement as completed work."])
     ])
+    engineering = (ENGINEERING / f"{p['key']}.md").read_text()
     markdown(notes, p["title"] + " - Implementation notes", p, [
         ("Decision and rationale", [p["decision"]]),
         ("Technical behavior", [p["detail"]]),
         ("Worked example", [p["example"]]),
         ("Verification scope", [p["test"]]),
         ("Handover material", [p["handover"]])
-    ])
+    ], engineering=engineering)
     pdf(review, p["title"], f"Delivery review | {p['client']} | {p['period']} | {p['status']}", [
         [("Recorded status and result", [p["result"]]), ("What happened during delivery", [p["incident"]]), ("Checks and their scope", [p["test"]])],
         [("Lesson retained by the team", [p["lesson"]]), ("Missing evidence and exclusions", [p["gap"]]), ("Handover and reuse boundary", [p["handover"]]), ("Reading this result", ["This review describes a fictional project record. A limited acceptance check is not proof of future reliability or a measured business benefit. A proposal is not a delivered feature. Where the review states that work was paused, excluded, or unmeasured, that boundary remains part of the record."])]
-    ])
+    ], version=2)
     sources = [{"key": key, "file": str(path.relative_to(ROOT)), "sha256": digest(path)} for key, path in [("brief", brief), ("notes", notes), ("review", review)]]
     def finding(text, source, quote, page=None):
         return {"text": text, "evidence": [{"source": source, "page": page, "quote": quote}]}
@@ -189,7 +196,7 @@ The upload-only ZIP contains the 29 inputs and no presenter answers. The complet
 """)
 (PACK / "README.md").write_text("""# Rewoven purchasing demo pack
 
-Nine projects from one fictional delivery company, Threadline Delivery, followed by a new request from fictional Northbank Services.
+Nine projects from one fictional delivery company, Threadline Delivery, followed by a new request from fictional Northbank Services. Version 2 adds engineering reconstructions with architectures, data models, API examples, illustrative code, failure traces, and technical references. These are not runnable applications or verified real-world delivery records.
 
 - upload/Historical cases: 9 case folders, 3 source documents per case (27 total).
 - upload/Client input: client-brief.pdf and constraints.md (2 total). Upload these to a new chat; the default Case library already includes the historical projects.
@@ -197,12 +204,14 @@ Nine projects from one fictional delivery company, Threadline Delivery, followed
 
 All names, incidents, and results are invented. This pack demonstrates a workflow, not real business demand or measured organizational impact. Existing built-in cases already hold the historical files. To recreate a case manually, upload all three files from one historical folder as one case. Do not upload the ZIP directly.
 
-Run the repository's scripts/demo/build-pack.py with Python and reportlab to regenerate sources, PDFs, manifest, and ZIPs. The PDFs use selectable text and physical page numbers. Read docs/features/purchasing-demo.md in the repository for the developer setup and recorded verification.
+Run the repository's scripts/demo/build-pack.py with Python and reportlab to regenerate sources, PDFs, manifest, and ZIPs. It reads scripts/demo/purchase-projects.json and scripts/demo/engineering/. The PDFs use selectable text and physical page numbers. Read docs/features/purchasing-demo.md and docs/features/engineering-case-evidence.md in the repository for developer setup and verification limits.
 """)
 for name, root in [("rewoven-purchasing-inputs.zip", UPLOAD), ("rewoven-purchasing-complete-pack.zip", PACK)]:
     with zipfile.ZipFile(PACK / name, "w", zipfile.ZIP_DEFLATED) as z:
         for file in sorted(root.rglob("*")):
             if file.is_file() and file.suffix != ".zip":
-                z.write(file, file.relative_to(root))
+                info = zipfile.ZipInfo(str(file.relative_to(root)), date_time=(2026, 10, 19, 0, 0, 0))
+                info.external_attr = 0o644 << 16
+                z.writestr(info, file.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
 print(f"Prepared {len(manifest)} cases / {sum(len(p['sources']) for p in manifest)} historical documents / 2 client inputs.")
 print(f"Pack: {PACK}")

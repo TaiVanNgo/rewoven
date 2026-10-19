@@ -19,7 +19,11 @@ import {
   type ReusePlan,
 } from "../src/features/plans/types";
 import type { Evidence } from "../src/features/queries/types";
-import { northbankPlan, registrationPlan } from "./fixtures/reuse-plan";
+import {
+  northbankPlan,
+  providerPlan,
+  registrationPlan,
+} from "./fixtures/reuse-plan";
 
 const evidence: Evidence[] = [
   {
@@ -174,6 +178,40 @@ test("partial evidence can support one reuse choice without padding the plan", (
   assert.equal(validated.sections[1].items.length, 1);
   assert.equal(validated.sections[2].items.length, 1);
   assert.match(generatedMarkdown(validated, evidence), /\*\*Done when:\*\*/);
+});
+test("named provider sections become the existing plan format without losing content or evidence", () => {
+  const expected = registrationPlan();
+  const response = providerPlan(expected);
+  response.draft.sections = Object.fromEntries(
+    Object.entries(response.draft.sections).reverse(),
+  );
+  const plan = validateGenerated(response, evidence);
+  assert.deepEqual(plan, expected);
+  assert.equal(
+    generatedMarkdown(plan, evidence),
+    generatedMarkdown(expected, evidence),
+  );
+  assert.deepEqual(
+    validateGenerated(providerPlan(clarificationPlan()), []),
+    clarificationPlan(),
+  );
+
+  const oversized = providerPlan(registrationPlan());
+  oversized.draft.sections["Proposed outcome"].push({
+    ...expected.sections[0].items[0],
+  });
+  assert.throws(
+    () => validateGenerated(oversized, evidence),
+    /missing sections/,
+  );
+  const missing = providerPlan(registrationPlan());
+  delete missing.draft.sections["Implementation steps"];
+  assert.throws(() => validateGenerated(missing, evidence), /missing sections/);
+  const unsupported = providerPlan(registrationPlan());
+  unsupported.draft.sections["What to reuse and change"][0].evidence = [
+    "foreign",
+  ];
+  assert.throws(() => validateGenerated(unsupported, evidence), /evidence/);
 });
 test("legacy unversioned plans keep their headings and exact Markdown format", () => {
   const plan: LegacyGeneratedPlan = {

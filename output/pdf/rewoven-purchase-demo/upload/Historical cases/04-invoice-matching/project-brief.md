@@ -7,7 +7,7 @@ Fictional demonstration material. All organizations, people, events, and results
 **Project:** Invoice Matching Pilot  
 **Period:** March 2026  
 **Status:** Failed pilot; manual fallback retained  
-**Document version:** 1
+**Document version:** 2
 
 ## Purpose and problem
 

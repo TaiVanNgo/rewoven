@@ -50,3 +50,34 @@ The nine active historical projects and each session's historical uploads now sh
 The regression uploads the real Northbank PDF and constraints Markdown in a fresh session without historical uploads or manual scope selection. With mocked provider stages, it verifies real extraction/storage, both request documents reaching Wren, historical evidence across all nine projects, mixed request/historical citations, restored scope, and plan generation with separate request references. It also verifies the database retrieval boundary directly and checks that adding an owned case joins it to the library.
 
 All 129 unit tests, all 16 integration tests, formatting, lint, type checks, and a production build passed. Browser checks covered the single nine-case picker, optional five-case narrowing, returning to the full library, Northbank attachments, the default submission payload, and 1440 px/390 px light/dark layouts. The browser deliberately intercepts submission before AI processing; the integration suite covers the persisted request-to-plan flow with mocked providers. These checks do not establish live-model answer quality or hosted deployment behavior. No paid AI calls were made for this follow-up.
+
+## Engineering-evidence follow-up - 19 October 2026
+
+This update was implemented and activated locally only. No hosted deployment, hosted migration, hosted seeding, or hosted indexing was performed. All histories, incidents, and outcomes remain fictional. The engineering reconstructions explain designs; they are not nine runnable applications.
+
+### Corpus and original-source checks
+
+- Nine active version 2 cases, each with its original three-document structure and approximately 2,360–2,510 words across the three sources. Implementation notes now explain architecture, data relationships, API contracts, SQL/pseudocode, success/failure traces, operational tradeoffs, and primary technical references.
+- The historical originals contain no Northbank-specific rules or threshold. Northbank's unchanged client PDF and constraints note remain separate chat inputs. The failed invoice pilot and paused expansion retain their original statuses.
+- All 27 current sources are Ready and semantically indexed: 103 of 103 current passages have embeddings. Indexing finished with zero reported failures. Local embedding and Wren rehearsals made billable provider requests.
+- The version 2 catalog identity includes a manifest digest. Repeated import preserves identities; source changes create a fresh complete catalog. Prior records and original files remain retained. Integration checks exercised actual version 1 originals, old downloads, interrupted/repeated publication, and preservation of session-owned cases.
+- All 18 regenerated historical review pages were rendered and visually inspected. Reviews still have two physical pages, exact curated quotes, and no extraction warnings. The unchanged client inputs retain their existing requirements and page references.
+- Two unchanged final pack rebuilds were compared for original-source, manifest, and ZIP reproducibility.
+
+### Application verification
+
+- 153 unit tests passed across 25 files.
+- 23 local API/database integration tests passed across 14 files with mocked model stages. They include scoped unsupported-answer handling, one bounded draft revision for current requirements, keyword access to all nine projects, and discovery beyond an unsolicited planner shortlist.
+- Biome lint, formatting check, TypeScript checks, production build, and Git whitespace checks passed. The new keyword migration was applied only to local Supabase. It prevents English query lexemes from being stemmed twice.
+- The production-mode browser regression passed at 1440 px desktop and 390 px mobile in light/dark themes and reduced motion. It checked copied code and diagram source, four supported diagram types, discarded presentation-only style lines, malformed/hostile fallback, inert script-looking code, inline source inspection, reload, keyboard scrolling, and no mobile document overflow. No browser runtime errors were recorded in the final check.
+- The browser test uses a saved live-answer fixture plus clearly labelled synthetic rendering fixtures. It intercepts conversation/plan-list requests and uses real retained local sources for citation viewing. It does not establish live generation quality or hosted behavior.
+
+### Live answer checks and remaining limitations
+
+The rehearsal exercised one technical question per case, a Northbank cross-case design, an editorial mismatch, and an unsupported quantum question through the actual Wren planner/retrieval/review/answer pipeline. All nine case-specific questions passed the prepared mechanism/cited-case checks. The mismatch and unsupported scenarios also passed. The full rehearsal passed 11 of 12 automated quality checks; the cross-case answer exposed raw evidence IDs in prose. Targeted reruns after generation/schema changes passed the prepared structural checks. These are small authored examples, not an accuracy benchmark.
+
+Spot checks found useful detail in revision-bound transactions, employee-scoped operation keys and payload conflicts, source-version checks, manual fallback versus automation failure, consistent export snapshots, delegated actor identity, and notification delivery limits. Diagrams and snippets remained explanatory material, not evidence that their code executed.
+
+Manual review also found that broad synthesis could reopen a threshold or edit-invalidation decision already supplied in the current request, overstate a transfer between domains, or include an optional module without sufficient qualification. A bounded draft revision, verified current-input quotes, and more focused generation instructions improve the boundary but do not guarantee correction. A focused Northbank answer passing automated signals is therefore not counted as semantically verified. Inspect current requirements and original passages before using a cross-case recommendation as an implementation specification.
+
+The live reports and browser screenshots remain local under ignored output/playwright/. They include generated text and excerpts for inspection, not access credentials. Do not upload this verification record or presenter material as historical evidence.

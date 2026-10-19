@@ -86,6 +86,49 @@ test("conversational blocks can be uncited but project advice still requires evi
     ),
   );
 });
+
+test("current requirements retain only exact current-input quotes, never historical or invented rules", () => {
+  const input =
+    "Every request needs manager approval. Finance must be a different actor.";
+  const plan = assistantPlanInput(
+    {
+      intent: "search",
+      queries: ["approval"],
+      caseIds: [],
+      reply: "",
+      explicitRequirements: [
+        "Finance must be a different actor.",
+        "The threshold remains undecided",
+        "Finance must be a different actor.",
+      ],
+    },
+    [],
+    [input],
+  );
+  assert.deepEqual(plan.explicitRequirements, [
+    "Finance must be a different actor.",
+  ]);
+});
+
+test("uncited technical designs cannot be disguised as unknown or conversational sections", () => {
+  for (const kind of ["unknown", "conversation"])
+    assert.throws(() =>
+      validateAnswer(
+        {
+          sections: [
+            {
+              kind,
+              heading: "",
+              text: "```mermaid\nflowchart LR\nA --> B\n```",
+              evidence: [],
+            },
+          ],
+        },
+        [],
+        true,
+      ),
+    );
+});
 test("evidence budgeting interleaves cases, deduplicates chunks, and preserves originals", () => {
   const passage = (
     id: string,

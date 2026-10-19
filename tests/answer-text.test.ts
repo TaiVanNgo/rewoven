@@ -55,3 +55,36 @@ test("section citations stay inside their paragraph or at the end of a complete 
   assert.match(list, /<li>First<\/li><li>Second <a[^>]+>\[1\]<\/a><\/li>/);
   assert.equal(list.match(/\[1\]/g)?.length, 1);
 });
+
+test("technical replies keep code inert and citations outside code blocks", () => {
+  const citations = createElement("a", { href: "/case-library/test" }, "[1]");
+  const html = renderToStaticMarkup(
+    createElement(AnswerText, {
+      text: "An illustrative constraint:\n\n```sql\nSELECT '<script>bad()</script>';\n```",
+      citations,
+    }),
+  );
+  assert.match(html, /<pre><code>SELECT/);
+  assert.match(html, /&lt;script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.equal(html.match(/\[1\]/g)?.length, 1);
+  assert.ok(html.indexOf("[1]") > html.indexOf("</pre>"));
+  assert.match(html, /Copy code/);
+});
+
+test("technical Markdown blocks external content and preserves inline code", () => {
+  const html = render(
+    "Use `operation_key`.\n\n<script>alert(1)</script>\n\n[go](https://example.com) ![image](https://example.com/pixel)",
+  );
+  assert.match(html, /<code>operation_key<\/code>/);
+  assert.doesNotMatch(html, /<(?:a|img|script)\b/);
+});
+
+test("diagram source is available before its lazy preview loads", () => {
+  const html = render(
+    "A static diagram:\n\n```mermaid\nflowchart LR\n  A[Browser] --> B[API]\n```",
+  );
+  assert.match(html, /Diagram source and labels/);
+  assert.match(html, /A\[Browser\]/);
+  assert.match(html, /Copy diagram source/);
+});

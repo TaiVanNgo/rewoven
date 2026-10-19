@@ -35,10 +35,12 @@ export type AssistantPlan = {
   queries: string[];
   caseIds: string[];
   reply: string;
+  explicitRequirements: string[];
 };
 export function assistantPlanInput(
   value: unknown,
   allowedIds: string[],
+  currentInput: string[] = [],
 ): AssistantPlan {
   const item = value as AssistantPlan;
   if (
@@ -62,7 +64,26 @@ export function assistantPlanInput(
     throw new QueryInputError(
       "Wren could not interpret this message. Try rephrasing it.",
     );
-  return item;
+  const quoted = (item as Partial<AssistantPlan>).explicitRequirements ?? [];
+  if (
+    !Array.isArray(quoted) ||
+    quoted.length > 12 ||
+    quoted.some((text) => typeof text !== "string" || text.length > 800)
+  )
+    throw new QueryInputError("Wren returned invalid current requirements.");
+  // Only verbatim current-input excerpts can be promoted to decided rules.
+  // Historical gaps and model paraphrases must not become client requirements.
+  return {
+    ...item,
+    explicitRequirements: [
+      ...new Set(
+        quoted.filter(
+          (quote) =>
+            quote.trim() && currentInput.some((text) => text.includes(quote)),
+        ),
+      ),
+    ],
+  };
 }
 
 // Interleave per-case queues so one large document cannot crowd out a comparison.

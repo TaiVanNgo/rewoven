@@ -156,13 +156,23 @@ export async function processAssistantTurn(
       ? assistantPlanInput(
           await model("assistant_plan", promptInput, config),
           catalog.map((c) => c.id),
+          [
+            message,
+            history.originalRequest.request,
+            ...requestDocuments.evidence.map((e) => e.text),
+          ],
         )
       : {
           intent: "search" as const,
           queries: [message],
           caseIds: [],
           reply: "",
+          explicitRequirements: [],
         };
+    const answerInput = {
+      ...promptInput,
+      explicitRequirements: plan.explicitRequirements,
+    };
     let work: QueryWork = {
       searchQuery: plan.queries.join("\n"),
       focusTitle: null,
@@ -224,18 +234,40 @@ export async function processAssistantTurn(
     if (config) {
       const review = (await model(
         "assistant_review",
-        { ...promptInput, evidence },
+        { ...answerInput, evidence },
         config,
-      )) as { query?: unknown };
+      )) as { query?: unknown; support?: unknown };
       if (
         !review ||
         typeof review.query !== "string" ||
-        review.query.length > 10000
+        review.query.length > 10000 ||
+        (review.support !== undefined &&
+          !["supported", "partial", "none"].includes(String(review.support)))
       )
         throw new ApiError(
           502,
           "Wren returned an invalid evidence check. Retry this turn.",
         );
+      if (review.support === "none") {
+        await save({
+          work,
+          answer: {
+            sections: [
+              {
+                kind: "unknown",
+                heading: "",
+                text: "I couldn’t find passages that support an answer to this question in the current search. Try a different question or add relevant project sources.",
+                evidence: [],
+              },
+            ],
+          },
+          status: "ready",
+          phase: null,
+          processing_token: null,
+          error_message: null,
+        });
+        return queryDetail(conversationId, sessionId);
+      }
       if (review.query.trim()) {
         const more = await retrieveAssistant(
           [review.query],
@@ -294,12 +326,22 @@ export async function processAssistantTurn(
       });
       return queryDetail(conversationId, sessionId);
     }
-    const answer = validateAnswer(
-      await model(
+    const generationInput = {
+      ...answerInput,
+      evidence,
+      coverageWarnings: work.retrieval.warnings,
+    };
+    let generated = await model("assistant_answer", generationInput, config);
+    // New-project synthesis is especially prone to importing unresolved policy
+    // from history. One bounded revision compares the draft with current rules.
+    if (plan.explicitRequirements.length)
+      generated = await model(
         "assistant_answer",
-        { ...promptInput, evidence, coverageWarnings: work.retrieval.warnings },
+        { ...generationInput, draftToReview: generated },
         config,
-      ),
+      );
+    const answer = validateAnswer(
+      generated,
       evidence,
       true,
       requestDocuments.evidence,

@@ -24,15 +24,19 @@ with sync_playwright() as p:
     page.wait_for_url('**/saved-plans/' + fixture['reviewId'])
     page.wait_for_load_state('networkidle')
     expect(page.get_by_role('textbox', name='Requirements', exact=True)).to_have_value('Build a concurrent registration workflow with audit history.')
+    if fixture.get('reviewFailed'):
+        expect(page.get_by_text('The plan has missing sections. Retry generation.', exact=True)).to_be_visible()
+        page.screenshot(path=str(out / 'failed-generation.png'))
 
     def generate(route):
         subprocess.run(['bun', '--env-file=.env.local', 'tests/plans.browser-fixture.ts', '--generate'], check=True)
         response = page.request.get(base + '/api/plans/' + fixture['reviewId'])
         route.fulfill(status=200, content_type='application/json', body=response.text())
     page.route('**/api/plans/' + fixture['reviewId'] + '/generate', generate)
-    page.get_by_role('button', name='Confirm request and generate plan').click()
+    page.get_by_role('button', name='Retry generation' if fixture.get('reviewFailed') else 'Confirm request and generate plan', exact=True).click()
     visual = page.get_by_role('textbox', name='Plan content', exact=True)
     expect(visual).to_be_visible()
+    expect(page.get_by_text('The plan has missing sections. Retry generation.', exact=True)).to_have_count(0)
     expect(page.get_by_role('button', name='Export Markdown', exact=True)).to_be_disabled()
     original = page.request.get(base + '/api/plans/' + fixture['reviewId']).json()['plan']['generated_markdown']
     preview = page.get_by_label('Plan preview')

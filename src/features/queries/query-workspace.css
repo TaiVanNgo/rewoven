@@ -124,6 +124,72 @@ ol.query-answer-list {
 .query-answer-section + .query-answer-section {
   margin-top: 1.125rem;
 }
+.query-technical-text > * + * {
+  margin-top: 0.75rem;
+}
+.query-technical-text ul,
+.query-technical-text ol {
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+.query-technical-text ol {
+  list-style-type: decimal;
+}
+.query-technical-text :not(pre) > code {
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+  background: var(--background);
+  font-size: 0.85em;
+}
+.query-code-block {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+.query-code-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+.query-code-scroll {
+  max-height: 26rem;
+  overflow: auto;
+}
+.query-code-block pre {
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+.query-diagram {
+  padding: 0.75rem;
+}
+.query-diagram-image {
+  overflow: auto;
+}
+.query-diagram-image img {
+  min-width: 36rem;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+.query-diagram summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+.query-diagram figcaption {
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
 .query-answer-section[data-kind="unknown"] {
   border-left: 2px solid var(--caution-foreground);
   padding-left: 0.75rem;
